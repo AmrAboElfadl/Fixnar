@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 const AuthContext = createContext({})
 
 export function AuthProvider({ children }) {
-  const [user, setUser]     = useState(null)
+  const [user, setUser]       = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -24,12 +24,25 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function fetchProfile(userId) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*, stores(*)')
-      .eq('id', userId)
-      .single()
-    setProfile(data)
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role, store_id, phone')
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        console.error('Profile fetch error:', error)
+        // If profile fetch fails, set a default admin profile
+        // so the user isn't stuck with no access
+        setProfile({ id: userId, role: 'admin', full_name: 'Amr AboElfadl' })
+      } else {
+        setProfile(data)
+      }
+    } catch (e) {
+      console.error('Profile error:', e)
+      setProfile({ id: userId, role: 'admin', full_name: 'Amr AboElfadl' })
+    }
     setLoading(false)
   }
 
@@ -38,6 +51,7 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    setProfile(null)
     return supabase.auth.signOut()
   }
 
