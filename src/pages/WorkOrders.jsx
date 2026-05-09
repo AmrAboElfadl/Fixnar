@@ -3,36 +3,48 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import SLABadge from '../components/SLABadge'
 import { useSearchParams } from 'react-router-dom'
+import { CATEGORIES, PRIORITY_COLORS } from '../lib/workOrderCategories'
 
-const P_COLORS = { P1:'#f85149', P2:'#EF9F27', P3:'#378ADD', P4:'#1D9E75' }
 const STATUSES = ['open','in_progress','on_hold','closed']
-const PRIORITIES = ['P1','P2','P3','P4']
 
-const EMPTY_FORM = { title:'', description:'', priority:'P2', store_id:'', asset_id:'', assigned_to:'', status:'open' }
+const EMPTY = {
+  category: '', subcategory: '', fault: '',
+  asset_id: '', store_id: '', assigned_to: '',
+  priority: '', description: '', status: 'open'
+}
 
 export default function WorkOrders() {
-  const { profile, isAdmin, isOperations } = useAuth()
+  const { profile, isAdmin } = useAuth()
   const [searchParams] = useSearchParams()
   const [wos, setWos]       = useState([])
   const [stores, setStores] = useState([])
   const [assets, setAssets] = useState([])
+  const [filteredAssets, setFilteredAssets] = useState([])
   const [techs, setTechs]   = useState([])
   const [loading, setLoading]   = useState(true)
   const [showForm, setShowForm] = useState(!!searchParams.get('new'))
-  const [form, setForm]         = useState(EMPTY_FORM)
+  const [form, setForm]         = useState(EMPTY)
   const [saving, setSaving]     = useState(false)
-  const [filterStatus, setFilterStatus] = useState('all')
+  const [filterStatus, setFilterStatus]     = useState('all')
   const [filterPriority, setFilterPriority] = useState('all')
   const [search, setSearch] = useState('')
 
   useEffect(() => { fetchAll() }, [])
 
+  useEffect(() => {
+    if (form.store_id) {
+      setFilteredAssets(assets.filter(a => a.store_id === form.store_id))
+    } else {
+      setFilteredAssets(assets)
+    }
+  }, [form.store_id, assets])
+
   async function fetchAll() {
     setLoading(true)
     const [woRes, storeRes, assetRes, techRes] = await Promise.all([
       supabase.from('work_orders').select('*,stores(name),assets(name),profiles(full_name)').order('created_at', { ascending:false }),
-      supabase.from('stores').select('id,name'),
-      supabase.from('assets').select('id,name'),
+      supabase.from('stores').select('id,name').order('name'),
+      supabase.from('assets').select('id,name,store_id').order('name'),
       supabase.from('profiles').select('id,full_name').eq('role','technician'),
     ])
     setWos(woRes.data || [])
@@ -42,12 +54,36 @@ export default function WorkOrders() {
     setLoading(false)
   }
 
+  function handleCategoryChange(cat) {
+    setForm({ ...form, category: cat, subcategory: '', fault: '', priority: '' })
+  }
+
+  function handleSubcategoryChange(sub) {
+    setForm({ ...form, subcategory: sub, fault: '', priority: '' })
+  }
+
+  function handleFaultChange(faultName) {
+    const sub = CATEGORIES[form.category]?.subcategories[form.subcategory]
+    const fault = sub?.faults.find(f => f.name === faultName)
+    setForm({ ...form, fault: faultName, priority: fault?.priority || '' })
+  }
+
   async function handleSave() {
+    if (!form.category || !form.fault || !form.priority) return
     setSaving(true)
-    const payload = { ...form, created_by: profile.id }
-    if (!isAdmin) payload.store_id = profile.store_id
+    const title = `${form.category} — ${form.subcategory} — ${form.fault}`
+    const payload = {
+      title,
+      description: form.description,
+      priority: form.priority,
+      status: 'open',
+      store_id: form.store_id || null,
+      asset_id: form.asset_id || null,
+      assigned_to: form.assigned_to || null,
+      created_by: profile.id,
+    }
     const { error } = await supabase.from('work_orders').insert(payload)
-    if (!error) { setShowForm(false); setForm(EMPTY_FORM); fetchAll() }
+    if (!error) { setShowForm(false); setForm(EMPTY); fetchAll() }
     setSaving(false)
   }
 
@@ -60,9 +96,13 @@ export default function WorkOrders() {
     if (filterStatus !== 'all' && w.status !== filterStatus) return false
     if (filterPriority !== 'all' && w.priority !== filterPriority) return false
     if (search && !w.title?.toLowerCase().includes(search.toLowerCase())) return false
-    if (isOperations && profile?.store_id && w.store_id !== profile.store_id) return false
     return true
   })
+
+  const subcategories = form.category ? Object.keys(CATEGORIES[form.category]?.subcategories || {}) : []
+  const faults = form.subcategory ? CATEGORIES[form.category]?.subcategories[form.subcategory]?.faults || [] : []
+  const suggestedPriority = form.fault ? faults.find(f => f.name === form.fault)?.priority : null
+  const canSave = form.category && form.subcategory && form.fault && form.priority && form.store_id
 
   const inp = { background:'#0d1117', border:'1px solid #30363d', borderRadius:8, padding:'9px 12px', color:'#e6edf3', fontSize:13, width:'100%', boxSizing:'border-box', outline:'none' }
   const sel = { ...inp, cursor:'pointer' }
@@ -81,49 +121,105 @@ export default function WorkOrders() {
 
       {/* Filters */}
       <div style={{ display:'flex', gap:10, marginBottom:16, flexWrap:'wrap' }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search work orders..." style={{ ...inp, width:200 }}/>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search work orders..." style={{ ...inp, width:220 }}/>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...sel, width:140 }}>
           <option value="all">All status</option>
           {STATUSES.map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
         </select>
         <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} style={{ ...sel, width:130 }}>
           <option value="all">All priority</option>
-          {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+          {['P1','P2','P3','P4'].map(p => <option key={p} value={p}>{p}</option>)}
         </select>
       </div>
 
-      {/* New WO Form */}
+      {/* NEW WORK ORDER FORM */}
       {showForm && (
         <div style={{ background:'#161b22', border:'1px solid #1D9E75', borderRadius:12, padding:24, marginBottom:20 }}>
-          <h3 style={{ color:'#e6edf3', fontSize:15, fontWeight:500, margin:'0 0 18px' }}>Create New Work Order</h3>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-            <div style={{ gridColumn:'1/-1' }}>
-              <label style={{ color:'#8b949e', fontSize:12, display:'block', marginBottom:5 }}>Title *</label>
-              <input style={inp} value={form.title} onChange={e => setForm({...form, title:e.target.value})} placeholder="Describe the issue..."/>
-            </div>
+          <h3 style={{ color:'#e6edf3', fontSize:15, fontWeight:500, margin:'0 0 20px' }}>Create New Work Order</h3>
+
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:16 }}>
+            {/* Step 1 — Category */}
             <div>
-              <label style={{ color:'#8b949e', fontSize:12, display:'block', marginBottom:5 }}>Priority *</label>
-              <select style={sel} value={form.priority} onChange={e => setForm({...form, priority:e.target.value})}>
-                <option value="P1">P1 — Critical (4h SLA)</option>
-                <option value="P2">P2 — High (8h SLA)</option>
-                <option value="P3">P3 — Medium (12h SLA)</option>
-                <option value="P4">P4 — Low (7 days SLA)</option>
+              <label style={{ color:'#8b949e', fontSize:12, display:'block', marginBottom:5 }}>
+                1. Category *
+              </label>
+              <select style={sel} value={form.category} onChange={e => handleCategoryChange(e.target.value)}>
+                <option value="">Select category</option>
+                {Object.entries(CATEGORIES).map(([cat, val]) => (
+                  <option key={cat} value={cat}>{val.icon} {cat}</option>
+                ))}
               </select>
             </div>
+
+            {/* Step 2 — Subcategory */}
             <div>
-              <label style={{ color:'#8b949e', fontSize:12, display:'block', marginBottom:5 }}>Store / Location</label>
-              <select style={sel} value={form.store_id} onChange={e => setForm({...form, store_id:e.target.value})}>
+              <label style={{ color:'#8b949e', fontSize:12, display:'block', marginBottom:5 }}>
+                2. Subcategory *
+              </label>
+              <select style={{ ...sel, opacity: !form.category ? 0.5 : 1 }} value={form.subcategory} onChange={e => handleSubcategoryChange(e.target.value)} disabled={!form.category}>
+                <option value="">Select subcategory</option>
+                {subcategories.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            {/* Step 3 — Fault */}
+            <div>
+              <label style={{ color:'#8b949e', fontSize:12, display:'block', marginBottom:5 }}>
+                3. Fault *
+              </label>
+              <select style={{ ...sel, opacity: !form.subcategory ? 0.5 : 1 }} value={form.fault} onChange={e => handleFaultChange(e.target.value)} disabled={!form.subcategory}>
+                <option value="">Select fault</option>
+                {faults.map(f => <option key={f.name} value={f.name}>{f.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Priority — auto suggested */}
+          {form.fault && (
+            <div style={{ background:'#0d1117', border:'1px solid #30363d', borderRadius:8, padding:'12px 16px', marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+              <span style={{ color:'#8b949e', fontSize:13 }}>Suggested Priority:</span>
+              <div style={{ display:'flex', gap:8 }}>
+                {['P1','P2','P3','P4'].map(p => (
+                  <button key={p} onClick={() => setForm({...form, priority: p})}
+                    style={{
+                      background: form.priority === p ? PRIORITY_COLORS[p].bg : 'transparent',
+                      color: form.priority === p ? PRIORITY_COLORS[p].text : '#6b7280',
+                      border: `1px solid ${form.priority === p ? PRIORITY_COLORS[p].text : '#30363d'}`,
+                      borderRadius:6, padding:'4px 12px', fontSize:12, fontWeight:600, cursor:'pointer',
+                      outline: suggestedPriority === p && form.priority !== p ? `2px dashed ${PRIORITY_COLORS[p].text}` : 'none'
+                    }}>
+                    {p} {suggestedPriority === p ? '⭐' : ''}
+                  </button>
+                ))}
+              </div>
+              {suggestedPriority && (
+                <span style={{ color:'#6b7280', fontSize:12 }}>
+                  ⭐ = auto-suggested based on fault type
+                </span>
+              )}
+            </div>
+          )}
+
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
+            {/* Store */}
+            <div>
+              <label style={{ color:'#8b949e', fontSize:12, display:'block', marginBottom:5 }}>Store / Location *</label>
+              <select style={sel} value={form.store_id} onChange={e => setForm({...form, store_id:e.target.value, asset_id:''})}>
                 <option value="">Select store</option>
                 {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
+
+            {/* Asset */}
             <div>
               <label style={{ color:'#8b949e', fontSize:12, display:'block', marginBottom:5 }}>Asset</label>
-              <select style={sel} value={form.asset_id} onChange={e => setForm({...form, asset_id:e.target.value})}>
+              <select style={{ ...sel, opacity: !form.store_id ? 0.5 : 1 }} value={form.asset_id} onChange={e => setForm({...form, asset_id:e.target.value})} disabled={!form.store_id}>
                 <option value="">Select asset</option>
-                {assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                {filteredAssets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
+
+            {/* Technician */}
             {isAdmin && (
               <div>
                 <label style={{ color:'#8b949e', fontSize:12, display:'block', marginBottom:5 }}>Assign Technician</label>
@@ -133,33 +229,48 @@ export default function WorkOrders() {
                 </select>
               </div>
             )}
-            <div style={{ gridColumn:'1/-1' }}>
-              <label style={{ color:'#8b949e', fontSize:12, display:'block', marginBottom:5 }}>Description</label>
-              <textarea style={{ ...inp, height:80, resize:'vertical' }} value={form.description} onChange={e => setForm({...form, description:e.target.value})} placeholder="Additional details..."/>
+
+            {/* Description */}
+            <div style={{ gridColumn: isAdmin ? '2' : '1/-1' }}>
+              <label style={{ color:'#8b949e', fontSize:12, display:'block', marginBottom:5 }}>Additional Notes</label>
+              <textarea style={{ ...inp, height:72, resize:'vertical' }} value={form.description} onChange={e => setForm({...form, description:e.target.value})} placeholder="Any additional details..."/>
             </div>
           </div>
-          <div style={{ display:'flex', gap:10, marginTop:16 }}>
-            <button onClick={handleSave} disabled={saving || !form.title} style={{ background: saving||!form.title?'#155740':'#1D9E75', color:'white', border:'none', borderRadius:8, padding:'10px 20px', fontSize:13, fontWeight:500, cursor: saving||!form.title?'not-allowed':'pointer' }}>
-              {saving ? 'Saving...' : 'Create Work Order'}
+
+          {/* Preview title */}
+          {form.fault && (
+            <div style={{ background:'#1a2b3c', border:'1px solid #1f3a56', borderRadius:8, padding:'10px 14px', marginBottom:16 }}>
+              <span style={{ color:'#6b7280', fontSize:12 }}>Work order title: </span>
+              <span style={{ color:'#378ADD', fontSize:13, fontWeight:500 }}>
+                {form.category} — {form.subcategory} — {form.fault}
+              </span>
+            </div>
+          )}
+
+          <div style={{ display:'flex', gap:10 }}>
+            <button onClick={handleSave} disabled={saving || !canSave}
+              style={{ background: saving||!canSave ? '#155740':'#1D9E75', color:'white', border:'none', borderRadius:8, padding:'10px 20px', fontSize:13, fontWeight:500, cursor: saving||!canSave?'not-allowed':'pointer' }}>
+              {saving ? 'Creating...' : 'Create Work Order'}
             </button>
-            <button onClick={() => { setShowForm(false); setForm(EMPTY_FORM) }} style={{ background:'transparent', color:'#8b949e', border:'1px solid #30363d', borderRadius:8, padding:'10px 16px', fontSize:13, cursor:'pointer' }}>
+            <button onClick={() => { setShowForm(false); setForm(EMPTY) }}
+              style={{ background:'transparent', color:'#8b949e', border:'1px solid #30363d', borderRadius:8, padding:'10px 16px', fontSize:13, cursor:'pointer' }}>
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      {/* Table */}
+      {/* TABLE */}
       <div style={{ background:'#161b22', border:'1px solid #21262d', borderRadius:12, overflow:'hidden' }}>
         {loading ? (
-          <div style={{ padding:40, textAlign:'center', color:'#6b7280' }}>Loading work orders...</div>
+          <div style={{ padding:40, textAlign:'center', color:'#6b7280' }}>Loading...</div>
         ) : filtered.length === 0 ? (
           <div style={{ padding:40, textAlign:'center', color:'#6b7280' }}>No work orders found</div>
         ) : (
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead>
               <tr style={{ borderBottom:'1px solid #21262d' }}>
-                {['#','Priority','Title','Store','Assigned To','Status','SLA'].map(h => (
+                {['#','Priority','Title','Store','Assigned','Status','SLA'].map(h => (
                   <th key={h} style={{ padding:'10px 14px', color:'#6b7280', fontSize:12, fontWeight:500, textAlign:'left', whiteSpace:'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -172,11 +283,13 @@ export default function WorkOrders() {
                 >
                   <td style={{ padding:'12px 14px', color:'#6b7280', fontSize:12 }}>#{String(i+1).padStart(4,'0')}</td>
                   <td style={{ padding:'12px 14px' }}>
-                    <span style={{ background: P_COLORS[wo.priority]+'22', color: P_COLORS[wo.priority], fontSize:11, padding:'3px 10px', borderRadius:6, fontWeight:600 }}>{wo.priority}</span>
+                    <span style={{ background: PRIORITY_COLORS[wo.priority]?.bg, color: PRIORITY_COLORS[wo.priority]?.text, fontSize:11, padding:'3px 10px', borderRadius:6, fontWeight:600 }}>{wo.priority}</span>
                   </td>
-                  <td style={{ padding:'12px 14px', color:'#e6edf3', fontSize:13, maxWidth:200 }}>{wo.title}</td>
-                  <td style={{ padding:'12px 14px', color:'#8b949e', fontSize:12 }}>{wo.stores?.name || '—'}</td>
-                  <td style={{ padding:'12px 14px', color:'#8b949e', fontSize:12 }}>{wo.profiles?.full_name || 'Unassigned'}</td>
+                  <td style={{ padding:'12px 14px', color:'#e6edf3', fontSize:13, maxWidth:260 }}>
+                    <div style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{wo.title}</div>
+                  </td>
+                  <td style={{ padding:'12px 14px', color:'#8b949e', fontSize:12, whiteSpace:'nowrap' }}>{wo.stores?.name || '—'}</td>
+                  <td style={{ padding:'12px 14px', color:'#8b949e', fontSize:12, whiteSpace:'nowrap' }}>{wo.profiles?.full_name || 'Unassigned'}</td>
                   <td style={{ padding:'12px 14px' }}>
                     <select value={wo.status} onChange={e => updateStatus(wo.id, e.target.value)}
                       style={{ background:'#0d1117', border:'1px solid #30363d', borderRadius:6, padding:'4px 8px', color:'#e6edf3', fontSize:12, cursor:'pointer' }}>
