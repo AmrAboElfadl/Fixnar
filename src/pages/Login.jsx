@@ -1,6 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
+
+const MAX_ATTEMPTS = 10
+const LOCKOUT_MINUTES = 10
+const STORAGE_KEY = 'fixnar_reset_attempts'
+
+function getAttemptData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : { count: 0, lockedAt: null }
+  } catch { return { count: 0, lockedAt: null } }
+}
+
+function saveAttemptData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+}
 
 export default function Login() {
   const { signIn } = useAuth()
@@ -8,9 +23,36 @@ export default function Login() {
   const [password, setPassword]   = useState('')
   const [error, setError]         = useState('')
   const [loading, setLoading]     = useState(false)
-  const [mode, setMode]           = useState('login') // 'login' | 'forgot'
+  const [mode, setMode]           = useState('login')
   const [resetSent, setResetSent] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
+  const [attemptsLeft, setAttemptsLeft] = useState(MAX_ATTEMPTS)
+  const [lockoutRemaining, setLockoutRemaining] = useState(0)
+
+  useEffect(() => {
+    checkLockout()
+    const interval = setInterval(checkLockout, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  function checkLockout() {
+    const data = getAttemptData()
+    if (data.lockedAt) {
+      const elapsed = (Date.now() - data.lockedAt) / 1000 / 60
+      if (elapsed >= LOCKOUT_MINUTES) {
+        saveAttemptData({ count: 0, lockedAt: null })
+        setLockoutRemaining(0)
+        setAttemptsLeft(MAX_ATTEMPTS)
+      } else {
+        const remaining = Math.ceil(LOCKOUT_MINUTES - elapsed)
+        setLockoutRemaining(remaining)
+        setAttemptsLeft(0)
+      }
+    } else {
+      setAttemptsLeft(MAX_ATTEMPTS - data.count)
+      setLockoutRemaining(0)
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -22,22 +64,66 @@ export default function Login() {
 
   async function handleForgotPassword(e) {
     e.preventDefault()
+    setError('')
+
+    const data = getAttemptData()
+
+    if (data.lockedAt) {
+      const elapsed = (Date.now() - data.lockedAt) / 1000 / 60
+      if (elapsed < LOCKOUT_MINUTES) {
+        const remaining = Math.ceil(LOCKOUT_MINUTES - elapsed)
+        setError(`Too many attempts. Please wait ${remaining} minute${remaining > 1 ? 's' : ''} before trying again.`)
+        return
+      } else {
+        saveAttemptData({ count: 0, lockedAt: null })
+      }
+    }
+
+    if (data.count >= MAX_ATTEMPTS) {
+      const lockedData = { count: data.count, lockedAt: Date.now() }
+      saveAttemptData(lockedData)
+      setLockoutRemaining(LOCKOUT_MINUTES)
+      setAttemptsLeft(0)
+      setError(`Too many attempts. Please wait ${LOCKOUT_MINUTES} minutes before trying again.`)
+      return
+    }
+
     if (!email) { setError('Please enter your email address first'); return }
-    setResetLoading(true); setError('')
+
+    setResetLoading(true)
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     })
-    if (error) { setError(error.message); setResetLoading(false); return }
+
+    if (error) {
+      if (error.message.toLowerCase().includes('rate limit')) {
+        const newCount = data.count + 1
+        const newData = newCount >= MAX_ATTEMPTS
+          ? { count: newCount, lockedAt: Date.now() }
+          : { count: newCount, lockedAt: null }
+        saveAttemptData(newData)
+        setAttemptsLeft(MAX_ATTEMPTS - newCount)
+        setError(`Too many requests. ${MAX_ATTEMPTS - newCount} attempt${MAX_ATTEMPTS - newCount !== 1 ? 's' : ''} remaining before 10-minute lockout.`)
+      } else {
+        setError(error.message)
+      }
+      setResetLoading(false)
+      return
+    }
+
+    const newCount = data.count + 1
+    saveAttemptData({ count: newCount, lockedAt: null })
+    setAttemptsLeft(MAX_ATTEMPTS - newCount)
     setResetSent(true)
     setResetLoading(false)
   }
 
   const s = {
     wrap:  { minHeight:'100vh', background:'#0d1117', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'DM Sans', sans-serif" },
-    card:  { width:'100%', maxWidth:400, padding:'0 24px' },
     box:   { background:'#161b22', border:'1px solid #30363d', borderRadius:16, padding:32 },
-    err:   { background:'#2d1b1b', border:'1px solid #f85149', borderRadius:8, padding:'10px 14px', marginBottom:16, color:'#f85149', fontSize:13 },
+    err:   { background:'#2d1b1b', border:'1px solid #f85149', borderRadius:8, padding:'10px 14px', marginBottom:16, color:'#f85149', fontSize:13, lineHeight:1.5 },
     ok:    { background:'#1d2f26', border:'1px solid #1D9E75', borderRadius:8, padding:'14px 16px', marginBottom:16, color:'#1D9E75', fontSize:13, lineHeight:1.6 },
+    warn:  { background:'#2d2208', border:'1px solid #EF9F27', borderRadius:8, padding:'10px 14px', marginBottom:16, color:'#EF9F27', fontSize:13 },
     label: { display:'block', color:'#8b949e', fontSize:13, marginBottom:6 },
     inp:   { width:'100%', background:'#0d1117', border:'1px solid #30363d', borderRadius:8, padding:'10px 14px', color:'#e6edf3', fontSize:14, outline:'none', boxSizing:'border-box' },
     btn:   { width:'100%', color:'white', border:'none', borderRadius:8, padding:'12px', fontSize:15, fontWeight:500, transition:'background 0.2s' },
@@ -47,9 +133,8 @@ export default function Login() {
   return (
     <div style={s.wrap}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
-      <div style={s.card}>
+      <div style={{ width:'100%', maxWidth:400, padding:'0 24px' }}>
 
-        {/* Logo */}
         <div style={{ textAlign:'center', marginBottom:40 }}>
           <div style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:56, height:56, background:'#1D9E75', borderRadius:16, marginBottom:16 }}>
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -63,26 +148,34 @@ export default function Login() {
 
         <div style={s.box}>
 
-          {/* ── FORGOT PASSWORD ── */}
+          {/* FORGOT PASSWORD */}
           {mode === 'forgot' && (
             <>
               <h2 style={{ color:'#e6edf3', fontSize:18, fontWeight:500, margin:'0 0 8px' }}>Reset your password</h2>
               <p style={{ color:'#6b7280', fontSize:13, margin:'0 0 24px', lineHeight:1.6 }}>
-                Enter your registered email and we'll send you a reset link instantly.
+                Enter your registered email and we'll send a reset link instantly.
               </p>
 
               {error && <div style={s.err}>{error}</div>}
+
+              {lockoutRemaining > 0 && (
+                <div style={s.warn}>
+                  🔒 Locked out for {lockoutRemaining} more minute{lockoutRemaining > 1 ? 's' : ''}. Please wait before trying again.
+                </div>
+              )}
 
               {resetSent ? (
                 <>
                   <div style={s.ok}>
                     ✅ Reset link sent to <strong>{email}</strong><br/><br/>
-                    Check your inbox and click the link to create a new password. The link expires in 1 hour.
+                    Check your inbox and click the link. It expires in 1 hour.
                   </div>
-                  <button
-                    onClick={() => { setMode('login'); setResetSent(false); setError('') }}
-                    style={{ ...s.btn, background:'#1D9E75', cursor:'pointer' }}
-                  >
+                  {attemptsLeft < MAX_ATTEMPTS && attemptsLeft > 0 && (
+                    <div style={{ color:'#6b7280', fontSize:12, marginBottom:16, textAlign:'center' }}>
+                      {attemptsLeft} reset attempt{attemptsLeft !== 1 ? 's' : ''} remaining
+                    </div>
+                  )}
+                  <button onClick={() => { setMode('login'); setResetSent(false); setError('') }} style={{ ...s.btn, background:'#1D9E75', cursor:'pointer' }}>
                     Back to sign in
                   </button>
                 </>
@@ -95,17 +188,26 @@ export default function Login() {
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       required
-                      style={s.inp}
+                      disabled={lockoutRemaining > 0}
+                      style={{ ...s.inp, opacity: lockoutRemaining > 0 ? 0.5 : 1 }}
                       placeholder="you@company.com"
                     />
                   </div>
+
+                  {attemptsLeft < MAX_ATTEMPTS && attemptsLeft > 0 && (
+                    <div style={{ color:'#EF9F27', fontSize:12, marginBottom:12 }}>
+                      ⚠ {attemptsLeft} attempt{attemptsLeft !== 1 ? 's' : ''} remaining before 10-minute lockout
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    disabled={resetLoading}
-                    style={{ ...s.btn, background: resetLoading ? '#155740' : '#1D9E75', cursor: resetLoading ? 'not-allowed' : 'pointer', marginBottom:16 }}
+                    disabled={resetLoading || lockoutRemaining > 0}
+                    style={{ ...s.btn, background: resetLoading || lockoutRemaining > 0 ? '#155740' : '#1D9E75', cursor: resetLoading || lockoutRemaining > 0 ? 'not-allowed' : 'pointer', marginBottom:16 }}
                   >
-                    {resetLoading ? 'Sending...' : 'Send reset link'}
+                    {resetLoading ? 'Sending...' : lockoutRemaining > 0 ? `Locked — wait ${lockoutRemaining} min` : 'Send reset link'}
                   </button>
+
                   <div style={{ textAlign:'center' }}>
                     <button type="button" onClick={() => { setMode('login'); setError('') }} style={s.link}>
                       ← Back to sign in
@@ -116,52 +218,26 @@ export default function Login() {
             </>
           )}
 
-          {/* ── LOGIN ── */}
+          {/* LOGIN */}
           {mode === 'login' && (
             <>
               <h2 style={{ color:'#e6edf3', fontSize:18, fontWeight:500, margin:'0 0 24px' }}>Sign in to your account</h2>
-
               {error && <div style={s.err}>{error}</div>}
-
               <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom:16 }}>
                   <label style={s.label}>Email address</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    required
-                    style={s.inp}
-                    placeholder="you@company.com"
-                  />
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={s.inp} placeholder="you@company.com"/>
                 </div>
-
                 <div style={{ marginBottom:24 }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
                     <label style={{ ...s.label, marginBottom:0 }}>Password</label>
-                    <button
-                      type="button"
-                      onClick={() => { setMode('forgot'); setError('') }}
-                      style={s.link}
-                    >
+                    <button type="button" onClick={() => { setMode('forgot'); setError('') }} style={s.link}>
                       Forgot password?
                     </button>
                   </div>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
-                    style={s.inp}
-                    placeholder="••••••••"
-                  />
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={s.inp} placeholder="••••••••"/>
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{ ...s.btn, background: loading ? '#155740' : '#1D9E75', cursor: loading ? 'not-allowed' : 'pointer' }}
-                >
+                <button type="submit" disabled={loading} style={{ ...s.btn, background: loading ? '#155740' : '#1D9E75', cursor: loading ? 'not-allowed' : 'pointer' }}>
                   {loading ? 'Signing in...' : 'Sign in'}
                 </button>
               </form>
