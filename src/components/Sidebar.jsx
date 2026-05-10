@@ -31,8 +31,8 @@ export default function Sidebar({ collapsed, onToggle }) {
   return (
     <aside style={{
       width: w, minHeight:'100vh',
-      background:'#161b22',
-      borderRight:'1px solid #21262d',
+      background:'var(--sidebar-bg)',
+      borderRight:'1px solid var(--border)',
       display:'flex', flexDirection:'column',
       position:'fixed', top:0, left:0, zIndex:100,
       fontFamily:"'DM Sans', sans-serif",
@@ -40,7 +40,7 @@ export default function Sidebar({ collapsed, onToggle }) {
       overflow:'hidden',
     }}>
       {/* Logo + toggle */}
-      <div style={{ padding:'16px 14px', borderBottom:'1px solid #21262d', display:'flex', alignItems:'center', justifyContent: collapsed ? 'center' : 'space-between', minHeight:64 }}>
+      <div style={{ padding:'16px 14px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent: collapsed ? 'center' : 'space-between', minHeight:64 }}>
         {!collapsed && (
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <div style={{ width:32, height:32, background:'#1D9E75', borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
@@ -50,8 +50,8 @@ export default function Sidebar({ collapsed, onToggle }) {
               </svg>
             </div>
             <div>
-              <div style={{ color:'#e6edf3', fontSize:15, fontWeight:600, letterSpacing:'-0.3px', whiteSpace:'nowrap' }}>Fixnar</div>
-              <div style={{ color:'#6b7280', fontSize:10, whiteSpace:'nowrap' }}>CMMS Platform</div>
+              <div style={{ color:'var(--text)', fontSize:15, fontWeight:600, letterSpacing:'-0.3px', whiteSpace:'nowrap' }}>Fixnar</div>
+              <div style={{ color:'var(--text3)', fontSize:10, whiteSpace:'nowrap' }}>CMMS Platform</div>
             </div>
           </div>
         )}
@@ -65,7 +65,7 @@ export default function Sidebar({ collapsed, onToggle }) {
         )}
         {!collapsed && (
           <button onClick={onToggle} title="Collapse sidebar"
-            style={{ background:'transparent', border:'1px solid #30363d', color:'#8b949e', cursor:'pointer', padding:'4px 8px', borderRadius:6, fontSize:13, fontWeight:500 }}>
+            style={{ background:'transparent', border:'1px solid var(--border2)', color:'var(--text2)', cursor:'pointer', padding:'4px 8px', borderRadius:6, fontSize:13, fontWeight:500 }}>
             ◀
           </button>
         )}
@@ -73,9 +73,9 @@ export default function Sidebar({ collapsed, onToggle }) {
 
       {/* Expand button when collapsed */}
       {collapsed && (
-        <div style={{ padding:'8px 0', borderBottom:'1px solid #21262d', display:'flex', justifyContent:'center' }}>
+        <div style={{ padding:'8px 0', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'center' }}>
           <button onClick={onToggle} title="Expand sidebar"
-            style={{ background:'transparent', border:'1px solid #30363d', color:'#8b949e', cursor:'pointer', padding:'4px 8px', borderRadius:6, fontSize:13, fontWeight:500 }}>
+            style={{ background:'transparent', border:'1px solid var(--border2)', color:'var(--text2)', cursor:'pointer', padding:'4px 8px', borderRadius:6, fontSize:13, fontWeight:500 }}>
             ▶
           </button>
         </div>
@@ -108,7 +108,7 @@ export default function Sidebar({ collapsed, onToggle }) {
       </nav>
 
       {/* User profile */}
-      <div style={{ padding:'12px 8px', borderTop:'1px solid #21262d' }}>
+      <div style={{ padding:'12px 8px', borderTop:'1px solid var(--border)' }}>
         {!collapsed ? (
           <>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, padding:'6px 4px' }}>
@@ -116,15 +116,15 @@ export default function Sidebar({ collapsed, onToggle }) {
                 {initials}
               </div>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ color:'#e6edf3', fontSize:13, fontWeight:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                <div style={{ color:'var(--text)', fontSize:13, fontWeight:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {profile?.full_name || 'User'}
                 </div>
                 <div style={{ color: rc, fontSize:11, textTransform:'capitalize' }}>{role}</div>
               </div>
             </div>
             <button onClick={handleSignOut} style={{
-              width:'100%', background:'transparent', border:'1px solid #30363d',
-              borderRadius:8, padding:'7px', color:'#8b949e', fontSize:12,
+              width:'100%', background:'transparent', border:'1px solid var(--border2)',
+              borderRadius:8, padding:'7px', color:'var(--text2)', fontSize:12,
               cursor:'pointer', transition:'all 0.15s',
             }}>
               Sign out
@@ -136,7 +136,7 @@ export default function Sidebar({ collapsed, onToggle }) {
               {initials}
             </div>
             <button onClick={handleSignOut} title="Sign out"
-              style={{ background:'transparent', border:'1px solid #30363d', borderRadius:8, padding:'6px', color:'#8b949e', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              style={{ background:'transparent', border:'1px solid var(--border2)', borderRadius:8, padding:'6px', color:'var(--text2)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
               ↩
             </button>
           </div>
