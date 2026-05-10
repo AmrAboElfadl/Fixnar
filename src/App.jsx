@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import Sidebar from './components/Sidebar'
 import Login from './pages/Login'
 import ResetPassword from './pages/ResetPassword'
+import WorkOrderDetail from './pages/WorkOrderDetail'
 import Dashboard from './pages/Dashboard'
 import WorkOrders from './pages/WorkOrders'
 import Assets from './pages/Assets'
@@ -59,6 +60,7 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword/>}/>
       <Route path="/" element={<ProtectedRoute><AppLayout><Dashboard/></AppLayout></ProtectedRoute>}/>
       <Route path="/work-orders" element={<ProtectedRoute><AppLayout><WorkOrders/></AppLayout></ProtectedRoute>}/>
+      <Route path="/work-orders/:id" element={<ProtectedRoute><AppLayout><WorkOrderDetail/></AppLayout></ProtectedRoute>}/>
       <Route path="/assets" element={<ProtectedRoute roles={['admin','operations']}><AppLayout><Assets/></AppLayout></ProtectedRoute>}/>
       <Route path="/ppm" element={<ProtectedRoute roles={['admin','technician']}><AppLayout><PPM/></AppLayout></ProtectedRoute>}/>
       <Route path="/schedule" element={<ProtectedRoute roles={['admin','technician']}><AppLayout><Schedule/></AppLayout></ProtectedRoute>}/>
