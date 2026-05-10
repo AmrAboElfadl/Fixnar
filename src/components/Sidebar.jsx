@@ -65,8 +65,8 @@ export default function Sidebar({ collapsed, onToggle }) {
         )}
         {!collapsed && (
           <button onClick={onToggle} title="Collapse sidebar"
-            style={{ background:'transparent', border:'none', color:'#6b7280', cursor:'pointer', padding:4, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <i className="ti ti-layout-sidebar-left-collapse" style={{ fontSize:18 }} aria-hidden="true"/>
+            style={{ background:'transparent', border:'1px solid #30363d', color:'#8b949e', cursor:'pointer', padding:'4px 8px', borderRadius:6, fontSize:13, fontWeight:500 }}>
+            ◀
           </button>
         )}
       </div>
@@ -75,8 +75,8 @@ export default function Sidebar({ collapsed, onToggle }) {
       {collapsed && (
         <div style={{ padding:'8px 0', borderBottom:'1px solid #21262d', display:'flex', justifyContent:'center' }}>
           <button onClick={onToggle} title="Expand sidebar"
-            style={{ background:'transparent', border:'none', color:'#6b7280', cursor:'pointer', padding:6, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <i className="ti ti-layout-sidebar-right-collapse" style={{ fontSize:18 }} aria-hidden="true"/>
+            style={{ background:'transparent', border:'1px solid #30363d', color:'#8b949e', cursor:'pointer', padding:'4px 8px', borderRadius:6, fontSize:13, fontWeight:500 }}>
+            ▶
           </button>
         </div>
       )}
@@ -137,7 +137,7 @@ export default function Sidebar({ collapsed, onToggle }) {
             </div>
             <button onClick={handleSignOut} title="Sign out"
               style={{ background:'transparent', border:'1px solid #30363d', borderRadius:8, padding:'6px', color:'#8b949e', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <i className="ti ti-logout" style={{ fontSize:16 }} aria-hidden="true"/>
+              ↩
             </button>
           </div>
         )}
