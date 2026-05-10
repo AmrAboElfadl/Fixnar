@@ -26,7 +26,7 @@ export default function Dashboard() {
       const wos = woRes.data || []
       setStats({
         total:      wos.length,
-        open:       wos.filter(w => w.status === 'open').length,
+        open:       wos.filter(w => ['open','travelling','arrived'].includes(w.status)).length,
         inProgress: wos.filter(w => w.status === 'in_progress').length,
         closed:     wos.filter(w => w.status === 'closed').length,
         ppmDue:     (ppmRes.data || []).length,
