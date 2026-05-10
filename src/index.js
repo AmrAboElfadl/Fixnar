@@ -1,67 +1,7 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import './index.css'
+import App from './App'
 
-/* ── LIGHT MODE (default) ── */
-:root, [data-theme="light"] {
-  --bg:        #f5f5f5;
-  --bg2:       #ffffff;
-  --bg3:       #f0f0f0;
-  --border:    #e0e0e0;
-  --border2:   #d0d0d0;
-  --text:      #111111;
-  --text2:     #444444;
-  --text3:     #777777;
-  --sidebar-bg:#ffffff;
-  --card-bg:   #ffffff;
-  --input-bg:  #f8f8f8;
-  --hover-bg:  #f0f0f0;
-  --green:     #1D9E75;
-  --green-bg:  #e8f7f2;
-  --blue:      #378ADD;
-  --blue-bg:   #e8f1fb;
-  --amber:     #EF9F27;
-  --amber-bg:  #fdf3e3;
-  --red:       #E24B4A;
-  --red-bg:    #fdeaea;
-  --purple:    #7F77DD;
-  --shadow:    0 1px 3px rgba(0,0,0,0.08);
-}
-
-/* ── DARK MODE ── */
-[data-theme="dark"] {
-  --bg:        #0d1117;
-  --bg2:       #161b22;
-  --bg3:       #21262d;
-  --border:    #21262d;
-  --border2:   #30363d;
-  --text:      #e6edf3;
-  --text2:     #8b949e;
-  --text3:     #6b7280;
-  --sidebar-bg:#161b22;
-  --card-bg:   #161b22;
-  --input-bg:  #0d1117;
-  --hover-bg:  #1c2128;
-  --green:     #1D9E75;
-  --green-bg:  #1d2f26;
-  --blue:      #378ADD;
-  --blue-bg:   #1a2b3c;
-  --amber:     #EF9F27;
-  --amber-bg:  #2d2208;
-  --red:       #f85149;
-  --red-bg:    #2d1b1b;
-  --purple:    #7F77DD;
-  --shadow:    none;
-}
-
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  transition: background 0.2s, color 0.2s;
-}
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-
-/* RTL support */
-[dir="rtl"] { direction: rtl; }
+const root = ReactDOM.createRoot(document.getElementById('root'))
+root.render(<React.StrictMode><App/></React.StrictMode>)
