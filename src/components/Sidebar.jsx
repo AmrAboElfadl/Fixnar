@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 
 const NAV = [
   { to:'/',           icon:'⊞',  label:'Dashboard',    roles:['admin','technician','operations'] },
-  { to:'/assets',     icon:'◈',  label:'Assets',        roles:['admin','operations'] },
+  { to:'/assets',     icon:'◈',  label:'Stores',        roles:['admin','operations'] },
   { to:'/work-orders',icon:'✦',  label:'Work Orders',   roles:['admin','technician','operations'] },
   { to:'/ppm',        icon:'◷',  label:'PPM Schedule',  roles:['admin','technician'] },
   { to:'/schedule',   icon:'◉',  label:'My Schedule',   roles:['admin','technician'] },
