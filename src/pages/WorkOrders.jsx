@@ -255,12 +255,45 @@ export default function WorkOrders() {
   useEffect(() => { fetchAll() }, [])
 
   useEffect(() => {
-    if (form.store_id) {
-      setFilteredAssets(assets.filter(a => a.store_id === form.store_id))
-    } else {
-      setFilteredAssets(assets)
+    if (!form.store_id) { setFilteredAssets([]); return }
+
+    let storeAssets = assets.filter(a => a.store_id === form.store_id)
+
+    if (form.subcategory) {
+      const keywordMap = {
+        'Air Conditioning':  ['ac', 'air con'],
+        'Exhaust System':    ['hood', 'exhaust', 'mist'],
+        'Ventilation':       ['hood', 'exhaust', 'vent'],
+        'Drainage':          ['sink', 'drain', 'grease'],
+        'Water Supply':      ['heater', 'water', 'sink'],
+        'Grease Trap':       ['grease', 'sink'],
+        'Lighting':          ['light'],
+        'Power':             ['electrical', 'power'],
+        'Generator':         ['generator'],
+        'Cooking Equipment': ['fryer', 'grill', 'shawarma', 'microwave', 'toaster', 'holding', 'coffee', 'grinder', 'mod bar', 'bbq'],
+        'Refrigeration':     ['chiller', 'freezer', 'display cabinet'],
+        'Dishwasher':        ['dish', 'sink'],
+        'Fire Suppression':  ['fire', 'suppression', 'hood'],
+        'Fire Alarm':        ['alarm', 'detector'],
+        'Emergency Exit':    ['door', 'exit'],
+        'Flooring':          ['floor'],
+        'Walls & Ceiling':   ['wall', 'ceiling'],
+        'Doors & Windows':   ['door', 'glass', 'window'],
+        'Infestation':       ['insect', 'killer'],
+        'Preventive':        ['insect', 'killer'],
+        'Gas System':        ['lpg', 'gas', 'shawarma'],
+      }
+      const keywords = keywordMap[form.subcategory] || []
+      if (keywords.length > 0) {
+        const filtered = storeAssets.filter(a =>
+          keywords.some(kw => a.name.toLowerCase().includes(kw.toLowerCase()))
+        )
+        if (filtered.length > 0) storeAssets = filtered
+      }
     }
-  }, [form.store_id, assets])
+
+    setFilteredAssets(storeAssets)
+  }, [form.store_id, form.subcategory, assets])
 
   async function fetchAll() {
     setLoading(true)
@@ -500,7 +533,7 @@ export default function WorkOrders() {
             </thead>
             <tbody>
               {filtered.map((wo, i) => (
-                <tr key={wo.id} style={{ borderBottom:'1px solid #21262d' }}
+                <tr key={wo.id} onClick={() => navigate(`/work-orders/${wo.id}`)} style={{ borderBottom:'1px solid #21262d', cursor:'pointer' }}
                   onMouseEnter={e => e.currentTarget.style.background='#1c2128'}
                   onMouseLeave={e => e.currentTarget.style.background='transparent'}
                 >
