@@ -1,20 +1,19 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useState, useEffect } from 'react'
 
 const NAV = [
-  { to:'/',             icon:'ti-layout-dashboard', label:'Dashboard',     roles:['admin','technician','operations'] },
-  { to:'/assets',       icon:'ti-building-store',   label:'Stores',        roles:['admin','operations'] },
-  { to:'/work-orders',  icon:'ti-clipboard-list',   label:'Work Orders',   roles:['admin','technician','operations'] },
-  { to:'/ppm',          icon:'ti-calendar-check',   label:'PPM Schedule',  roles:['admin','technician'] },
-  { to:'/schedule',     icon:'ti-calendar-time',    label:'My Schedule',   roles:['admin','technician'] },
-  { to:'/analytics',    icon:'ti-chart-bar',         label:'Analytics',     roles:['admin'] },
-  { to:'/users',        icon:'ti-users',             label:'Users & Access',roles:['admin'] },
+  { to:'/',             icon:'⊞', label:'Dashboard',      roles:['admin','technician','operations'] },
+  { to:'/assets',       icon:'◈', label:'Stores',          roles:['admin','operations'] },
+  { to:'/work-orders',  icon:'✦', label:'Work Orders',     roles:['admin','technician','operations'] },
+  { to:'/ppm',          icon:'◷', label:'PPM Schedule',    roles:['admin','technician'] },
+  { to:'/schedule',     icon:'◉', label:'Dispatch Board',  roles:['admin','technician'] },
+  { to:'/analytics',    icon:'▦', label:'Analytics',       roles:['admin'] },
+  { to:'/users',        icon:'◎', label:'Users & Access',  roles:['admin'] },
 ]
 
 const ROLE_COLORS = { admin:'#1D9E75', technician:'#378ADD', operations:'#7F77DD' }
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({ open, onClose }) {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
   const role = profile?.role || 'operations'
@@ -26,121 +25,67 @@ export default function Sidebar({ collapsed, onToggle }) {
     navigate('/login')
   }
 
-  const w = collapsed ? 64 : 240
-
   return (
     <aside style={{
-      width: w, minHeight:'100vh',
+      width:'100%', height:'100%',
       background:'var(--sidebar-bg)',
       borderRight:'1px solid var(--border)',
       display:'flex', flexDirection:'column',
-      position:'fixed', top:0, left:0, zIndex:100,
       fontFamily:"'DM Sans', sans-serif",
-      transition:'width 0.2s ease',
-      overflow:'hidden',
+      paddingTop:52,
     }}>
-      {/* Logo + toggle */}
-      <div style={{ padding:'16px 14px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent: collapsed ? 'center' : 'space-between', minHeight:64 }}>
-        {!collapsed && (
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:32, height:32, background:'#1D9E75', borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-              <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-                <path d="M2 9h5M11 9h5M9 2v5M9 11v5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                <circle cx="9" cy="9" r="2" fill="white"/>
-              </svg>
-            </div>
-            <div>
-              <div style={{ color:'var(--text)', fontSize:15, fontWeight:600, letterSpacing:'-0.3px', whiteSpace:'nowrap' }}>Fixnar</div>
-              <div style={{ color:'var(--text3)', fontSize:10, whiteSpace:'nowrap' }}>CMMS Platform</div>
-            </div>
-          </div>
-        )}
-        {collapsed && (
-          <div style={{ width:32, height:32, background:'#1D9E75', borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-              <path d="M2 9h5M11 9h5M9 2v5M9 11v5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              <circle cx="9" cy="9" r="2" fill="white"/>
-            </svg>
-          </div>
-        )}
-        {!collapsed && (
-          <button onClick={onToggle} title="Collapse sidebar"
-            style={{ background:'transparent', border:'1px solid var(--border2)', color:'var(--text2)', cursor:'pointer', padding:'4px 8px', borderRadius:6, fontSize:13, fontWeight:500 }}>
-            ◀
-          </button>
-        )}
+      {/* Close button */}
+      <div style={{ padding:'16px 16px 8px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <span style={{ color:'var(--text3)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.5px', fontWeight:500 }}>Navigation</span>
+        <button onClick={onClose}
+          style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:7, width:28, height:28, cursor:'pointer', color:'var(--text2)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          ✕
+        </button>
       </div>
 
-      {/* Expand button when collapsed */}
-      {collapsed && (
-        <div style={{ padding:'8px 0', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'center' }}>
-          <button onClick={onToggle} title="Expand sidebar"
-            style={{ background:'transparent', border:'1px solid var(--border2)', color:'var(--text2)', cursor:'pointer', padding:'4px 8px', borderRadius:6, fontSize:13, fontWeight:500 }}>
-            ▶
-          </button>
-        </div>
-      )}
-
       {/* Nav links */}
-      <nav style={{ flex:1, padding:'10px 8px', overflowY:'auto' }}>
+      <nav style={{ flex:1, padding:'4px 10px', overflowY:'auto' }}>
         {NAV.filter(n => n.roles.includes(role)).map(item => (
           <NavLink key={item.to} to={item.to} end={item.to === '/'}
-            title={collapsed ? item.label : undefined}
+            onClick={onClose}
             style={({ isActive }) => ({
-              display:'flex', alignItems:'center',
-              gap: collapsed ? 0 : 10,
-              justifyContent: collapsed ? 'center' : 'flex-start',
-              padding: collapsed ? '10px 0' : '9px 10px',
-              borderRadius:8, marginBottom:2,
-              color: isActive ? '#1D9E75' : '#8b949e',
-              background: isActive ? '#1d2f26' : 'transparent',
-              textDecoration:'none',
-              fontSize:13, fontWeight: isActive ? 500 : 400,
+              display:'flex', alignItems:'center', gap:12,
+              padding:'11px 12px', borderRadius:10, marginBottom:3,
+              color: isActive ? 'var(--green)' : 'var(--text2)',
+              background: isActive ? 'var(--green-bg)' : 'transparent',
+              textDecoration:'none', fontSize:14, fontWeight: isActive ? 500 : 400,
               transition:'all 0.15s',
-              whiteSpace:'nowrap',
-              overflow:'hidden',
             })}
           >
-            <i className={`ti ${item.icon}`} style={{ fontSize:20, flexShrink:0 }} aria-hidden="true"/>
-            {!collapsed && <span>{item.label}</span>}
+            <span style={{ fontSize:18, width:22, textAlign:'center' }}>{item.icon}</span>
+            {item.label}
           </NavLink>
         ))}
       </nav>
 
+      {/* Divider */}
+      <div style={{ height:1, background:'var(--border)', margin:'0 16px' }}/>
+
       {/* User profile */}
-      <div style={{ padding:'12px 8px', borderTop:'1px solid var(--border)' }}>
-        {!collapsed ? (
-          <>
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, padding:'6px 4px' }}>
-              <div style={{ width:34, height:34, borderRadius:9, background: rc, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:12, fontWeight:600, flexShrink:0 }}>
-                {initials}
-              </div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ color:'var(--text)', fontSize:13, fontWeight:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                  {profile?.full_name || 'User'}
-                </div>
-                <div style={{ color: rc, fontSize:11, textTransform:'capitalize' }}>{role}</div>
-              </div>
-            </div>
-            <button onClick={handleSignOut} style={{
-              width:'100%', background:'transparent', border:'1px solid var(--border2)',
-              borderRadius:8, padding:'7px', color:'var(--text2)', fontSize:12,
-              cursor:'pointer', transition:'all 0.15s',
-            }}>
-              Sign out
-            </button>
-          </>
-        ) : (
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
-            <div title={profile?.full_name} style={{ width:34, height:34, borderRadius:9, background: rc, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:12, fontWeight:600, cursor:'default' }}>
-              {initials}
-            </div>
-            <button onClick={handleSignOut} title="Sign out"
-              style={{ background:'transparent', border:'1px solid var(--border2)', borderRadius:8, padding:'6px', color:'var(--text2)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              ↩
-            </button>
+      <div style={{ padding:16 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+          <div style={{ width:38, height:38, borderRadius:10, background: rc, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:13, fontWeight:600, flexShrink:0 }}>
+            {initials}
           </div>
-        )}
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ color:'var(--text)', fontSize:13, fontWeight:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+              {profile?.full_name || 'User'}
+            </div>
+            <div style={{ color: rc, fontSize:11, textTransform:'capitalize' }}>{role}</div>
+          </div>
+        </div>
+        <button onClick={handleSignOut} style={{
+          width:'100%', background:'transparent', border:'1px solid var(--border)',
+          borderRadius:8, padding:'8px', color:'var(--text2)', fontSize:13,
+          cursor:'pointer',
+        }}>
+          Sign out
+        </button>
       </div>
     </aside>
   )
