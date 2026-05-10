@@ -28,14 +28,28 @@ function ProtectedRoute({ children, roles }) {
 }
 
 function AppLayout({ children }) {
-  const [collapsed, setCollapsed] = React.useState(false)
-  const w = collapsed ? 64 : 240
+  const [open, setOpen] = React.useState(false)
   return (
-    <div style={{ display:'flex', minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ display:'flex', minHeight:'100vh', background:'var(--bg)', position:'relative' }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
-      <TopBar/>
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)}/>
-      <main style={{ marginLeft:w, flex:1, padding:'32px 32px', paddingTop:'80px', maxWidth:`calc(100vw - ${w}px)`, overflowX:'auto', transition:'margin-left 0.2s ease, max-width 0.2s ease', color:'var(--text)' }}>
+      <TopBar onMenuToggle={() => setOpen(o => !o)}/>
+
+      {/* Overlay when sidebar open */}
+      {open && (
+        <div onClick={() => setOpen(false)}
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', zIndex:150, backdropFilter:'blur(2px)' }}/>
+      )}
+
+      {/* Sidebar - slides in from left */}
+      <div style={{
+        position:'fixed', top:0, left: open ? 0 : -280, width:260,
+        height:'100vh', zIndex:200, transition:'left 0.25s ease',
+        boxShadow: open ? '4px 0 20px rgba(0,0,0,0.15)' : 'none',
+      }}>
+        <Sidebar open={open} onClose={() => setOpen(false)}/>
+      </div>
+
+      <main style={{ flex:1, padding:'32px 32px', paddingTop:'80px', width:'100%', overflowX:'auto', color:'var(--text)' }}>
         {children}
       </main>
     </div>
