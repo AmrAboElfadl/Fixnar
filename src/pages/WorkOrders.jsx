@@ -547,7 +547,7 @@ export default function WorkOrders() {
                   <td style={{ padding:'12px 14px', color:'#8b949e', fontSize:12, whiteSpace:'nowrap' }}>{wo.stores?.name || '—'}</td>
                   <td style={{ padding:'12px 14px', color:'#8b949e', fontSize:12, whiteSpace:'nowrap' }}>{wo.profiles?.full_name || 'Unassigned'}</td>
                   <td style={{ padding:'12px 14px' }}>
-                    <select value={wo.status} onChange={e => updateStatus(wo.id, e.target.value)}
+                    <select value={wo.status} onChange={e => { e.stopPropagation(); updateStatus(wo.id, e.target.value) }} onClick={e => e.stopPropagation()}
                       style={{ background:'#0d1117', border:'1px solid #30363d', borderRadius:6, padding:'4px 8px', color:'#e6edf3', fontSize:12, cursor:'pointer' }}>
                       {STATUSES.map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
                     </select>
