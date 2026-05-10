@@ -31,16 +31,14 @@ function AppLayout({ children }) {
   const [collapsed, setCollapsed] = React.useState(false)
   const w = collapsed ? 64 : 240
   return (
-    <ThemeProvider>
-      <div style={{ display:'flex', minHeight:'100vh', background:'var(--bg)' }}>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
-        <TopBar/>
-        <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)}/>
-        <main style={{ marginLeft:w, flex:1, padding:'32px 32px', paddingTop:'80px', maxWidth:`calc(100vw - ${w}px)`, overflowX:'auto', transition:'margin-left 0.2s ease, max-width 0.2s ease', color:'var(--text)' }}>
-          {children}
-        </main>
-      </div>
-    </ThemeProvider>
+    <div style={{ display:'flex', minHeight:'100vh', background:'var(--bg)' }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+      <TopBar/>
+      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)}/>
+      <main style={{ marginLeft:w, flex:1, padding:'32px 32px', paddingTop:'80px', maxWidth:`calc(100vw - ${w}px)`, overflowX:'auto', transition:'margin-left 0.2s ease, max-width 0.2s ease', color:'var(--text)' }}>
+        {children}
+      </main>
+    </div>
   )
 }
 
@@ -64,7 +62,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace/> : <ThemeProvider><Login/></ThemeProvider>}/>
+      <Route path="/login" element={user ? <Navigate to="/" replace/> : <Login/>}/>
       <Route path="/reset-password" element={<ResetPassword/>}/>
       <Route path="/" element={<ProtectedRoute><AppLayout><Dashboard/></AppLayout></ProtectedRoute>}/>
       <Route path="/work-orders" element={<ProtectedRoute><AppLayout><WorkOrders/></AppLayout></ProtectedRoute>}/>
@@ -81,10 +79,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes/>
-      </AuthProvider>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes/>
+        </AuthProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }
