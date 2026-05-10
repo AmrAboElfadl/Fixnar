@@ -1,3 +1,4 @@
+import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Sidebar from './components/Sidebar'
@@ -25,11 +26,13 @@ function ProtectedRoute({ children, roles }) {
 }
 
 function AppLayout({ children }) {
+  const [collapsed, setCollapsed] = React.useState(false)
+  const w = collapsed ? 64 : 240
   return (
     <div style={{ display:'flex', minHeight:'100vh', background:'#0d1117' }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
-      <Sidebar/>
-      <main style={{ marginLeft:240, flex:1, padding:'32px 32px', maxWidth:'calc(100vw - 240px)', overflowX:'auto' }}>
+      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)}/>
+      <main style={{ marginLeft:w, flex:1, padding:'32px 32px', maxWidth:`calc(100vw - ${w}px)`, overflowX:'auto', transition:'margin-left 0.2s ease, max-width 0.2s ease' }}>
         {children}
       </main>
     </div>
