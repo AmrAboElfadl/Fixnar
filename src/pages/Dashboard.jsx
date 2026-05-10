@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
+import { t } from '../lib/translations'
 import SLABadge from '../components/SLABadge'
 import { useNavigate } from 'react-router-dom'
 
-const PRIORITY_COLORS = { P1:'#f85149', P2:'#EF9F27', P3:'#378ADD', P4:'#1D9E75' }
+const P_COLORS = { P1:'#E24B4A', P2:'#EF9F27', P3:'#378ADD', P4:'#1D9E75' }
 
 export default function Dashboard() {
-  const { profile, isAdmin, isTechnician } = useAuth()
+  const { profile, isAdmin } = useAuth()
+  const { lang } = useTheme()
   const [stats, setStats]   = useState({ total:0, open:0, inProgress:0, closed:0, ppmDue:0, assets:0 })
   const [recent, setRecent] = useState([])
   const [loading, setLoading] = useState(true)
@@ -38,30 +41,30 @@ export default function Dashboard() {
   }
 
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const greeting = hour < 12 ? t(lang,'goodMorning') : hour < 17 ? t(lang,'goodAfternoon') : t(lang,'goodEvening')
   const name = profile?.full_name?.split(' ')[0] || 'Amr'
 
   const statCards = [
-    { label:'Total Work Orders', value: stats.total,      color:'#e6edf3', bg:'#161b22' },
-    { label:'Open',              value: stats.open,       color:'#EF9F27', bg:'#2d2208' },
-    { label:'In Progress',       value: stats.inProgress, color:'#378ADD', bg:'#1a2b3c' },
-    { label:'Assets',            value: stats.assets,     color:'#1D9E75', bg:'#1d2f26' },
-    { label:'PPM Due (7 days)',  value: stats.ppmDue,     color:'#f85149', bg:'#2d1b1b' },
-    { label:'Closed Today',      value: stats.closed,     color:'#8b949e', bg:'#161b22' },
+    { label: t(lang,'totalWorkOrders'), value: stats.total,      color:'var(--text)',   bg:'var(--card-bg)',  border:'var(--border)' },
+    { label: t(lang,'open'),            value: stats.open,       color:'var(--amber)',  bg:'var(--amber-bg)', border:'var(--amber)' },
+    { label: t(lang,'inProgress'),      value: stats.inProgress, color:'var(--blue)',   bg:'var(--blue-bg)',  border:'var(--blue)' },
+    { label: t(lang,'assets'),          value: stats.assets,     color:'var(--green)',  bg:'var(--green-bg)', border:'var(--green)' },
+    { label: t(lang,'ppmDue'),          value: stats.ppmDue,     color:'var(--red)',    bg:'var(--red-bg)',   border:'var(--red)' },
+    { label: t(lang,'closedToday'),     value: stats.closed,     color:'var(--text2)',  bg:'var(--card-bg)',  border:'var(--border)' },
   ]
 
   return (
     <div style={{ fontFamily:"'DM Sans', sans-serif" }}>
       <div style={{ marginBottom:28 }}>
-        <h1 style={{ color:'#e6edf3', fontSize:22, fontWeight:600, margin:0 }}>{greeting}, {name} 👋</h1>
-        <p style={{ color:'#6b7280', fontSize:14, margin:'4px 0 0' }}>Here's what's happening with your facilities today</p>
+        <h1 style={{ color:'var(--text)', fontSize:22, fontWeight:600, margin:0 }}>{greeting}, {name} 👋</h1>
+        <p style={{ color:'var(--text3)', fontSize:14, margin:'4px 0 0' }}>Here's what's happening with your facilities today</p>
       </div>
 
       {/* Stats grid */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:12, marginBottom:28 }}>
         {statCards.map(c => (
-          <div key={c.label} style={{ background: c.bg, border:'1px solid #21262d', borderRadius:12, padding:'16px 18px' }}>
-            <div style={{ color:'#6b7280', fontSize:12, marginBottom:8 }}>{c.label}</div>
+          <div key={c.label} style={{ background: c.bg, border:`1px solid ${c.border}`, borderRadius:12, padding:'16px 18px', boxShadow:'var(--shadow)' }}>
+            <div style={{ color:'var(--text3)', fontSize:12, marginBottom:8 }}>{c.label}</div>
             <div style={{ color: c.color, fontSize:28, fontWeight:600 }}>
               {loading ? '—' : c.value}
             </div>
@@ -71,49 +74,54 @@ export default function Dashboard() {
 
       {/* Quick actions */}
       <div style={{ display:'flex', gap:10, marginBottom:28 }}>
-        <button onClick={() => navigate('/work-orders?new=1')} style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:8, padding:'10px 18px', fontSize:13, fontWeight:500, cursor:'pointer' }}>
-          + New Work Order
+        <button onClick={() => navigate('/work-orders?new=1')}
+          style={{ background:'var(--green)', color:'white', border:'none', borderRadius:8, padding:'10px 18px', fontSize:13, fontWeight:500, cursor:'pointer' }}>
+          {t(lang,'newWorkOrder')}
         </button>
         {isAdmin && (
-          <button onClick={() => navigate('/ppm?new=1')} style={{ background:'#1a2b3c', color:'#378ADD', border:'1px solid #1f3a56', borderRadius:8, padding:'10px 18px', fontSize:13, fontWeight:500, cursor:'pointer' }}>
-            + Schedule PPM
+          <button onClick={() => navigate('/ppm?new=1')}
+            style={{ background:'var(--blue-bg)', color:'var(--blue)', border:`1px solid var(--blue)`, borderRadius:8, padding:'10px 18px', fontSize:13, fontWeight:500, cursor:'pointer' }}>
+            {t(lang,'schedulePPM')}
           </button>
         )}
       </div>
 
       {/* Recent work orders */}
       <div>
-        <h2 style={{ color:'#e6edf3', fontSize:15, fontWeight:500, marginBottom:14 }}>Recent Work Orders</h2>
-        <div style={{ background:'#161b22', border:'1px solid #21262d', borderRadius:12, overflow:'hidden' }}>
+        <h2 style={{ color:'var(--text)', fontSize:15, fontWeight:500, marginBottom:14 }}>{t(lang,'recentWorkOrders')}</h2>
+        <div style={{ background:'var(--card-bg)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden', boxShadow:'var(--shadow)' }}>
           {loading ? (
-            <div style={{ padding:32, textAlign:'center', color:'#6b7280' }}>Loading...</div>
+            <div style={{ padding:32, textAlign:'center', color:'var(--text3)' }}>Loading...</div>
           ) : recent.length === 0 ? (
-            <div style={{ padding:32, textAlign:'center', color:'#6b7280' }}>No work orders yet. Create your first one!</div>
+            <div style={{ padding:32, textAlign:'center', color:'var(--text3)' }}>{t(lang,'noWorkOrders')}</div>
           ) : (
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead>
-                <tr style={{ borderBottom:'1px solid #21262d' }}>
-                  {['Priority','Title','Store','Status','SLA'].map(h => (
-                    <th key={h} style={{ padding:'10px 16px', color:'#6b7280', fontSize:12, fontWeight:500, textAlign:'left' }}>{h}</th>
+                <tr style={{ borderBottom:`1px solid var(--border)` }}>
+                  {[t(lang,'priority'), t(lang,'title'), t(lang,'store'), t(lang,'status'), t(lang,'sla')].map(h => (
+                    <th key={h} style={{ padding:'10px 16px', color:'var(--text3)', fontSize:12, fontWeight:500, textAlign:'left' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {recent.map(wo => (
                   <tr key={wo.id} onClick={() => navigate(`/work-orders/${wo.id}`)}
-                    style={{ borderBottom:'1px solid #21262d', cursor:'pointer', transition:'background 0.1s' }}
-                    onMouseEnter={e => e.currentTarget.style.background='#1c2128'}
+                    style={{ borderBottom:`1px solid var(--border)`, cursor:'pointer' }}
+                    onMouseEnter={e => e.currentTarget.style.background='var(--hover-bg)'}
                     onMouseLeave={e => e.currentTarget.style.background='transparent'}
                   >
                     <td style={{ padding:'12px 16px' }}>
-                      <span style={{ background: PRIORITY_COLORS[wo.priority]+'22', color: PRIORITY_COLORS[wo.priority], fontSize:11, padding:'3px 8px', borderRadius:6, fontWeight:600 }}>
+                      <span style={{ background: P_COLORS[wo.priority]+'22', color: P_COLORS[wo.priority], fontSize:11, padding:'3px 8px', borderRadius:6, fontWeight:600 }}>
                         {wo.priority}
                       </span>
                     </td>
-                    <td style={{ padding:'12px 16px', color:'#e6edf3', fontSize:13 }}>{wo.title}</td>
-                    <td style={{ padding:'12px 16px', color:'#8b949e', fontSize:12 }}>{wo.stores?.name || '—'}</td>
+                    <td style={{ padding:'12px 16px', color:'var(--text)', fontSize:13 }}>{wo.title}</td>
+                    <td style={{ padding:'12px 16px', color:'var(--text2)', fontSize:12 }}>{wo.stores?.name || '—'}</td>
                     <td style={{ padding:'12px 16px' }}>
-                      <span style={{ fontSize:12, padding:'3px 8px', borderRadius:6, background: wo.status==='open'?'#2d2208': wo.status==='in_progress'?'#1a2b3c':'#1d2f26', color: wo.status==='open'?'#EF9F27': wo.status==='in_progress'?'#378ADD':'#1D9E75' }}>
+                      <span style={{ fontSize:12, padding:'3px 8px', borderRadius:6,
+                        background: wo.status==='open' ? 'var(--amber-bg)' : wo.status==='in_progress' ? 'var(--blue-bg)' : 'var(--green-bg)',
+                        color: wo.status==='open' ? 'var(--amber)' : wo.status==='in_progress' ? 'var(--blue)' : 'var(--green)'
+                      }}>
                         {wo.status?.replace('_',' ')}
                       </span>
                     </td>
