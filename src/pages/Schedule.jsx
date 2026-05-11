@@ -41,7 +41,7 @@ export default function Schedule() {
     const [woRes, techRes, storeRes, locRes] = await Promise.all([
       supabase.from('work_orders')
         .select('*,stores(name,latitude,longitude),assets(name),profiles(full_name)')
-        .neq('status','closed')
+        .not('status', 'in', '("closed")')
         .order('created_at'),
       supabase.from('profiles').select('id,full_name,phone').eq('role','technician'),
       supabase.from('stores').select('id,name,latitude,longitude,manager_name,phone'),
