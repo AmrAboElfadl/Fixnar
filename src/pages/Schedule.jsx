@@ -47,7 +47,7 @@ export default function Schedule() {
   async function fetchAll() {
     setLoading(true)
     const [woRes, techRes, storeRes, locRes] = await Promise.all([
-      supabase.from('work_orders').select('*,stores(name,latitude,longitude),assets(name)').not('status','in','("closed")').order('priority'),
+      supabase.from('work_orders').select('*,stores(name,latitude,longitude),assets(name)').neq('status','closed').order('priority'),
       supabase.from('profiles').select('id,full_name,phone').eq('role','technician'),
       supabase.from('stores').select('id,name,latitude,longitude,manager_name,phone'),
       supabase.from('technician_locations').select('*').gte('updated_at', new Date(Date.now()-30*60*1000).toISOString()).catch(()=>({data:[]})),
