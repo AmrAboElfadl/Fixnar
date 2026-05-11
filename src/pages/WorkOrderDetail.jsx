@@ -38,24 +38,37 @@ export default function WorkOrderDetail() {
 
   async function fetchWO() {
     setLoading(true)
-    const [woRes, updRes] = await Promise.all([
-      supabase.from('work_orders').select('*,stores(*),assets(name),profiles(full_name)').eq('id', id).single(),
-      supabase.from('wo_updates').select('*,profiles(full_name)').eq('work_order_id', id).order('created_at'),
-    ])
-    setWo(woRes.data)
-    setUpdates(updRes.data || [])
+    try {
+      const [woRes, updRes] = await Promise.all([
+        supabase.from('work_orders').select('*,stores(*),assets(name)').eq('id', id).single(),
+        supabase.from('wo_updates').select('*,profiles(full_name)').eq('work_order_id', id).order('created_at'),
+      ])
+      if (woRes.error) {
+        console.error('WO fetch error:', woRes.error)
+        // Try simpler query
+        const simple = await supabase.from('work_orders').select('*').eq('id', id).single()
+        setWo(simple.data)
+      } else {
+        setWo(woRes.data)
+      }
+      setUpdates(updRes.data || [])
+    } catch(e) {
+      console.error('fetchWO error:', e)
+    }
     setLoading(false)
   }
 
   async function updateStatus(newStatus, extra = {}) {
     setSaving(true)
     const now = new Date().toISOString()
-    const patch = { status: newStatus, updated_at: now, ...extra }
+    const patch = { status: newStatus, updated_at: now }
+    if (extra.work_update)  patch.work_update  = extra.work_update
+    if (extra.hold_reason)  patch.hold_reason  = extra.hold_reason
     if (newStatus === 'travelling')  patch.trip_started_at = now
-    if (newStatus === 'arrived')     patch.arrived_at = now
+    if (newStatus === 'arrived')     patch.arrived_at      = now
     if (newStatus === 'in_progress') patch.work_started_at = now
-    if (newStatus === 'completed')   patch.completed_at = now
-    if (newStatus === 'closed')      patch.closed_at = now
+    if (newStatus === 'completed')   patch.completed_at    = now
+    if (newStatus === 'closed')      patch.closed_at       = now
 
     await supabase.from('work_orders').update(patch).eq('id', id)
     await supabase.from('wo_updates').insert({
