@@ -1,1125 +1,348 @@
--- Clear old generic assets and insert real fixed assets
--- First delete old placeholder assets (keep store data)
-delete from assets;
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 
--- Insert real fixed assets per store
-do $$
-declare s_id uuid;
-begin
+const STATUS_COLORS = { operational:'#1D9E75', maintenance:'#EF9F27', inactive:'#f85149', retired:'#6b7280' }
+const EMPTY_ASSET = { name:'', category:'', location:'', store_id:'', serial_number:'', status:'operational' }
 
-  -- JJ Chicken - Dubai Mall (104 assets)
-  select id into s_id from stores where lower(name) = lower('JJ Chicken - Dubai Mall');
-  if s_id is not null then
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and Commissioning of Ecology Unit', 'Kitchen Equipment', 'JJ-KE-3000001', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Vianen V Jet Stream UV', 'Kitchen Equipment', 'JJ-KE-3000002', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Vianen V Jet Stream UV', 'Kitchen Equipment', 'JJ-KE-3000003', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('High flow CSR Quad MC2 system', 'Kitchen Equipment', 'JJ-KE-3000005', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Table with B/S 100*70*85', 'Kitchen Equipment', 'JJ-KE-3000006', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Mop Sink 50*50*180', 'Kitchen Equipment', 'JJ-KE-3000007', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Garbage Bin', 'Kitchen Equipment', 'JJ-KE-3000008', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*30', 'Kitchen Equipment', 'JJ-KE-3000009', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*30', 'Kitchen Equipment', 'JJ-KE-3000010', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*30', 'Kitchen Equipment', 'JJ-KE-3000011', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*30', 'Kitchen Equipment', 'JJ-KE-3000012', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Table with double Bowl Sink 50*50', 'Furniture & Fittings', 'JJ-KE-3000013', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Partition', 'Kitchen Equipment', 'JJ-KE-3000014', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Single Wall Shelf 120*35', 'Kitchen Equipment', 'JJ-KE-3000015', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy 120', 'Kitchen Equipment', 'JJ-KE-3000016', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Potwash Sink doible Bowl 120', 'Kitchen Equipment', 'JJ-KE-3000017', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Monolith Shower Rinser', 'Kitchen Equipment', 'JJ-KE-3000018', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SH 2000/700 Salad 2 doors', 'Kitchen Equipment', 'JJ-KE-3000019', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Menumaster Model RCS511TS', 'Kitchen Equipment', 'JJ-KE-3000020', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Menumaster Model RCS511TS', 'Kitchen Equipment', 'JJ-KE-3000021', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Pass Table 190', 'Kitchen Equipment', 'JJ-KE-3000022', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Sandwich Grill single', 'Kitchen Equipment', 'JJ-KE-3000023', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Sandwich Grill single', 'Kitchen Equipment', 'JJ-KE-3000024', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Ref Counter 2 Doors GN 2100TN', 'Kitchen Equipment', 'JJ-KE-3000025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Freezer 2 doors Counter GN2100BT', 'Kitchen Equipment', 'JJ-KE-3000026', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Overhead Shelves 290', 'Kitchen Equipment', 'JJ-KE-3000027', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Overhead Shelves 245', 'Kitchen Equipment', 'JJ-KE-3000028', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Pass Table 117', 'Kitchen Equipment', 'JJ-KE-3000029', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Pass Table + Storage 245', 'Kitchen Equipment', 'JJ-KE-3000030', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Stand for BBQ', 'Kitchen Equipment', 'JJ-KE-3000031', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S BBQ Grill 200', 'Kitchen Equipment', 'JJ-KE-3000032', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Gas Fryer 20 Liters', 'Kitchen Equipment', 'JJ-KE-3000033', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Gas Fryer 20 Liters', 'Kitchen Equipment', 'JJ-KE-3000034', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S chip dumping 40*80*85', 'Kitchen Equipment', 'JJ-KE-3000035', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Potis Shawarma Model GD3/S', 'Kitchen Equipment', 'JJ-KE-3000036', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S  Shawarma Model 105', 'Kitchen Equipment', 'JJ-KE-3000037', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Handwash Sink', 'Kitchen Equipment', 'JJ-KE-3000038', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Handwash Sink', 'Kitchen Equipment', 'JJ-KE-3000039', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ALTO Shaam 500 3D Drawer warmer', 'Kitchen Equipment', 'JJ-KE-3000040', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless stand', 'Kitchen Equipment', 'JJ-KE-3000041', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Ref Counter 2 Doors GN 2100TN', 'Kitchen Equipment', 'JJ-KE-3000042', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Back Bar Fridge 2 doors', 'Kitchen Equipment', 'JJ-KE-3000043', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Back Bar Fridge 2 doors', 'Kitchen Equipment', 'JJ-KE-3000044', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Table 140', 'Kitchen Equipment', 'JJ-KE-3000045', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Fridge 2 doors 1410TN', 'Kitchen Equipment', 'JJ-KE-3000046', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Freezer 2 doors 1410BT', 'Kitchen Equipment', 'JJ-KE-3000047', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless Frost Tech Display', 'Kitchen Equipment', 'JJ-KE-3000048', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SIMAG SDE 50 AS', 'Kitchen Equipment', 'JJ-KE-3000049', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Table with B/S 150', 'Kitchen Equipment', 'JJ-KE-3000050', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Wall Cabinet 150', 'Kitchen Equipment', 'JJ-KE-3000051', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Table with B/S 97', 'Kitchen Equipment', 'JJ-KE-3000052', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Partition + angle 30*30*45', 'Kitchen Equipment', 'JJ-KE-3000053', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Frame on wheels 63*58*15', 'Kitchen Equipment', 'JJ-KE-3000054', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Heavy Duty 5 BQ Lite Griller 44.8*35*70 (Qty 20)', 'Kitchen Equipment', 'JJ-KE-3000055', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Loading Trolley 300 KG', 'Office Equipment', 'JJ-IT-5000001', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Salad Dryer 20 LTR', 'Office Equipment', 'JJ-IT-5000002', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Digital Scale 30kg Eagle', 'Office Equipment', 'JJ-IT-5000003', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Deep Cockpot 22 LTR  36*22CM', 'Office Equipment', 'JJ-IT-5000004', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Ladder 4 step', 'Office Equipment', 'JJ-IT-5000005', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Digital Scale 5kg Eagle', 'Office Equipment', 'JJ-IT-5000006', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Other Kitchen Appliances & Equipment', 'Office Equipment', 'JJ-IT-5000007', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Schneider Actassi Cat6 Cable 305M', 'Office Equipment', 'JJ-IT-5000008', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Schneider Actassi Cat6 Cable 305M', 'Office Equipment', 'JJ-IT-5000009', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Schneider Actassi Cat6 Cable 305M', 'Office Equipment', 'JJ-IT-5000010', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Other Cable Accessories and Installation', 'Office Equipment', 'JJ-IT-5000011', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('43" Philips D-Line Digital Signage Screen', 'Office Equipment', 'JJ-IT-5000012', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('43" Philips D-Line Digital Signage Screen', 'Office Equipment', 'JJ-IT-5000013', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('43" Philips D-Line Digital Signage Screen', 'Office Equipment', 'JJ-IT-5000014', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Partner SP-1060-Skylake i3 6100TE', 'Office Equipment', 'JJ-IT-5000015', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Partner SP-1060-Skylake i3 6100TE', 'Office Equipment', 'JJ-IT-5000016', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cash drawer', 'Office Equipment', 'JJ-IT-5000019', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cash drawer', 'Office Equipment', 'JJ-IT-5000020', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-t20ii Thermal printer', 'Office Equipment', 'JJ-IT-5000021', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-t20ii Thermal printer', 'Office Equipment', 'JJ-IT-5000022', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-t20ii Thermal printer', 'Office Equipment', 'JJ-IT-5000023', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-t20ii Thermal printer', 'Office Equipment', 'JJ-IT-5000024', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-t20ii Thermal printer', 'Office Equipment', 'JJ-IT-5000025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Microsoft Windows Pro License', 'Office Equipment', 'JJ-IT-5000026', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Microsoft Windows Pro License', 'Office Equipment', 'JJ-IT-5000027', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('JTECH Desktop UHF Transmitter Heavy Duty LTK-1100', 'Office Equipment', 'JJ-IT-5000028', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Other IT Equipment for Transmitters', 'Office Equipment', 'JJ-IT-5000029', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('100% Advance Payment Counter for Additional POS - Dubai Mall', 'Furniture & Fittings', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Additional POS for Dubai Mall (Partner Sp-1060, Skylake i3 6100TE...)', 'Office Equipment', 'New Aug 21', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cosec Door FOT V4 PLT100 - Time & Attendance Terminal', 'Office Equipment', 'JJ-IT-5000279', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and installation of POS counter', 'Furniture & Fittings', 'JJ-FF-1000391', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('UNDER SHELF 09*68.5', 'Office Equipment', 'New July', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('DOUBLE OVERHEAD SHELF 135', 'Office Equipment', 'New July', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('DOUBLE OVERHEAD SHELF 200*40*90', 'Office Equipment', 'New July', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ICE CREAM MACHINE MIKAN-PO/JJ/787', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SUPPLY AND INSTALLATION OF POWER SOCKETS FOR ICE CREAM &DISPLAY LIGHT', 'Furniture & Fittings', 'New October', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Common Griller', 'Kitchen Equipment', 'New November', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Tabletop Ice-cream Machine for Dubai Mall', 'Kitchen Equipment', 'New January', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Setup duct in Kitchen', 'Furniture & Fittings', 'New January', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Biological Closing', 'Furniture & Fittings', 'New January', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Prester Trolley purchased from Uniwersal Wheel -INV-1527', 'Kitchen Equipment', 'New Feb 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SOFT ICE CREAM MACHINE - WARRANTY = 1 YEAR', 'Operational Equipment', 'New Aug24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Samsung galaxy A9+middle east version with cover screen card & Epson TM-M30 with USAB BT Ethernet', 'Office Equipment', 'New Apr 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('TV Screen', 'Office Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('TV Screen', 'Office Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('TV Screen', 'Office Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('100% adv payment-power supply board PRO INV#PFI-SP2891 PO#JJ/13333', 'Furniture & Fittings', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Reem Mall LED Screen work onsite', 'Office Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('100% Advance for cctv network point ,nwtwork devivces supply and installation JJ DMALL', 'Office Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ROF#PI-14 -100% payment against PO-JJ-1251 charges for electrical drawing submission for the LCD scr', 'Office Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-  end if;
+export default function Assets() {
+  const { isAdmin } = useAuth()
+  const navigate = useNavigate()
+  const [stores, setStores]         = useState([])
+  const [assets, setAssets]         = useState([])
+  const [selectedStore, setSelectedStore] = useState(null)
+  const [view, setView]             = useState('stores') // 'stores' | 'store-detail' | 'store-assets'
+  const [loading, setLoading]       = useState(true)
+  const [search, setSearch]         = useState('')
+  const [showAssetForm, setShowAssetForm] = useState(false)
+  const [assetForm, setAssetForm]   = useState(EMPTY_ASSET)
+  const [saving, setSaving]         = useState(false)
+  const [editingStore, setEditingStore] = useState(null)
+  const [storeForm, setStoreForm]   = useState({})
+  const [savingStore, setSavingStore] = useState(false)
 
-  -- JJ Chicken - WTC (88 assets)
-  select id into s_id from stores where lower(name) = lower('JJ Chicken - WTC');
-  if s_id is not null then
-    insert into assets (name, category, serial_number, status, store_id) values ('Folding Chair (4 Qty @ 33.75AED)', 'Furniture & Fittings', 'JJ-FF-1000001', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Wall Mounted Cabinet and Cantilever Shelf for World Trade Center', 'Furniture & Fittings', 'JJ-FF-1000002', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Hood - SZR', 'Kitchen Equipment', 'JJ-KE-3000065', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Hood - SZR', 'Kitchen Equipment', 'JJ-KE-3000066', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless Handwash sink', 'Kitchen Equipment', 'JJ-KE-3000067', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Table with B/S 100', 'Kitchen Equipment', 'JJ-KE-3000068', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S double bowl Sink 140', 'Kitchen Equipment', 'JJ-KE-3000069', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S single wall Shelf 140', 'Kitchen Equipment', 'JJ-KE-3000070', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S single wall Shelf 100', 'Kitchen Equipment', 'JJ-KE-3000071', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Cabinet closed 169*55', 'Kitchen Equipment', 'JJ-KE-3000072', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Cabinet closed 169*40', 'Kitchen Equipment', 'JJ-KE-3000073', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Monolith Shower Rinser', 'Kitchen Equipment', 'JJ-KE-3000074', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Potwash Sink 140', 'Kitchen Equipment', 'JJ-KE-3000075', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Fridge 2 doors 1410TN', 'Kitchen Equipment', 'JJ-KE-3000076', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Fridge 2 doors 1410TN', 'Kitchen Equipment', 'JJ-KE-3000077', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Freezer 1 door 650BT', 'Kitchen Equipment', 'JJ-KE-3000078', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Stand for BBQ 262', 'Kitchen Equipment', 'JJ-KE-3000079', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Mop Sink 190', 'Kitchen Equipment', 'JJ-KE-3000080', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Skewer Trolley', 'Kitchen Equipment', 'JJ-KE-3000081', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Ref Counter 2 Doors GN 2100TN', 'Kitchen Equipment', 'JJ-KE-3000082', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S BBQ Grill 252', 'Kitchen Equipment', 'JJ-KE-3000083', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ALTO Shaam 500 3D Drawer warmer', 'Kitchen Equipment', 'JJ-KE-3000084', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Stand', 'Kitchen Equipment', 'JJ-KE-3000085', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('7125/10 Fre Electric Fryer 15 Liters', 'Kitchen Equipment', 'JJ-KE-3000086', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('7125/10 Fre Electric Fryer 15 Liters', 'Kitchen Equipment', 'JJ-KE-3000087', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Chip dump 40*80*85', 'Kitchen Equipment', 'JJ-KE-3000088', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Potis Electric Shawarma Machine', 'Kitchen Equipment', 'JJ-KE-3000089', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Stand for Shawarma', 'Kitchen Equipment', 'JJ-KE-3000090', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Ref Counter 2 Doors GN 2100TN', 'Kitchen Equipment', 'JJ-KE-3000091', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Sandwich Grill single', 'Kitchen Equipment', 'JJ-KE-3000092', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Sandwich Grill single', 'Kitchen Equipment', 'JJ-KE-3000093', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Freezer 2 doors Counter GN2100BT', 'Kitchen Equipment', 'JJ-KE-3000094', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Menumaster Model RCS511TS', 'Kitchen Equipment', 'JJ-KE-3000095', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Overhead Shelf 100', 'Kitchen Equipment', 'JJ-KE-3000096', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Overhead Shelf 80', 'Kitchen Equipment', 'JJ-KE-3000097', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SH 2000/700 Salad 2 doors', 'Kitchen Equipment', 'JJ-KE-3000098', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Back Bar Fridge 2 doors', 'Kitchen Equipment', 'JJ-KE-3000099', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Back Bar Fridge 2 doors', 'Kitchen Equipment', 'JJ-KE-3000100', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SIMAG SDE 50 AS', 'Kitchen Equipment', 'JJ-KE-3000101', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Table 120', 'Kitchen Equipment', 'JJ-KE-3000102', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*30', 'Kitchen Equipment', 'JJ-KE-3000103', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*30', 'Kitchen Equipment', 'JJ-KE-3000104', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*30', 'Kitchen Equipment', 'JJ-KE-3000105', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*30', 'Kitchen Equipment', 'JJ-KE-3000106', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Partition for BBQ', 'Kitchen Equipment', 'JJ-KE-3000107', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Partition for BBQ', 'Kitchen Equipment', 'JJ-KE-3000108', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S sheet for Hood 171*122', 'Kitchen Equipment', 'JJ-KE-3000109', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S sheet for Hood 269', 'Kitchen Equipment', 'JJ-KE-3000110', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S single wall Shelf 140', 'Kitchen Equipment', 'JJ-KE-3000111', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S Wall Shelf', 'Kitchen Equipment', 'JJ-KE-3000112', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S Wall Shelf', 'Kitchen Equipment', 'JJ-KE-3000113', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Grease Trap B Stainless Steel', 'Furniture & Fittings', 'JJ-KE-3000115', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Schneider Cable Management System', 'Office Equipment', 'JJ-IT-5000182', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Speaker, Amplifiers, Cable Pulling, Installation, Testing and Commissioning', 'Office Equipment', 'JJ-IT-5000032', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('43" Philips Digital Signage Screen and fixed Brackets', 'Office Equipment', 'JJ-IT-5000034', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('43" Philips Digital Signage Screen and fixed Brackets', 'Office Equipment', 'JJ-IT-5000035', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('43" Philips Digital Signage Screen and fixed Brackets', 'Office Equipment', 'JJ-IT-5000036', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Artificial Messangina Plants in GRP Round Pot', 'Office Equipment', 'JJ-FF-1000211', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Artificial Messangina Plants in GRP Round Pot', 'Office Equipment', 'JJ-FF-1000212', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Artificial Messangina Plants in GRP Round Pot', 'Office Equipment', 'JJ-FF-1000213', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Artificial Messangina Plants in GRP Round Pot', 'Office Equipment', 'JJ-FF-1000214', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ALTO Shaam 500 3D Drawer warmer', 'Kitchen Equipment', 'JJ-KE-3000325', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision DS-7608NI-I2/16P 16 Channel NVR with POE', 'Office Equipment', 'JJ-IT-5000207', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision DS-2CD2123 G0/I 2MP IP Dome Camera with Night Vision', 'Office Equipment', 'JJ-IT-5000208', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision DS-2CD2123 G0/I 2MP IP Dome Camera with Night Vision', 'Office Equipment', 'JJ-IT-5000209', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision DS-2CD2123 G0/I 2MP IP Dome Camera with Night Vision', 'Office Equipment', 'JJ-IT-5000210', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision DS-2CD2123 G0/I 2MP IP Dome Camera with Night Vision', 'Office Equipment', 'JJ-IT-5000211', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision DS-2CD2123 G0/I 2MP IP Dome Camera with Night Vision', 'Office Equipment', 'JJ-IT-5000212', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision DS-2CD2123 G0/I 2MP IP Dome Camera with Night Vision', 'Office Equipment', 'JJ-IT-5000213', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision DS-2CD2123 G0/I 2MP IP Dome Camera with Night Vision', 'Office Equipment', 'JJ-IT-5000214', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision DS-2CD2123 G0/I 2MP IP Dome Camera with Night Vision', 'Office Equipment', 'JJ-IT-5000215', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision DS-2CD2123 G0/I 2MP IP Dome Camera with Night Vision', 'Office Equipment', 'JJ-IT-5000216', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision DS-2CD2123 G0/I 2MP IP Dome Camera with Night Vision', 'Office Equipment', 'JJ-IT-5000217', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision DS-2CD2723 G1-IZ 2MP VF Dome Camera', 'Office Equipment', 'JJ-IT-5000218', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('6 T.B Surveillance Hard Drive Purple', 'Office Equipment', 'JJ-IT-5000219', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Camera fixing & NVR Configuration Charges', 'Office Equipment', 'JJ-IT-5000220', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cosec Door FOT V4 PLT100 - Time & Attendance Terminal', 'Office Equipment', 'JJ-IT-5000280', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and installed VFD (7.5KW) Siemens', 'Office Equipment', 'JJ-IT-5000286', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Touch kitchen display monitor 21.5", PCAP touch screen intel core I3-7101TE processor 4GBDDR RAM, 12', 'Office Equipment', 'New Mar 22', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Common Griller', 'Kitchen Equipment', 'New November', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('FABRICATE AND SUPPLY OF DOOR-SZR', 'Furniture & Fittings', 'New December', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Ladder for DM Outlet', 'Furniture & Fittings', 'New January', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Zinc for kitchen', 'Furniture & Fittings', 'New February', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Printer HP LaserJet MFP M141a Printer, Print, copy, scan. S/N:VNF5200348 1 Year HP Warranty', 'Office Equipment', 'New February', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('CUSTOM MADE S/S TROLLEY', 'Furniture & Fittings', 'New Jan 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Freezer thermometer S/S analogue', 'Kitchen Equipment', 'New Feb 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen equipments', 'Kitchen Equipment', 'New Feb 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Samsung galaxy A9+middle east version with cover screen card & Epson TM-M30 with USAB BT Ethernet', 'Office Equipment', 'New Apr 2025', 'operational', s_id) on conflict do nothing;
-  end if;
+  useEffect(() => { fetchAll() }, [])
 
-  -- JJ Chicken - Motor City (122 assets)
-  select id into s_id from stores where lower(name) = lower('JJ Chicken - Motor City');
-  if s_id is not null then
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box', 'Furniture & Fittings', 'JJ-FF-1000058', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box', 'Furniture & Fittings', 'JJ-FF-1000059', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box', 'Furniture & Fittings', 'JJ-FF-1000060', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box', 'Furniture & Fittings', 'JJ-FF-1000061', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box', 'Furniture & Fittings', 'JJ-FF-1000062', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box', 'Furniture & Fittings', 'JJ-FF-1000063', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light box', 'Furniture & Fittings', 'JJ-FF-1000064', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrella 3M Cantilever Heavy Duty on Canvas with Marble base', 'Furniture & Fittings', 'JJ-FF-1000065', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrella 3M Cantilever Heavy Duty on Canvas with Marble base', 'Furniture & Fittings', 'JJ-FF-1000066', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000268', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Potwash Sink 140', 'Kitchen Equipment', 'JJ-KE-3000116', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Single wall Shelf 140', 'Kitchen Equipment', 'JJ-KE-3000117', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('GN650 TN Upright Fridge 1 door', 'Kitchen Equipment', 'JJ-KE-3000118', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('GN650 BT Upright Freezer 1 door', 'Kitchen Equipment', 'JJ-KE-3000119', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Mop Sink with Cabinet', 'Kitchen Equipment', 'JJ-KE-3000120', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Skewer and Charcoal Trolley', 'Kitchen Equipment', 'JJ-KE-3000121', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S BBQ Grill with bricks', 'Kitchen Equipment', 'JJ-KE-3000122', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('American range Fryer', 'Kitchen Equipment', 'JJ-KE-3000123', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('American range Fryer', 'Kitchen Equipment', 'JJ-KE-3000124', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Potis Shawarma Model GD3/S', 'Kitchen Equipment', 'JJ-KE-3000125', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Shawarma Stand', 'Kitchen Equipment', 'JJ-KE-3000126', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar Ref Counter 2 Doors + Drawers', 'Kitchen Equipment', 'JJ-KE-3000127', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Table top Freezer 2 Doors', 'Kitchen Equipment', 'JJ-KE-3000128', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Single Overhead Shelf 136', 'Kitchen Equipment', 'JJ-KE-3000129', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Double Overhead Shelf 272', 'Kitchen Equipment', 'JJ-KE-3000130', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SH2000/700 Salad 2 Doors', 'Kitchen Equipment', 'JJ-KE-3000131', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor grating 70*30', 'Kitchen Equipment', 'JJ-KE-3000132', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor grating 70*30', 'Kitchen Equipment', 'JJ-KE-3000133', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor grating 70*30', 'Kitchen Equipment', 'JJ-KE-3000134', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000135', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless Display Fridge', 'Kitchen Equipment', 'JJ-KE-3000136', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Table closed from 3 sides', 'Kitchen Equipment', 'JJ-KE-3000137', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Menumaster Model RCS511TS', 'Kitchen Equipment', 'JJ-KE-3000138', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Simag SDE 50AS', 'Kitchen Equipment', 'JJ-KE-3000139', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Dumping Station', 'Kitchen Equipment', 'JJ-KE-3000140', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Sandwich Press PD20', 'Kitchen Equipment', 'JJ-KE-3000141', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Sandwich Press PD20', 'Kitchen Equipment', 'JJ-KE-3000142', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Handwash Sink', 'Kitchen Equipment', 'JJ-KE-3000143', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Handwash Sink', 'Kitchen Equipment', 'JJ-KE-3000144', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Handwash Sink', 'Kitchen Equipment', 'JJ-KE-3000145', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Table with Tarsh Chute 70', 'Kitchen Equipment', 'JJ-KE-3000146', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Double Bowl Sink 140', 'Kitchen Equipment', 'JJ-KE-3000147', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Single Wall Shelf 140', 'Kitchen Equipment', 'JJ-KE-3000148', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Work Table 106', 'Kitchen Equipment', 'JJ-KE-3000149', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Single Wall Shelf 106', 'Kitchen Equipment', 'JJ-KE-3000150', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar Ref Counter 3 Doors+ Drawers', 'Kitchen Equipment', 'JJ-KE-3000151', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Single Wall Shelf 179', 'Kitchen Equipment', 'JJ-KE-3000152', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Double Bowl Sink 180', 'Kitchen Equipment', 'JJ-KE-3000153', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Single Wall Shelf 180', 'Kitchen Equipment', 'JJ-KE-3000154', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('CGG 4 Fuochi Forno Gas 80*73*87', 'Kitchen Equipment', 'JJ-KE-3000155', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Work Table 59', 'Kitchen Equipment', 'JJ-KE-3000156', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Work Table 59', 'Kitchen Equipment', 'JJ-KE-3000157', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Work Table 190', 'Kitchen Equipment', 'JJ-KE-3000158', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Work Table 190', 'Kitchen Equipment', 'JJ-KE-3000159', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Double Overhead Shelf 190*35', 'Kitchen Equipment', 'JJ-KE-3000160', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Double Overhead Shelf 190*35', 'Kitchen Equipment', 'JJ-KE-3000161', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Freezer Room', 'Kitchen Equipment', 'JJ-KE-3000162', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar Ref Counter 3 Doors+ Drawers', 'Kitchen Equipment', 'JJ-KE-3000163', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Double Overshelves 179', 'Kitchen Equipment', 'JJ-KE-3000164', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*30*7', 'Kitchen Equipment', 'JJ-KE-3000165', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*30*7', 'Kitchen Equipment', 'JJ-KE-3000166', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000167', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000168', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy Shelving unit 150', 'Kitchen Equipment', 'JJ-KE-3000169', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy Shelving unit 150', 'Kitchen Equipment', 'JJ-KE-3000170', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy Shelving unit 150', 'Kitchen Equipment', 'JJ-KE-3000171', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy Shelving unit 150', 'Kitchen Equipment', 'JJ-KE-3000172', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy Shelving unit 150', 'Kitchen Equipment', 'JJ-KE-3000173', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy Shelving unit 150', 'Kitchen Equipment', 'JJ-KE-3000174', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy 120', 'Kitchen Equipment', 'JJ-KE-3000175', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy 120', 'Kitchen Equipment', 'JJ-KE-3000176', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy 120', 'Kitchen Equipment', 'JJ-KE-3000177', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy 120', 'Kitchen Equipment', 'JJ-KE-3000178', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy Shelving 90', 'Kitchen Equipment', 'JJ-KE-3000179', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy Shelving 90', 'Kitchen Equipment', 'JJ-KE-3000180', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Manual Salad Spinner 12 LTR', 'Kitchen Equipment', 'JJ-KE-3000181', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Blitz Sticker Label', 'Kitchen Equipment', 'JJ-KE-3000182', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('30 KG Eagle Scale', 'Kitchen Equipment', 'JJ-KE-3000183', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Other Kitchen Appliances & Equipment', 'Kitchen Equipment', 'JJ-KE-3000184', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('STAINLESS STEEL SHEET', 'Kitchen Equipment', 'JJ-KE-3000185', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('FIMAR REF COUNTER 3 DOORS + DRAWERS', 'Kitchen Equipment', 'JJ-KE-3000186', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('MAINTENANCE CHILLER ROOM', 'Kitchen Equipment', 'JJ-KE-3000187', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Freezer F600', 'Kitchen Equipment', 'JJ-KE-3000188', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Extension of three phases required for the garlic mashing machine', 'Kitchen Equipment', 'JJ-KE-3000189', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Robot Coupe S/S Table Top Cutter Mixer', 'Kitchen Equipment', 'JJ-KE-3000190', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Robot Coupe Hand Blender MP 450 Ultra', 'Kitchen Equipment', 'JJ-KE-3000191', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Maintenance - Fixing chiller room', 'Kitchen Equipment', 'JJ-KE-3000192', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-T20 II Network printer', 'Office Equipment', 'JJ-IT-5000037', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-T20 II Network printer', 'Office Equipment', 'JJ-IT-5000038', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-T20 II Network printer', 'Office Equipment', 'JJ-IT-5000039', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-T20 II Network printer', 'Office Equipment', 'JJ-IT-5000040', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-T20 II Network printer', 'Office Equipment', 'JJ-IT-5000041', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cash Drawer', 'Office Equipment', 'JJ-IT-5000042', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cash Drawer', 'Office Equipment', 'JJ-IT-5000043', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('P2C P-100 black POS Machine with 15" Capactive Bezel Touch Screen', 'Office Equipment', 'JJ-IT-5000044', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('P2C P-100 black POS Machine with 15" Capactive Bezel Touch Screen', 'Office Equipment', 'JJ-IT-5000045', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Microsoft Windows Pro License', 'Office Equipment', 'JJ-IT-5000046', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Microsoft Windows Pro License', 'Office Equipment', 'JJ-IT-5000047', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('TL-09U 600x600 Wall Mount Double section, 06 Way Power Distribution Unit', 'Office Equipment', 'JJ-IT-5000048', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Panasonic Cordless Telephone KX-TG3711BX', 'Office Equipment', 'JJ-IT-5000049', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('IT Expenses', 'Office Equipment', 'JJ-IT-5000050', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Camera and Attendance Machine installation', 'Office Equipment', 'JJ-IT-5000051', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('IT Works at Motor City Branch', 'Office Equipment', 'JJ-IT-5000052', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HP printer', 'Office Equipment', 'JJ-IT-5000053', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Motorola Walkie Talkie', 'Office Equipment', 'JJ-IT-5000054', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Additional Camera for MTC', 'Office Equipment', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Additional POS for MTC (Partner Sp-1060, Skylake i3 6100TE...)', 'Office Equipment', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Additional POS for Marina ( PARTNER SP-1060, Skylake i3 6100TE, 2.7 GHz, Dual Core / 4M  Cache / 4GB', 'Office Equipment', 'JJ-IT-5000273', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply SS BBQ Grill Size (220x55x25) - MTC', 'Kitchen Equipment', 'JJ-KE-3000695', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('AID MIXER 5L -MTC', 'Kitchen Equipment', 'New Sep 21', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cosec Door FOT V4 PLT100 - Time & Attendance Terminal', 'Office Equipment', 'JJ-IT-5000283', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless Bar-B-Q Charcoal Grill 220X55X25', 'Kitchen Equipment', 'JJ-KE-3000721', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Electric industrial microwave oven - RCS5111S', 'Kitchen Equipment', 'JJ-KE-3000722', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('menu master model', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SUPPLY AND INSTALLATION OF DOOR', 'Furniture & Fittings', 'New October', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Common Griller', 'Kitchen Equipment', 'New November', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('CCTV installation ,testing and commissioning-17/01/2023', 'Office Equipment', 'New April', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Commercial Microwave Oven RCS511TSU 34 LTR Menumaster Automatic', 'Kitchen Equipment', 'New Sep', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Heavy duty trolley purchased from petty cash', 'Operational Equipment', 'New Nov', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Scale purchased from petty cash', 'Operational Equipment', 'New Nov', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Samsung galaxy A9+middle east version with cover screen card & Epson TM-M30 with USAB BT Ethernet', 'Office Equipment', 'New Apr 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('100% Advance payment against PO-JJ-1300-3 no''s Samsung signage display for JJ Motor city from Techn', 'Furniture & Fittings', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-  end if;
+  async function fetchAll() {
+    setLoading(true)
+    const [sRes, aRes] = await Promise.all([
+      supabase.from('stores').select('*').order('name'),
+      supabase.from('assets').select('*').order('name'),
+    ])
+    setStores(sRes.data || [])
+    setAssets(aRes.data || [])
+    setLoading(false)
+  }
 
-  -- JJ Chicken - Al Barsha (159 assets)
-  select id into s_id from stores where lower(name) = lower('JJ Chicken - Al Barsha');
-  if s_id is not null then
-    insert into assets (name, category, serial_number, status, store_id) values ('Square wooden Tables with Round Base', 'Furniture & Fittings', 'JJ-FF-1000093', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Square wooden Tables with Round Base', 'Furniture & Fittings', 'JJ-FF-1000094', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Square wooden Tables with Round Base', 'Furniture & Fittings', 'JJ-FF-1000095', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Square wooden Tables with Round Base', 'Furniture & Fittings', 'JJ-FF-1000096', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Square wooden Tables with Round Base', 'Furniture & Fittings', 'JJ-FF-1000097', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Square wooden Tables with Round Base', 'Furniture & Fittings', 'JJ-FF-1000098', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Square wooden Tables with Round Base', 'Furniture & Fittings', 'JJ-FF-1000099', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Square wooden Tables with Round Base', 'Furniture & Fittings', 'JJ-FF-1000100', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cushion Chairs with wrought legs', 'Furniture & Fittings', 'JJ-FF-1000102', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cushion Chairs with wrought legs', 'Furniture & Fittings', 'JJ-FF-1000105', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Wooden Arm Chairs', 'Furniture & Fittings', 'JJ-FF-1000106', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Wooden Arm Chairs', 'Furniture & Fittings', 'JJ-FF-1000107', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Wooden Arm Chairs', 'Furniture & Fittings', 'JJ-FF-1000108', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Wooden Arm Chairs', 'Furniture & Fittings', 'JJ-FF-1000109', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Wooden Arm Chairs', 'Furniture & Fittings', 'JJ-FF-1000110', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Wooden Arm Chairs', 'Furniture & Fittings', 'JJ-FF-1000111', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Wooden Arm Chairs', 'Furniture & Fittings', 'JJ-FF-1000112', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Bar Stool', 'Furniture & Fittings', 'JJ-FF-1000117', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Bar Stool', 'Furniture & Fittings', 'JJ-FF-1000118', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Bar Stool', 'Furniture & Fittings', 'JJ-FF-1000119', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Bar Stool', 'Furniture & Fittings', 'JJ-FF-1000120', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Delivery Box', 'Furniture & Fittings', 'JJ-FF-1000122', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Delivery Box', 'Furniture & Fittings', 'JJ-FF-1000123', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Delivery Box', 'Furniture & Fittings', 'JJ-FF-1000124', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Delivery Box (Transferred to SZR)', 'Furniture & Fittings', 'JJ-FF-1000125', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('LED Boxes', 'Furniture & Fittings', 'JJ-FF-1000289', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and Install of Artificial Plants', 'Furniture & Fittings', 'JJ-FF-1000290', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and Installation of Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000291', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and Installation of Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000292', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and Installation of Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000293', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and Installation of Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000294', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and Installation of Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000295', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and Installation of Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000296', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Customers terrace Chairs', 'Furniture & Fittings', 'JJ-FF-1000297', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Customers terrace Tables', 'Furniture & Fittings', 'JJ-FF-1000298', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Customer tables indoor', 'Furniture & Fittings', 'JJ-FF-1000299', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Customer chairs indoor', 'Furniture & Fittings', 'JJ-FF-1000300', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('A/C chiller Mitsubishi', 'Furniture & Fittings', 'JJ-FF-1000301', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Besta Frame, Shelf, Drawer', 'Furniture & Fittings', 'JJ-FF-1000302', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Delivery Box', 'Furniture & Fittings', 'JJ-FF-1000303', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Furniture Shelves', 'Furniture & Fittings', 'JJ-FF-1000304', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Steel Table (Qty:8) Chair (Qty: 28) (Stool Qty:1)', 'Furniture & Fittings', 'JJ-FF-1000305', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Delivery Box', 'Furniture & Fittings', 'JJ-FF-1000306', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Empero Shawarma Machine with Gas', 'Kitchen Equipment', 'JJ-KE-3000195', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Shawarma Machine Stand', 'Kitchen Equipment', 'JJ-KE-3000196', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SH 2000/700 Salad 2 doors', 'Kitchen Equipment', 'JJ-KE-3000197', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pitco American Fryer', 'Kitchen Equipment', 'JJ-KE-3000198', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pitco American Fryer', 'Kitchen Equipment', 'JJ-KE-3000199', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Dumping Station for Fries', 'Kitchen Equipment', 'JJ-KE-3000200', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Work Table 190', 'Kitchen Equipment', 'JJ-KE-3000204', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Potwash Sink', 'Kitchen Equipment', 'JJ-KE-3000206', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S Overhead Shelf', 'Kitchen Equipment', 'JJ-KE-3000209', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('GN650 TN Upright Fridge 1 door', 'Kitchen Equipment', 'JJ-KE-3000213', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('GN650 BT Upright Freezer 1 door', 'Kitchen Equipment', 'JJ-KE-3000214', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Ref Counter 2 Doors GN 2100TN', 'Kitchen Equipment', 'JJ-KE-3000216', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Charcoal Hood', 'Kitchen Equipment', 'JJ-KE-3000218', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Freezer 2 doors Counter GN2100BT', 'Kitchen Equipment', 'JJ-KE-3000219', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Skewer and Charcoal Trolley', 'Kitchen Equipment', 'JJ-KE-3000221', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ALTO Shaam 500 3D Drawer warmer', 'Kitchen Equipment', 'JJ-KE-3000222', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless Kitchen Station w/ double overhead Shelf', 'Kitchen Equipment', 'JJ-KE-3000223', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless double overhead Shelf', 'Kitchen Equipment', 'JJ-KE-3000224', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar Sandwich Press', 'Kitchen Equipment', 'JJ-KE-3000225', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Hood', 'Kitchen Equipment', 'JJ-KE-3000226', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Menumaster Microwave Oven', 'Kitchen Equipment', 'JJ-KE-3000227', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000228', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Holding Cabinet on wheels', 'Kitchen Equipment', 'JJ-KE-3000585', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Table Top Freezer - 2 Doors (fries)', 'Kitchen Equipment', 'JJ-KE-3000586', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Milan Toasters', 'Kitchen Equipment', 'JJ-KE-3000587', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Falcon Toaster', 'Kitchen Equipment', 'JJ-KE-3000588', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Table top Sandwich Chiller (3 doors)', 'Kitchen Equipment', 'JJ-KE-3000589', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Microwave Oven', 'Kitchen Equipment', 'JJ-KE-3000590', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Shawarma machines Equip hotel', 'Kitchen Equipment', 'JJ-KE-3000591', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('shwarma machines Al halabi', 'Kitchen Equipment', 'JJ-KE-3000592', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Whirlpool CF600T Chest Freezer', 'Kitchen Equipment', 'JJ-KE-3000593', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Whirlpool CF340T Chest Freezer', 'Kitchen Equipment', 'JJ-KE-3000594', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless Steel', 'Kitchen Equipment', 'JJ-KE-3000595', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Griller,Strainer,Needle thermometer, Heavy bottom pan ,Exhaust Hood Filter', 'Kitchen Equipment', 'JJ-KE-3000596', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Door Gasket', 'Kitchen Equipment', 'JJ-KE-3000597', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Microwave Oven', 'Kitchen Equipment', 'JJ-KE-3000598', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Monitor Module,Backbox,Installation,Programming,Normal Base', 'Kitchen Equipment', 'JJ-KE-3000599', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Sharp Table Island Style', 'Kitchen Equipment', 'JJ-KE-3000600', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HALO HEAT TRIPLE WARMING DRAWER', 'Kitchen Equipment', 'JJ-KE-3000601', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Chamelaon white', 'Kitchen Equipment', 'JJ-KE-3000602', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Items- Bait', 'Kitchen Equipment', 'JJ-KE-3000603', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Griller 45*44 cm Heavy duty', 'Kitchen Equipment', 'JJ-KE-3000604', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000605', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Spare Part - Faucet Mixer; Handwash Sink', 'Kitchen Equipment', 'JJ-KE-3000606', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless s/s sheet 210x120; 380x120; s/s partition 109x60', 'Kitchen Equipment', 'JJ-KE-3000607', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S double overhead shelf 135x35; 90x35', 'Kitchen Equipment', 'JJ-KE-3000608', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Grease trap supply and installation', 'Kitchen Equipment', 'JJ-KE-3000609', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Equipment after renovation', 'Kitchen Equipment', 'JJ-KE-3000610', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Single wall Shelf 150*35', 'Kitchen Equipment', 'JJ-KE-3000611', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Cabinet closed 90*70*85', 'Kitchen Equipment', 'JJ-KE-3000612', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Menumaster model RCS511TS', 'Kitchen Equipment', 'JJ-KE-3000613', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar PE35LE', 'Kitchen Equipment', 'JJ-KE-3000614', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Salad Fridge 3 doors', 'Kitchen Equipment', 'JJ-KE-3000615', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Table top BBQ 3 doors Chiller', 'Kitchen Equipment', 'JJ-KE-3000616', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Delivery area Wall mounted Tables and shelves', 'Kitchen Equipment', 'JJ-KE-3000617', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Knee operated Sink', 'Kitchen Equipment', 'JJ-KE-3000618', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Shelves Dispatching area', 'Kitchen Equipment', 'JJ-KE-3000619', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Work table with under shelf Small 1 (Dispatching)', 'Kitchen Equipment', 'JJ-KE-3000620', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Work table with under shelf Big 3 (Dispatching)', 'Kitchen Equipment', 'JJ-KE-3000621', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fryers 2 wells (gas -angelo po)', 'Kitchen Equipment', 'JJ-KE-3000622', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('4 Burners on Oven (Berjaya)', 'Kitchen Equipment', 'JJ-KE-3000623', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Top open Freezer (white)', 'Kitchen Equipment', 'JJ-KE-3000624', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fry Mate (Fry dumping)', 'Kitchen Equipment', 'JJ-KE-3000625', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Work table with 2 under shelf Small 2 (next oven)', 'Kitchen Equipment', 'JJ-KE-3000626', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Poultry Sink Unit + shelves', 'Kitchen Equipment', 'JJ-KE-3000627', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Poultry working table', 'Kitchen Equipment', 'JJ-KE-3000628', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('2 door Chiller', 'Kitchen Equipment', 'JJ-KE-3000629', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('1 door Chiller (ex-Freezer)', 'Kitchen Equipment', 'JJ-KE-3000630', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Vegetable Sink unit + Shelving', 'Kitchen Equipment', 'JJ-KE-3000631', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Vegetables working table + shelves', 'Kitchen Equipment', 'JJ-KE-3000632', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Washing Sink unit + Shelving', 'Kitchen Equipment', 'JJ-KE-3000633', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Shelving racks (Store + Waching)', 'Kitchen Equipment', 'JJ-KE-3000634', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Sigle Grill from Al Halabi', 'Kitchen Equipment', 'JJ-KE-3000635', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Toast Master Bigger', 'Kitchen Equipment', 'JJ-KE-3000636', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Double Contact Grill', 'Kitchen Equipment', 'JJ-KE-3000637', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Knif,Cutting Board,Tray,Spice Dispenser', 'Kitchen Equipment', 'JJ-KE-3000638', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Trolley Japan', 'Kitchen Equipment', 'JJ-KE-3000639', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Knife Spinner Shelf', 'Kitchen Equipment', 'JJ-KE-3000640', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Work top Freezer', 'Kitchen Equipment', 'JJ-KE-3000641', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Freezer F 600 SAL-2019-779', 'Kitchen Equipment', 'JJ-KE-3000642', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('CCTV Cameras (qty:13)', 'Office Equipment', 'JJ-IT-5000058', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('POZONE POS 80', 'Office Equipment', 'JJ-IT-5000059', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-2011 Thermal printer', 'Office Equipment', 'JJ-IT-5000060', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-2011 Thermal printer', 'Office Equipment', 'JJ-IT-5000061', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('LG Desktop Computer', 'Office Equipment', 'JJ-IT-5000062', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HP Printer', 'Office Equipment', 'JJ-IT-5000063', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cash drawer', 'Office Equipment', 'JJ-IT-5000064', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Phillips TV', 'Furniture & Fittings', 'JJ-IT-5000065', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Panasonic Cordless Telephone KX-TG3711BX', 'Office Equipment', 'JJ-IT-5000067', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ZK F18 Biometric System with Installation', 'Office Equipment', 'JJ-IT-5000068', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('POS computers', 'Office Equipment', 'JJ-IT-5000222', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fax machines', 'Office Equipment', 'JJ-IT-5000223', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Windows Server OS 2012', 'Office Equipment', 'JJ-IT-5000224', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('EPSON L365 Printer for Office', 'Office Equipment', 'JJ-IT-5000226', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('AC LINKS ROUTER', 'Office Equipment', 'JJ-IT-5000227', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HP 450 G3 CORE i5 6200U 2.2GHZ Laptop', 'Office Equipment', 'JJ-IT-5000228', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Windows 7 Professional 64-BT, Pozone T800,Acer XC705', 'Office Equipment', 'JJ-IT-5000229', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Prosound Amplifer, Wireless USB Dongle,Adapter', 'Office Equipment', 'JJ-IT-5000230', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('New Laptop and Mouse Purchased for Angel', 'Office Equipment', 'JJ-IT-5000231', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('15U WALL MOUNT RACK', 'Office Equipment', 'JJ-IT-5000242', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('DVR Camera', 'Office Equipment', 'JJ-IT-5000243', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('New Laptop purchased for Fahad from Carrefour', 'Office Equipment', 'JJ-IT-5000244', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Locker,Door Cabinet, Office Table, Computer Chair', 'Office Equipment', 'JJ-IT-5000245', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Insect Killer for branches', 'Office Equipment', 'JJ-IT-5000246', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fire Resistant Safe, Godrej Steel Six Doors, Key Cabinet', 'Office Equipment', 'JJ-IT-5000247', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Panasonic Cordless Telephone KX-TG33611 Black', 'Office Equipment', 'JJ-IT-5000248', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HP Printer', 'Office Equipment', 'JJ-IT-5000249', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Computer Pentium', 'Office Equipment', 'JJ-IT-5000250', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cameras', 'Office Equipment', 'JJ-IT-5000251', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Simag Ice Maker 30KG', 'Kitchen Equipment', 'JJ-KE-3000334', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Freezer 1 door - Barsha', 'Kitchen Equipment', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cosec Door FOT V4 PLT100 - Time & Attendance Terminal', 'Office Equipment', 'JJ-IT-5000276', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S Upright Single door freezer S/s AISI 304 Cap: 685 LitersTemp: -10 ~ -18 CPower: 230V 50 HzCoolin', 'Kitchen Equipment', 'New August', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Common Griller', 'Kitchen Equipment', 'New November', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Printer EPSON TM-T20III USB + Ethernet Part#C31CH51012A0 ;tmt20 ethernet S\N:X7AW123838', 'Office Equipment', 'New February', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Samsung galaxy A9+middle east version with cover screen card & Epson TM-M30 with USAB BT Ethernet', 'Office Equipment', 'New Apr 2025', 'operational', s_id) on conflict do nothing;
-  end if;
+  function selectStore(store) {
+    setSelectedStore(store)
+    setView('store-detail')
+    setSearch('')
+  }
 
-  -- JJ Chicken - Discovery Garden (68 assets)
-  select id into s_id from stores where lower(name) = lower('JJ Chicken - Discovery Garden');
-  if s_id is not null then
-    insert into assets (name, category, serial_number, status, store_id) values ('Table', 'Furniture & Fittings', 'JJ-FF-1000323', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Bar stool and dining chairs', 'Furniture & Fittings', 'JJ-FF-1000324', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Balance payment for furnitures- Vision', 'Furniture & Fittings', 'JJ-FF-1000325', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen equipments', 'Kitchen Equipment', 'JJ-FF-1000326', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('KItchen Equipment, Cleaning equipment', 'Kitchen Equipment', 'JJ-FF-1000327', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Small ware purchased from Petty cash', 'Kitchen Equipment', 'JJ-FF-1000328', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('GISP Handwasher', 'Kitchen Equipment', 'JJ-KE-3000232', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('GISP Handwasher', 'Kitchen Equipment', 'JJ-KE-3000233', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Potis Shawarma Model', 'Kitchen Equipment', 'JJ-KE-3000234', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Shawarma stand', 'Kitchen Equipment', 'JJ-KE-3000235', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Salad S900', 'Kitchen Equipment', 'JJ-KE-3000236', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('PITCO Fryer 35C', 'Kitchen Equipment', 'JJ-KE-3000237', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('PITCO Fryer 35C', 'Kitchen Equipment', 'JJ-KE-3000238', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless Chip Dump + Heater', 'Kitchen Equipment', 'JJ-KE-3000239', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Work Station w/ double overhead shelf and Cabinets', 'Kitchen Equipment', 'JJ-KE-3000240', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Work Station w/ double overhead shelf and Cabinets', 'Kitchen Equipment', 'JJ-KE-3000241', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Potwash Sink', 'Kitchen Equipment', 'JJ-KE-3000242', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Vegetable Sink and Preparation Unit + shelves', 'Kitchen Equipment', 'JJ-KE-3000243', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S Overhead Shelf', 'Kitchen Equipment', 'JJ-KE-3000244', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy 120', 'Kitchen Equipment', 'JJ-KE-3000245', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('1410 TN Upright Fridge 2 doors', 'Kitchen Equipment', 'JJ-KE-3000247', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('1410 BT Upright Freezer 2 doors', 'Kitchen Equipment', 'JJ-KE-3000248', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Ref Counter 2 Doors GN 2100TN', 'Kitchen Equipment', 'JJ-KE-3000249', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Table top Fridge 2 doors', 'Kitchen Equipment', 'JJ-KE-3000250', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Freezer 2 doors Counter GN2100BT', 'Kitchen Equipment', 'JJ-KE-3000251', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Mop Sink with Cabinet', 'Kitchen Equipment', 'JJ-KE-3000252', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless Steel BBQ Station', 'Kitchen Equipment', 'JJ-KE-3000254', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Skewer and Charcoal Trolley', 'Kitchen Equipment', 'JJ-KE-3000255', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Skewer and Charcoal Trolley', 'Kitchen Equipment', 'JJ-KE-3000256', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ALTO Shaam 500 3D Drawer warmer', 'Kitchen Equipment', 'JJ-KE-3000257', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar PE35LE', 'Kitchen Equipment', 'JJ-KE-3000258', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar PE35LE', 'Kitchen Equipment', 'JJ-KE-3000259', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless Frost Tech Display', 'Kitchen Equipment', 'JJ-KE-3000260', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Simag Ice Maker', 'Kitchen Equipment', 'JJ-KE-3000261', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Menumaster Microwave Oven', 'Kitchen Equipment', 'JJ-KE-3000262', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Back Bar Fridge 2 doors', 'Kitchen Equipment', 'JJ-KE-3000263', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000264', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000265', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000266', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Alluline Grease Trap', 'Kitchen Equipment', 'JJ-KE-3000268', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Alluline Grease Trap', 'Kitchen Equipment', 'JJ-KE-3000643', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Monolith Shower Rinser', 'Kitchen Equipment', 'JJ-KE-3000644', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S stand on wheels', 'Kitchen Equipment', 'JJ-KE-3000645', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating', 'Kitchen Equipment', 'JJ-KE-3000646', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating', 'Kitchen Equipment', 'JJ-KE-3000647', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating', 'Kitchen Equipment', 'JJ-KE-3000648', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating', 'Kitchen Equipment', 'JJ-KE-3000649', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Partition', 'Kitchen Equipment', 'JJ-KE-3000650', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Menumaster Model RCS511TS', 'Kitchen Equipment', 'JJ-KE-3000651', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Pass table', 'Kitchen Equipment', 'JJ-KE-3000652', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('POZONE POS 80', 'Office Equipment', 'JJ-IT-5000070', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HP Printer', 'Office Equipment', 'JJ-IT-5000072', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cash Safe', 'Office Equipment', 'JJ-IT-5000073', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('CCTV Cameras (qty:13)', 'Office Equipment', 'JJ-IT-5000076', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Panasonic Cordless Telephone KX-TG3711BX', 'Office Equipment', 'JJ-IT-5000083', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ZK F18 Biometric System with Installation', 'Office Equipment', 'JJ-IT-5000084', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cosec Door FOT V4 PLT100 - Time & Attendance Terminal', 'Office Equipment', 'JJ-IT-5000278', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SSD 500GB 3D NAND SATA 2.5-inch 7mm internal SSD 1-pc', 'Office Equipment', 'New July', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Common Griller', 'Kitchen Equipment', 'New November', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Zinc for kitchen', 'Furniture & Fittings', 'New February', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Slotted Angle Racking', 'Furniture & Fittings', 'New Dec', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Replacement of kitchen hood lights and nozzles', 'Operational Equipment', 'New Apr 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Replacement of kitchen hood lights and nozzles', 'Operational Equipment', 'New Apr 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('VFD SUITABLE FOR 5.5HW/7.50HP MOTOR(MAKE:EATON)', 'Operational Equipment', 'New May 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('NVR/DVR HIKVISION-DS-7616NXI-K2/16P 16-CH PoE 4K NVR', 'Office Equipment', 'New Jun 2024', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Support and Services Lenovo Think Pad E460s Touch Pad replacement & Power Issue Solving Problem', 'Office Equipment', 'New Jul 2024', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Support and Services Lenovo Think Pad E460s Touch Pad replacement & Power Issue Solving Problem & Ba', 'Office Equipment', 'New Jul 2024', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Samsung galaxy A9+middle east version with cover screen card & Epson TM-M30 with USAB BT Ethernet', 'Office Equipment', 'New Apr 2025', 'operational', s_id) on conflict do nothing;
-  end if;
+  function goBack() {
+    if (view === 'store-assets') { setView('store-detail') }
+    else { setView('stores'); setSelectedStore(null) }
+    setSearch('')
+  }
 
-  -- JJ Chicken - Kite Beach (56 assets)
-  select id into s_id from stores where lower(name) = lower('JJ Chicken - Kite Beach');
-  if s_id is not null then
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrella with Base', 'Furniture & Fittings', 'JJ-FF-1000369', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Re-fabrication and Branding; Umbrella Base - Finishing', 'Furniture & Fittings', 'JJ-LI-1000108', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrella with Base', 'Office Equipment', 'JJ-FF-1000371', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Sale of 20 STD USD CONTAINER', 'Furniture & Fittings', 'JJ-FF-1000329', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('INTERIOR WORKS FOR CONTAINER (6 FEET) at JJ Chicken', 'Furniture & Fittings', 'JJ-FF-1000330', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fabrication-signage work at JJ Kites-container', 'Furniture & Fittings', 'JJ-FF-1000331', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Variation for the container Modifications Works', 'Furniture & Fittings', 'JJ-FF-1000332', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cladding Work at Kites Beach Container', 'Furniture & Fittings', 'JJ-FF-1000333', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and installation of wooden palate and structure Fixing of banner on structure for Container', 'Furniture & Fittings', 'JJ-FF-1000334', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fabricated Wall shelf', 'Furniture & Fittings', 'JJ-FF-1000335', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Signage, Electrical, Fire Fighting alarm and supperation works', 'Furniture & Fittings', 'JJ-FF-1000336', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Furniture Painting work', 'Furniture & Fittings', 'JJ-FF-1000337', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Electric American Fryer', 'Kitchen Equipment', 'JJ-KE-3000272', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Ref Counter 3 Doors GN 2100TN', 'Kitchen Equipment', 'JJ-KE-3000279', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Freezer 2 doors Counter GN2100BT', 'Kitchen Equipment', 'JJ-KE-3000280', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Hood', 'Kitchen Equipment', 'JJ-KE-3000281', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S Electic Double Panini Grill', 'Kitchen Equipment', 'JJ-KE-3000287', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S Electric Industrial Microwave Oven 11W', 'Kitchen Equipment', 'JJ-KE-3000288', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Microwave Oven', 'Kitchen Equipment', 'JJ-KE-3000653', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fan', 'Kitchen Equipment', 'JJ-KE-3000654', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Store Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000655', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000656', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000657', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000658', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('2 unit Changing Fan motor of bottle cooler', 'Kitchen Equipment', 'JJ-KE-3000659', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('1 unit Changing Compressor, Gas and Filter for Chiller', 'Kitchen Equipment', 'JJ-KE-3000660', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Maintenance - changing compressor for bottle cooler', 'Kitchen Equipment', 'JJ-KE-3000661', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Changing compressor for salad chiller', 'Kitchen Equipment', 'JJ-KE-3000662', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('POZONE POS 80', 'Office Equipment', 'JJ-IT-5000085', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('AC Installation', 'Furniture & Fittings', 'JJ-IT-5000253', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ZCT, ZCR and ZCRB', 'Office Equipment', 'JJ-IT-5000254', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('10 Pallet for Container', 'Office Equipment', 'JJ-IT-5000255', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Locker', 'Office Equipment', 'JJ-IT-5000256', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('2 TB WD Surveillance Hard Drive', 'Office Equipment', 'JJ-IT-5000257', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Desktop UHF Transmitter', 'Office Equipment', 'JJ-IT-5000258', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Nissan High roof Van Chiller', 'Vehicles', 'JJ-MV-7000001', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrella with Base', 'Furniture & Fittings', 'JJ-FF-1000370', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson Receipt Printer for Container', 'Office Equipment', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrella with Base tfrd to UDAP', 'Furniture & Fittings', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrella with Base tfrd to UDAP', 'Furniture & Fittings', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('POS for Container', 'Office Equipment', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cosec Door FOT V4 PLT100 - Time & Attendance Terminal', 'Office Equipment', 'JJ-IT-5000277', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply & installation of AC & door', 'Office Equipment', 'New Apr 22', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Common Griller', 'Kitchen Equipment', 'New November', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SC 510 Black Chairs-30 Nos. for Kite Beach', 'Furniture & Fittings', 'New March', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('A1 STAND: JJ CHICKEN KITE BEACH.', 'Furniture & Fittings', 'New June', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('3 x 3 square umbrella with 80 kg granite base.Spanish recassen fabric in yellow/ black combination p', 'Furniture & Fittings', 'New Nov', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Commercial Microwave cooking', 'Kitchen Equipment', 'New Sep 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Samsung galaxy A9+middle east version with cover screen card & Epson TM-M30 with USAB BT Ethernet', 'Office Equipment', 'New Apr 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Mariot Kitchen Equipment/Colddream 2S -Cofrimell Juice Dispenser for Kite Beach', 'Operational Equipment', 'New Jul 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('juice dispenser -JJ Kite beach', 'Operational Equipment', 'New Aug 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Chair as same as existing Furniture Commercial Grade Yellow Metal chairs-Seat height: 17–19 inches (', 'Furniture & Fittings', 'New Nov 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('juice dispenser -JJ Kite beach-08-07-25', 'Operational Equipment', 'New Nov 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('50% Adv-against LPO-JJ/1310-Mangalam Middle east for Kite beach flag', 'Furniture & Fittings', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Payment against LPO-JJ/1324-Mangalam Middle east for Kite beach 28 Chairs & 3 Tables', 'Furniture & Fittings', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('50% Balance against LPO-JJ/1310-Mangalam Middle east for Kite beach 3*3 Umbrella', 'Furniture & Fittings', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-  end if;
+  async function handleSaveAsset() {
+    setSaving(true)
+    await supabase.from('assets').insert({ ...assetForm, store_id: selectedStore.id })
+    setShowAssetForm(false); setAssetForm(EMPTY_ASSET); fetchAll()
+    setSaving(false)
+  }
 
-  -- JJ Derawandi - Al Wasl (273 assets)
-  select id into s_id from stores where lower(name) = lower('JJ Derawandi - Al Wasl');
-  if s_id is not null then
-    insert into assets (name, category, serial_number, status, store_id) values ('T1 - indoor 70x70 light oak top table with black metal base', 'Furniture & Fittings', 'JJ-FF-1000170', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('T1 - indoor 70x70 light oak top table with black metal base', 'Furniture & Fittings', 'JJ-FF-1000171', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('T1 - indoor 70x70 light oak top table with black metal base', 'Furniture & Fittings', 'JJ-FF-1000172', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('T1 - indoor 70x70 light oak top table with black metal base', 'Furniture & Fittings', 'JJ-FF-1000173', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('T1 - indoor 70x70 light oak top table with black metal base', 'Furniture & Fittings', 'JJ-FF-1000174', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('T1 - indoor 70x70 light oak top table with black metal base', 'Furniture & Fittings', 'JJ-FF-1000175', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('T1 - indoor 70x70 light oak top table with black metal base', 'Furniture & Fittings', 'JJ-FF-1000176', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('T1 - indoor 70x70 light oak top table with black metal base', 'Office Equipment', 'JJ-FF-1000177', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1A- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000178', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1A- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000179', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1A- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000180', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1A- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000181', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1A- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000182', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1A- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000183', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1A- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000184', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1A- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000185', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1A- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000186', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1A- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000187', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1B- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000188', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1B- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000189', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1B- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000190', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1B- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000191', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1B- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000192', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1B- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000193', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1B- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000194', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1B- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000195', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1B- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000196', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('C1B- seating chair with yellow fabric', 'Furniture & Fittings', 'JJ-FF-1000197', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S1A - bar stool for bar height 115 cm', 'Furniture & Fittings', 'JJ-FF-1000198', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S1A - bar stool for bar height 115 cm', 'Furniture & Fittings', 'JJ-FF-1000199', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S1A - bar stool for bar height 115 cm', 'Furniture & Fittings', 'JJ-FF-1000200', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S1A - bar stool for bar height 115 cm', 'Furniture & Fittings', 'JJ-FF-1000201', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('49" Philips TV and Fixed Bracket', 'Furniture & Fittings', 'JJ-FF-1000202', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('49" Philips TV and Fixed Bracket', 'Furniture & Fittings', 'JJ-FF-1000203', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('49" Philips TV and Fixed Bracket', 'Furniture & Fittings', 'JJ-FF-1000204', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and Installation of Artificial Plant Arrangements', 'Office Equipment', 'JJ-FF-1000206', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and Installation of Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000207', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and Installation of Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000208', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and Installation of Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000209', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Artificial Messangina Plants in GRP Round Pot', 'Furniture & Fittings', 'JJ-FF-1000210', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Mop Sink+ Chemical cabinet 50*50*180', 'Kitchen Equipment', 'JJ-KE-3000291', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Slim Jim Rubbermaid', 'Kitchen Equipment', 'JJ-KE-3000292', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*40', 'Kitchen Equipment', 'JJ-KE-3000293', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*40', 'Kitchen Equipment', 'JJ-KE-3000294', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*40', 'Kitchen Equipment', 'JJ-KE-3000295', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Floor Grating 70*40', 'Kitchen Equipment', 'JJ-KE-3000296', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Table with double Bowl Sink 120*70*85', 'Kitchen Equipment', 'JJ-KE-3000297', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Partition', 'Kitchen Equipment', 'JJ-KE-3000298', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Single Wall Shelf 120*35', 'Kitchen Equipment', 'JJ-KE-3000299', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy Shelving 90', 'Kitchen Equipment', 'JJ-KE-3000300', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Potwash Sink 100*60*85', 'Kitchen Equipment', 'JJ-KE-3000301', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Aluline Grease Trap', 'Kitchen Equipment', 'JJ-KE-3000302', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Aluline Grease Trap', 'Kitchen Equipment', 'JJ-KE-3000303', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Monolith Shower Rinser', 'Kitchen Equipment', 'JJ-KE-3000304', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Electric Salad Fridge 2 doors', 'Kitchen Equipment', 'JJ-KE-3000305', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Menumaster Model RCS511TS', 'Kitchen Equipment', 'JJ-KE-3000306', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Menumaster Model RCS511TS', 'Kitchen Equipment', 'JJ-KE-3000307', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar PE50ME S/S Work Table with B/S 355*80*90', 'Kitchen Equipment', 'JJ-KE-3000308', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar PE50ME S/S Work Table with B/S 355*80*90', 'Kitchen Equipment', 'JJ-KE-3000309', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Ref Counter 2 Doors GN 2100TN', 'Kitchen Equipment', 'JJ-KE-3000310', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Electric Freezer 2 doors', 'Kitchen Equipment', 'JJ-KE-3000311', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Overhead Shelves  350*35', 'Kitchen Equipment', 'JJ-KE-3000312', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Pass Table + Storage 350*80*90', 'Kitchen Equipment', 'JJ-KE-3000313', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Table for BBQ 250*85*92', 'Kitchen Equipment', 'JJ-KE-3000314', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S BBQ Grill with inside Bricks', 'Kitchen Equipment', 'JJ-KE-3000315', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Skewer & Charcoal Trolley', 'Kitchen Equipment', 'JJ-KE-3000316', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Skewer & Charcoal Trolley', 'Kitchen Equipment', 'JJ-KE-3000317', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('PITCO Fryer 35C+S', 'Kitchen Equipment', 'JJ-KE-3000318', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Chip Dump', 'Kitchen Equipment', 'JJ-KE-3000320', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Potis Shawarma Model GD3/S', 'Kitchen Equipment', 'JJ-KE-3000321', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Shawarma stand 50*80*85', 'Kitchen Equipment', 'JJ-KE-3000322', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Handwash Sink', 'Kitchen Equipment', 'JJ-KE-3000323', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Handwash Sink', 'Kitchen Equipment', 'JJ-KE-3000324', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S stand on wheels', 'Kitchen Equipment', 'JJ-KE-3000326', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless back Bar Fridge 2 doors', 'Kitchen Equipment', 'JJ-KE-3000327', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Display Fridge 100', 'Kitchen Equipment', 'JJ-KE-3000328', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Fridge 2 doors 1410TN', 'Kitchen Equipment', 'JJ-KE-3000329', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Freezer 2 doors 1410BT', 'Kitchen Equipment', 'JJ-KE-3000330', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000331', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000332', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000333', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Cabinet closed from 3 sides', 'Kitchen Equipment', 'JJ-KE-3000335', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Wall cabinet closed 160*40*85', 'Kitchen Equipment', 'JJ-KE-3000336', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Cabinet closed from 3 sides 350*40*85', 'Kitchen Equipment', 'JJ-KE-3000337', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cantech Hood', 'Kitchen Equipment', 'JJ-KE-3000338', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless Ecology Unit', 'Kitchen Equipment', 'JJ-KE-3000339', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('POS and POS Printer', 'Office Equipment', 'JJ-IT-5000092', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Panasonic Cordless Telephone KX-TG3611 BLACK', 'Office Equipment', 'JJ-IT-5000093', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Meraki Devices', 'Office Equipment', 'JJ-IT-5000094', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Speakers, Amplifiers, Installation, Testing and Commissioning', 'Office Equipment', 'JJ-IT-5000095', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HikVision DS-7608 NI-I2 8P 8channel NVR With POE', 'Office Equipment', 'JJ-IT-5000096', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HikVision DS-2CD2123 G0/I 2MP IP Dome Camera', 'Office Equipment', 'JJ-IT-5000097', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HikVision DS-2CD2123 G0/I 2MP IP Dome Camera', 'Office Equipment', 'JJ-IT-5000098', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HikVision DS-2CD2123 G0/I 2MP IP Dome Camera', 'Office Equipment', 'JJ-IT-5000099', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HikVision DS-2CD2123 G0/I 2MP IP Dome Camera', 'Office Equipment', 'JJ-IT-5000100', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HikVision DS-2CD2123 G0/I 2MP IP Dome Camera', 'Office Equipment', 'JJ-IT-5000101', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HikVision DS-2CD2123 G0/I 2MP IP Dome Camera', 'Office Equipment', 'JJ-IT-5000102', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HikVision DS-2CD2023 G0/I 2MP IP Bullet Camera', 'Office Equipment', 'JJ-IT-5000103', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HikVision DS-2CD2723 GI-IZ 2MP IP Motorised Camera', 'Office Equipment', 'JJ-IT-5000104', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('6 T.B Surveillance Hard Drive', 'Office Equipment', 'JJ-IT-5000105', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Camera Fixing & NVR Configuration Charges', 'Office Equipment', 'JJ-IT-5000106', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ZK F18 Biometric System with Installation', 'Office Equipment', 'JJ-IT-5000107', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('2.5 CBM Bin', 'Office Equipment', 'JJ-IT-5000108', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Delivery Box', 'Furniture & Fittings', 'JJ-FF-1000243', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Delivery Box', 'Furniture & Fittings', 'JJ-FF-1000244', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Delivery Box', 'Furniture & Fittings', 'JJ-FF-1000245', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Delivery Box', 'Furniture & Fittings', 'JJ-FF-1000246', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000247', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000248', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000249', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000250', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000251', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Artificial Plant Arrangements', 'Furniture & Fittings', 'JJ-FF-1000252', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('LED box', 'Furniture & Fittings', 'JJ-FF-1000309', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('LED box', 'Furniture & Fittings', 'JJ-FF-1000310', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('LED box', 'Furniture & Fittings', 'JJ-FF-1000311', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('LED box', 'Furniture & Fittings', 'JJ-FF-1000312', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('LED box', 'Furniture & Fittings', 'JJ-FF-1000313', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('LED box', 'Furniture & Fittings', 'JJ-FF-1000314', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('LED box', 'Furniture & Fittings', 'JJ-FF-1000315', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light box', 'Furniture & Fittings', 'JJ-FF-1000316', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light box', 'Furniture & Fittings', 'JJ-FF-1000317', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light box', 'Furniture & Fittings', 'JJ-FF-1000318', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box RTA (55cm)', 'Furniture & Fittings', 'JJ-FF-1000319', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S Stand', 'Kitchen Equipment', 'JJ-KE-3000443', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('1410 TN Upright Fridge 1 door', 'Kitchen Equipment', 'JJ-KE-3000450', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ALTO Shaam 500 3D Drawer warmer', 'Kitchen Equipment', 'JJ-KE-3000460', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Sandwich Press and Panini Maker', 'Kitchen Equipment', 'JJ-KE-3000461', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Rice Cooker', 'Kitchen Equipment', 'JJ-KE-3000462', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Shelving unit', 'Kitchen Equipment', 'JJ-KE-3000467', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Advance paid for sale of Munchies Cafeteria will all existing Equipment- Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000680', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen equipment', 'Kitchen Equipment', 'JJ-KE-3000681', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pros S/S Table with Backsplash + Undershelf and 4 Adj legs', 'Kitchen Equipment', 'JJ-KE-3000682', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pros Cutting Board for Sandwich Chiller', 'Kitchen Equipment', 'JJ-KE-3000683', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pros S/S Wall Covering 139x106', 'Kitchen Equipment', 'JJ-KE-3000684', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('AltoSham S/S Trolley Stand with wheels', 'Kitchen Equipment', 'JJ-KE-3000685', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('AltoSham S/S Trolley Stand with wheels', 'Kitchen Equipment', 'JJ-KE-3000686', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Coolhead Electric Bottle Cooler 2 glass sliding doorstemp: 0+8C Model: BBC208', 'Kitchen Equipment', 'JJ-KE-3000687', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Coolhead Electric Bottle Cooler 2 glass sliding doorstemp: 0+8C Model: BBC208', 'Kitchen Equipment', 'JJ-KE-3000688', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Fridge', 'Kitchen Equipment', 'JJ-KE-3000689', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000690', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Rice Cooker', 'Kitchen Equipment', 'JJ-KE-3000691', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Coolhead Refrigerated Showcase Sushi', 'Kitchen Equipment', 'JJ-KE-3000692', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('POZONE POS 80', 'Office Equipment', 'JJ-IT-5000140', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HP Printer', 'Office Equipment', 'JJ-IT-5000141', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cash Safe', 'Office Equipment', 'JJ-IT-5000142', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('CCTV Cameras (qty:3)', 'Office Equipment', 'JJ-IT-5000144', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-2011 Thermal printer', 'Office Equipment', 'JJ-IT-5000146', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Chameleon', 'Office Equipment', 'JJ-IT-5000147', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Panasonic Cordless Telephone KX-TG3711BX', 'Office Equipment', 'JJ-IT-5000149', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ZK F18 Biometric System with Installation', 'Office Equipment', 'JJ-IT-5000150', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Office Equipment - United Electronics Co. LLC 06/07/2019', 'Office Equipment', 'JJ-IT-5000237', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cabinet Twin Duct inline Fan 3032', 'Office Equipment', 'JJ-IT-5000238', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless steel tables', 'Furniture & Fittings', 'JJ-FF-1000261', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Sink with tables', 'Furniture & Fittings', 'JJ-FF-1000262', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Storage room shelves', 'Furniture & Fittings', 'JJ-FF-1000263', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Walking Chiller shelves', 'Furniture & Fittings', 'JJ-FF-1000264', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Staff lockers', 'Furniture & Fittings', 'JJ-FF-1000265', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Chairs - office', 'Furniture & Fittings', 'JJ-FF-1000266', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Desk tables - office', 'Furniture & Fittings', 'JJ-FF-1000267', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Desk tables', 'Furniture & Fittings', 'JJ-FF-1000268', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Office chairs', 'Furniture & Fittings', 'JJ-FF-1000269', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pallet for Storage', 'Furniture & Fittings', 'JJ-FF-1000270', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Digital Control', 'Furniture & Fittings', 'JJ-FF-1000271', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('9 Ltr alright Container made in Turkey', 'Furniture & Fittings', 'JJ-FF-1000272', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ROBOT COUPE (R10) CUTTER MIXER', 'Kitchen Equipment', 'JJ-KE-3000469', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Grinder (Small)', 'Kitchen Equipment', 'JJ-KE-3000470', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Walk-in Chiller + Freezer', 'Kitchen Equipment', 'JJ-KE-3000471', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Weighing scale', 'Kitchen Equipment', 'JJ-KE-3000472', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000473', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Price label', 'Kitchen Equipment', 'JJ-KE-3000474', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000479', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Microwave Oven', 'Kitchen Equipment', 'JJ-KE-3000480', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Portable Sink', 'Kitchen Equipment', 'JJ-KE-3000481', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Scissors', 'Kitchen Equipment', 'JJ-KE-3000482', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Thermocase', 'Kitchen Equipment', 'JJ-KE-3000483', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Chafing Dish', 'Kitchen Equipment', 'JJ-KE-3000484', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Electric Fryer', 'Kitchen Equipment', 'JJ-KE-3000485', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Trolley Japan', 'Kitchen Equipment', 'JJ-KE-3000486', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Steel barbeque', 'Kitchen Equipment', 'JJ-KE-3000487', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Knife Cutting Board', 'Kitchen Equipment', 'JJ-KE-3000490', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pallets for CK', 'Kitchen Equipment', 'JJ-KE-3000492', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Falcon Professional Kitchen L.L.C ( 3-straight-BL Knife R10E )', 'Kitchen Equipment', 'JJ-KE-3000493', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Equipment Purchased from Land and Sea', 'Kitchen Equipment', 'JJ-KE-3000494', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Chameleon white', 'Kitchen Equipment', 'JJ-KE-3000495', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen items', 'Kitchen Equipment', 'JJ-KE-3000496', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen items', 'Kitchen Equipment', 'JJ-KE-3000497', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Container 18+Charcoal 1', 'Kitchen Equipment', 'JJ-KE-3000498', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Maxi multi box', 'Kitchen Equipment', 'JJ-KE-3000499', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Computer i3', 'Office Equipment', 'JJ-IT-5000154', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Computer Pentium', 'Office Equipment', 'JJ-IT-5000155', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HP LaserJet Pro Multifunction Printer', 'Office Equipment', 'JJ-IT-5000156', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('DVR screen', 'Office Equipment', 'JJ-IT-5000157', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Panasonic PABX SYSTEM (+ caller ID)', 'Office Equipment', 'JJ-IT-5000158', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Panasonic (12 Key Display Telephone)', 'Office Equipment', 'JJ-IT-5000159', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Sony Laptop', 'Office Equipment', 'JJ-IT-5000160', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('EPOS Thermal Receipt', 'Office Equipment', 'JJ-IT-5000163', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Samsung T-231', 'Office Equipment', 'JJ-IT-5000164', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Table Fan', 'Office Equipment', 'JJ-IT-5000165', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Laptop', 'Office Equipment', 'JJ-IT-5000166', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Camera (VS 28 AW - CAMERA)', 'Office Equipment', 'JJ-IT-5000170', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Camera (ZS 486 BG - CAMERA 1/3”)', 'Office Equipment', 'JJ-IT-5000171', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('CAMERA FIXING AND FOCUSING Including Rj59 Cable', 'Office Equipment', 'JJ-IT-5000172', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Truck CMC', 'Vehicles', 'JJ-MV-7000002', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Purchase of Food Truck- Mini Pickup', 'Vehicles', 'JJ-MV-7000003', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Nissan Urvan UW15A 2020 YM', 'Vehicles', 'JJ-MV-7000004', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('INSTALLATION OF CHILLER IN NISSAN VAN,', 'Vehicles', 'JJ-MV-7000005', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Purchase of Nissan Urvan- 25% down payment', 'Vehicles', 'JJ-MV-7000006', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Purchase of Nissan Urvan- 75% Remaining Invoice', 'Vehicles', 'JJ-MV-7000007', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('JJ signage Umbrella (Large)', 'Furniture & Fittings', 'JJ-FF-1000257', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('1410 TN Upright Fridge 1 door', 'Kitchen Equipment', 'JJ-KE-3000451', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Table with Glass Top - 4pcs (CFC Glass Furniture FZCO)', 'Furniture & Fittings', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Lenovo Laptop for CK', 'Office Equipment', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Lenovo Laptop for CK', 'Office Equipment', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Lenovo Laptop for Al Fallah (LENOVO E14)', 'Office Equipment', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Additional POS for Al Fallah (Partner Sp-1060, Skylake i3 6100TE...)', 'Office Equipment', 'JJ-IT-5000268', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Steel Griller 45*45 (Heavy Duty)', 'Kitchen Equipment', 'JJ-KE-3000700', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cosec Door FOT V4 PLT100 - Time & Attendance Terminal', 'Office Equipment', 'JJ-IT-5000274', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cosec Door FOT V4 PLT100 - Time & Attendance Terminal', 'Office Equipment', 'JJ-IT-5000284', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Lenovo Laptop for CK INV DATED: 08/09/21 (LENOVO E14) - PO/JJ/571', 'Office Equipment', 'JJ-IT-5000287', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('INSTALLATION OF SMOKE WITHDRAWAL', 'Kitchen Equipment', 'JJ-KE-3000726', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Labeling machine', 'Office Equipment', 'New June', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Samsung tab', 'Office Equipment', 'New June', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Printer', 'Office Equipment', 'New June', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Touch Kitchen Display Monitor 21.5" PCAP TOUCHSCREEN Intel Core I3-7101TE Processor, 4GBDDRRAM, 128G', 'Office Equipment', 'New June', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('UNDER SHELF 09*68.5', 'Furniture & Fittings', 'New July', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('DOUBLE OVERHEAD SHELF 135', 'Furniture & Fittings', 'New July', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('DOUBLE OVERHEAD SHELF 200*40*90', 'Furniture & Fittings', 'New July', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S upright double door (magnetic) chiller w/ blower system (2 full door)Cap 1400 L Temperature: 2-8', 'Kitchen Equipment', 'New July', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('American Model Gas Fryer - LPG 3 Burner 1 Tank - 2 Basket , Capacity: 28 LDim: 380x720x1050 mm Net w', 'Kitchen Equipment', 'New July', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('STAINLESS -ELECTRIC FRYER', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('shawarma machine', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('stainless steel table', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('FRYER (2 NOS) -S/S GAS DOUBLE BOWL BASKET FRYER CAP : 35 LBSAMERICAN MODEL: aed 4400*2', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('CHILLER(2 NOS)-S/S ELECTRIC UNDERCOUNTER 2 DOORS CHILLER, TEMP: 0+8 CDim: 1360x700x850 mm ITALIAN MO', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('DOUBLE DOOR CHILLER(1)-S/S ELECTRIC UPRIGHT 2 DOORS FREEZER, TEMP: -20 CDIM: 148X83X210 ITALIAN MODE', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SINGLE DOOR CHILLER(1)-S/S ELECTRIC UPRIGHT 1 DOOR CHILLERTEMP: 0+8 CDIM:74X83X205 ITALIAN MODEL CHI', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('gas counter top shawarma machine,discount 200/1000', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('bbq grill with inside bricks 200*45*90 discount 200/1000', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('electric sandwtch chiller with compartment 136*70*85 discount 200/1000', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('electric under counter 2 doors freezer 136*70*85 discount 200/1000', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('electric sandwtch double toaster discount 200/1000', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('water mist with control panel', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('CUSTOM MADE counter top shawarma machine', 'Kitchen Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Printer EPSON TM-T20III USB + Ethernet Part#C31CH51012A0 ;tmt20 ethernet', 'Office Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('HC1621P016280001 Touch Kitchen Display Monitor 21.5" PCAP TOUCHSCREEN Intel Core I3-7101TE Processor', 'Office Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('POS - Machine JJ sharjah 1', 'Office Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Lenovo ThinkPad E15 + Bag', 'Office Equipment', 'New September', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('oven with stainless steel stand', 'Kitchen Equipment', 'New October', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('stainless steel table- 250*70*100', 'Kitchen Equipment', 'New October', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('stainless steel table- 150*70*100', 'Kitchen Equipment', 'New October', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('PARTNER SP-1060, Skylake i3 6100TE, 2.7 GHz, Dual Core / 4M Cache / 4GB RAM 128GB SSD/ 15"PCAP Touch', 'Office Equipment', 'New October', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-T20III, USB, Ethernet, C31CH51012A0', 'Office Equipment', 'New October', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Common Griller', 'Kitchen Equipment', 'New November', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Common Griller', 'Kitchen Equipment', 'New November', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Common Griller', 'Kitchen Equipment', 'New December', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('KITCHEN HOOD MODIFICATION WORK-SHARJAH', 'Furniture & Fittings', 'New December', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('robot coupe machine-ck', 'Kitchen Equipment', 'New April', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Steel griller 45*45cm (Heavy duty)', 'Kitchen Equipment', 'New June', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Heavy duty trolley purchased from petty cash', 'Operational Equipment', 'New Nov', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Scale purchased from petty cash', 'Operational Equipment', 'New Nov', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('MENUMATER MODEL(06-12-2022)', 'Furniture & Fittings', 'New Jan 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('TECNODOM BLAST FREEZER 10 TRAYS (22.12.2022)', 'Kitchen Equipment', 'New Jan 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('POWER MIXER', 'Kitchen Equipment', 'New Jan 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Wire Shelving (220*60*210) 4 levels', 'Furniture & Fittings', 'New Feb 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('BBQ GRILL', 'Kitchen Equipment', 'New Feb 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen equipments(16.02.24)', 'Kitchen Equipment', 'New Apr 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('GN PAN', 'Kitchen Equipment', 'New Sep 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('BLIXER CUTTER MIXER 45. (USED)', 'Kitchen Equipment', 'New Jan 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pallet for JJ CK', 'Operational Equipment', 'New Jul 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Lenovo Thinkpad -512GB SSD, 16.0″ FHD Backlit, English/Arabic Keyboard, Win 11 Pro, 3', 'Office Equipment', 'New Nov 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Being payment made to Kitchen Warehouse towards Robo Coupe purchase 50% payment.', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Being balance 50% payment made to Kitchen Warehouse towards Robo Coupe purchase.', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-  end if;
+  async function handleUpdateAssetStatus(id, status) {
+    await supabase.from('assets').update({ status }).eq('id', id)
+    fetchAll()
+  }
 
-  -- JJ Chicken - Mirdif (UR) (83 assets)
-  select id into s_id from stores where lower(name) = lower('JJ Chicken - Mirdif (UR)');
-  if s_id is not null then
-    insert into assets (name, category, serial_number, status, store_id) values ('Light box', 'Furniture & Fittings', 'JJ-FF-1000215', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Ecology Unit', 'Kitchen Equipment', 'JJ-KE-3000342', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000343', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen equipment', 'Kitchen Equipment', 'JJ-KE-3000344', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Trolley', 'Kitchen Equipment', 'JJ-KE-3000345', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000346', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000347', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S mop sink + chemical Cabinet', 'Kitchen Equipment', 'JJ-KE-3000348', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S floor grating 70x30x7', 'Kitchen Equipment', 'JJ-KE-3000349', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S floor grating 70x30x7', 'Kitchen Equipment', 'JJ-KE-3000350', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S floor grating 70x30x7', 'Kitchen Equipment', 'JJ-KE-3000351', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S floor grating 70x30x7', 'Kitchen Equipment', 'JJ-KE-3000352', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S double bowl sink 140', 'Kitchen Equipment', 'JJ-KE-3000353', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S partition', 'Kitchen Equipment', 'JJ-KE-3000354', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S partition', 'Kitchen Equipment', 'JJ-KE-3000355', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S wall cabinet closed 140', 'Kitchen Equipment', 'JJ-KE-3000356', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Metro Epoxy 105', 'Kitchen Equipment', 'JJ-KE-3000357', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S potwash sink 120', 'Kitchen Equipment', 'JJ-KE-3000358', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Aluline Grease Trap', 'Kitchen Equipment', 'JJ-KE-3000359', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Aluline Grease Trap', 'Kitchen Equipment', 'JJ-KE-3000360', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Monolith Shower Rinser', 'Kitchen Equipment', 'JJ-KE-3000361', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('PS 20 Salad Bar', 'Kitchen Equipment', 'JJ-KE-3000362', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Menumaster Model RCS511Ts', 'Kitchen Equipment', 'JJ-KE-3000363', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Menumaster Model RCS511Ts', 'Kitchen Equipment', 'JJ-KE-3000364', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S table with b/s 208', 'Kitchen Equipment', 'JJ-KE-3000365', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S table with b/s 150', 'Kitchen Equipment', 'JJ-KE-3000366', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar PE25 Sandwich Press', 'Kitchen Equipment', 'JJ-KE-3000367', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar PE35LE', 'Kitchen Equipment', 'JJ-KE-3000368', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar Ref Counter 2 Doors + Drawers', 'Kitchen Equipment', 'JJ-KE-3000369', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless Freezer 2 doors', 'Kitchen Equipment', 'JJ-KE-3000370', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('s/s double overshelf', 'Kitchen Equipment', 'JJ-KE-3000371', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('s/s double overshelf', 'Kitchen Equipment', 'JJ-KE-3000372', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S table with cabinet', 'Kitchen Equipment', 'JJ-KE-3000373', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S overhead cabinet', 'Kitchen Equipment', 'JJ-KE-3000374', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S table 90x60x85', 'Kitchen Equipment', 'JJ-KE-3000375', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('s/s table stand for BBQ', 'Kitchen Equipment', 'JJ-KE-3000376', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('s/s bbq grill with inside bricks', 'Kitchen Equipment', 'JJ-KE-3000377', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S Skewer Charcoal Trolley', 'Kitchen Equipment', 'JJ-KE-3000378', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pitco Fryer 35C +S', 'Kitchen Equipment', 'JJ-KE-3000379', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pitco Fryer 35C +S', 'Kitchen Equipment', 'JJ-KE-3000380', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S chip dump 40x75', 'Kitchen Equipment', 'JJ-KE-3000381', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Freezer 2 door 1410BT', 'Kitchen Equipment', 'JJ-KE-3000382', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Potis Shawarma Machine', 'Kitchen Equipment', 'JJ-KE-3000383', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S Shawarma Stand', 'Kitchen Equipment', 'JJ-KE-3000384', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Gisp Handwasher', 'Kitchen Equipment', 'JJ-KE-3000385', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Gisp Handwasher', 'Kitchen Equipment', 'JJ-KE-3000386', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Alto Shaam 500 3D Drawer Warmer', 'Kitchen Equipment', 'JJ-KE-3000387', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('S/S stand on wheels', 'Kitchen Equipment', 'JJ-KE-3000388', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Fimar Ref Counter 2 Doors + Drawers', 'Kitchen Equipment', 'JJ-KE-3000389', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Backbar Fridge 2 Doors', 'Kitchen Equipment', 'JJ-KE-3000390', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Backbar Fridge 2 Doors', 'Kitchen Equipment', 'JJ-KE-3000391', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Backbar Fridge 2 Doors', 'Kitchen Equipment', 'JJ-KE-3000392', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Fridge 2 door 1410TN', 'Kitchen Equipment', 'JJ-KE-3000393', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Fridge 1 door GN650TN', 'Kitchen Equipment', 'JJ-KE-3000394', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Upright Freezer 1 door GN650BT', 'Kitchen Equipment', 'JJ-KE-3000395', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Simag Ice Maker', 'Kitchen Equipment', 'JJ-KE-3000396', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Installation of Display Shelvers', 'Kitchen Equipment', 'JJ-KE-3000397', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Partner SP-1060-Skylake i3 6100TE', 'Office Equipment', 'JJ-IT-5000109', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Partner SP-1060-Skylake i3 6100TE', 'Office Equipment', 'JJ-IT-5000110', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cash drawer', 'Office Equipment', 'JJ-IT-5000111', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cash drawer', 'Office Equipment', 'JJ-IT-5000112', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-2011 Thermal printer', 'Office Equipment', 'JJ-IT-5000113', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-2011 Thermal printer', 'Office Equipment', 'JJ-IT-5000114', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-2011 Thermal printer', 'Office Equipment', 'JJ-IT-5000115', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-2011 Thermal printer', 'Office Equipment', 'JJ-IT-5000116', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Epson TM-2011 Thermal printer', 'Office Equipment', 'JJ-IT-5000117', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Microsoft Windows Pro License', 'Office Equipment', 'JJ-IT-5000118', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Microsoft Windows Pro License', 'Office Equipment', 'JJ-IT-5000119', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Hik Vision camera fixing and Configuration', 'Office Equipment', 'JJ-IT-5000120', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('LaserJet Pro printer', 'Office Equipment', 'JJ-IT-5000122', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Safe purchase', 'Office Equipment', 'JJ-IT-5000123', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Frist Box', 'Office Equipment', 'JJ-IT-5000124', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Camera fixing and configuration charges', 'Office Equipment', 'JJ-IT-5000127', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cosec Door FOT V4 PLT100 - Time & Attendance Terminal', 'Office Equipment', 'JJ-IT-5000282', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SSD 500GB 3D NAND SATA 2.5-inch 7mm internal SSD (2-pcs)', 'Office Equipment', 'New July', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Common Griller', 'Kitchen Equipment', 'New November', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('stainless steel bowl with bottom shelf and mixer', 'Kitchen Equipment', 'New January', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Tabletop Ice Cream Machine', 'Kitchen Equipment', 'New February', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ice cream machine table top -25/02/2023', 'Kitchen Equipment', 'New March', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Purchased Stailess steel holding cabinet', 'Furniture & Fittings', 'New June', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('USED SHAWARMA MACHINE', 'Kitchen Equipment', 'New June', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SOFT ICE CREAM MACHINE - WARRANTY = 1 YEAR', 'Operational Equipment', 'New Aug24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Samsung galaxy A9+middle east version with cover screen card & Epson TM-M30 with USAB BT Ethernet', 'Office Equipment', 'New Apr 2025', 'operational', s_id) on conflict do nothing;
-  end if;
+  function startEditStore(store) {
+    setEditingStore(store.id)
+    setStoreForm({
+      name: store.name || '',
+      manager_name: store.manager_name || '',
+      phone: store.phone || '',
+      email: store.email || '',
+      address: store.address || '',
+      maps_url: store.maps_url || '',
+    })
+  }
 
-  -- JJ Chicken - Al Raha Mall (74 assets)
-  select id into s_id from stores where lower(name) = lower('JJ Chicken - Al Raha Mall');
-  if s_id is not null then
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box RTA (55cm)', 'Furniture & Fittings', 'JJ-FF-1000216', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box RTA (55cm)', 'Furniture & Fittings', 'JJ-FF-1000217', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box RTA (55cm)', 'Furniture & Fittings', 'JJ-FF-1000320', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('LED boxes for bikes (3 Qty)', 'Furniture & Fittings', 'JJ-FF-1000387', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Delivery Box', 'Furniture & Fittings', 'JJ-FF-1000388', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box', 'Furniture & Fittings', 'JJ-FF-1000389', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box', 'Furniture & Fittings', 'JJ-FF-1000390', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply and installation of JJ Signage', 'Furniture & Fittings', 'JJ-FF-1000338', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('4 ctn of Chairs from China', 'Furniture & Fittings', 'JJ-FF-1000339', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Steel Frame and Table', 'Furniture & Fittings', 'JJ-FF-1000340', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrella', 'Furniture & Fittings', 'JJ-FF-1000341', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('LED Light', 'Furniture & Fittings', 'JJ-FF-1000342', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Wooden Shelf', 'Furniture & Fittings', 'JJ-FF-1000343', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrella', 'Furniture & Fittings', 'JJ-FF-1000344', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Table', 'Furniture & Fittings', 'JJ-FF-1000345', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Chair (Qty:50), Table (Qty:16) Stool (Qty:16)', 'Furniture & Fittings', 'JJ-FF-1000346', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrellas for Kiosk', 'Furniture & Fittings', 'JJ-FF-1000347', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrellas for Kiosk', 'Furniture & Fittings', 'JJ-FF-1000348', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrellas for Kiosk', 'Furniture & Fittings', 'JJ-FF-1000349', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Umbrellas for Kiosk', 'Furniture & Fittings', 'JJ-FF-1000350', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light box', 'Furniture & Fittings', 'JJ-FF-1000351', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box RTA (55cm)', 'Furniture & Fittings', 'JJ-FF-1000352', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box RTA (55cm)', 'Furniture & Fittings', 'JJ-FF-1000353', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box RTA (55cm)', 'Furniture & Fittings', 'JJ-FF-1000354', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box RTA (55cm)', 'Furniture & Fittings', 'JJ-FF-1000355', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Light Box RTA (55cm)', 'Furniture & Fittings', 'JJ-FF-1000307', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('50% Initial payment for Cover of the Top of the Hood- Pros Equipment trading', 'Furniture & Fittings', 'JJ-FF-1000308', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Potis Shawarma Model', 'Kitchen Equipment', 'JJ-KE-3000401', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('PITCO Fryer 35C', 'Kitchen Equipment', 'JJ-KE-3000404', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('PITCO Fryer 35C', 'Kitchen Equipment', 'JJ-KE-3000405', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless double overhead shelf on Counters', 'Kitchen Equipment', 'JJ-KE-3000407', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ALTO Shaam 500 3D Drawer warmer', 'Kitchen Equipment', 'JJ-KE-3000424', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Back Bar Fridge 2 doors', 'Kitchen Equipment', 'JJ-KE-3000428', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000429', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Unimar Insect Killer', 'Kitchen Equipment', 'JJ-KE-3000433', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('50% Initial Payment- Pros Equipment Trading', 'Kitchen Equipment', 'JJ-KE-3000663', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cheq on hold 50% Addl Var- Pros Equipment Trading', 'Kitchen Equipment', 'JJ-KE-3000664', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Rectangular Service Tray plastic', 'Kitchen Equipment', 'JJ-KE-3000665', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Purchased from Land and Sea', 'Kitchen Equipment', 'JJ-KE-3000666', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Thermometer and BBQ grill for Abu Dhabi branch', 'Kitchen Equipment', 'JJ-KE-3000667', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Steel Barbeque for Abu Dhabi branch(Net)', 'Kitchen Equipment', 'JJ-KE-3000668', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pros Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000669', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pros Kitchen Equipment', 'Kitchen Equipment', 'JJ-KE-3000670', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Total invoice amount 37600- but 50% paid by ALMED', 'Kitchen Equipment', 'JJ-KE-3000671', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless S/S cover for Hood top (50% payment, balance 50% paid by ALMED)', 'Kitchen Equipment', 'JJ-KE-3000672', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pendant Light', 'Kitchen Equipment', 'JJ-KE-3000673', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Dispatch Tab (130*30', 'Kitchen Equipment', 'JJ-KE-3000674', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Stainless Sink', 'Kitchen Equipment', 'JJ-KE-3000675', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Double Sink', 'Kitchen Equipment', 'JJ-KE-3000676', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Curve Shape Cabinet+Water mixer Tape', 'Kitchen Equipment', 'JJ-KE-3000677', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Double Sink Cladding S Lid Sensor', 'Kitchen Equipment', 'JJ-KE-3000678', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Worktop Freezer Kitchen (129-25)', 'Kitchen Equipment', 'JJ-KE-3000679', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('POZONE POS 80', 'Office Equipment', 'JJ-IT-5000129', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cash Safe', 'Office Equipment', 'JJ-IT-5000131', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('ZK F18 Biometric System with Installation', 'Office Equipment', 'JJ-IT-5000139', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Windows 10', 'Office Equipment', 'JJ-IT-5000261', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Router (LINKSYS AC1900 ROUTER)', 'Office Equipment', 'JJ-IT-5000265', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Amplifier (5 Year Warranty)', 'Office Equipment', 'JJ-IT-5000266', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cable Pulluing+Fixing+Installation for Amplifiers', 'Office Equipment', 'JJ-IT-5000233', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Attendance Fingerprint & Proximity Card attendance', 'Office Equipment', 'JJ-IT-5000234', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Poe Outdoor Access Point with Poe', 'Office Equipment', 'JJ-IT-5000235', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Insect Killer', 'Office Equipment', 'JJ-IT-5000236', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('New Delivery Box for Central Mall', 'Operational Equipment', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('New Delivery Box for Central Mall', 'Operational Equipment', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('New Delivery Box for Central Mall', 'Operational Equipment', '', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Cosec Door FOT V4 PLT100 - Time & Attendance Terminal', 'Office Equipment', 'JJ-IT-5000275', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Common Griller', 'Kitchen Equipment', 'New November', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Dishwash sink in Raha mall.', 'Kitchen Equipment', 'New Dec', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Ice Cream Machine', 'Kitchen Equipment', 'New Dec', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen Equipments from Al Raha old Kitchen', 'Kitchen Equipment', 'New Dec', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Buzzer purchased from Future Wave Technologies for Al Raha Mall/Invoice#Inv-3714 Dated 23/02/2024', 'Office Equipment', 'New Feb 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Supply of Microwave oven', 'Kitchen Equipment', 'New Apr 24', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Microwave purchase', 'Kitchen Equipment', 'New Dec 2024', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Samsung galaxy A9+middle east version with cover screen card & Epson TM-M30 with USAB BT Ethernet', 'Office Equipment', 'New Apr 2025', 'operational', s_id) on conflict do nothing;
-  end if;
+  async function handleSaveStore() {
+    setSavingStore(true)
+    await supabase.from('stores').update(storeForm).eq('id', editingStore)
+    setEditingStore(null)
+    await fetchAll()
+    // Refresh selected store
+    const updated = stores.find(s => s.id === editingStore)
+    if (updated) setSelectedStore({ ...updated, ...storeForm })
+    setSavingStore(false)
+  }
 
-  -- Solidare Jimi Mall (2 assets)
-  select id into s_id from stores where lower(name) = lower('Solidare Jimi Mall');
-  if s_id is not null then
-    insert into assets (name, category, serial_number, status, store_id) values ('Alto Shaam for JJ Jimi Mall', 'Kitchen Equipment', 'JJ-KE-3000697', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('fimar pe 25 sandwich press-jimi MALL', 'Kitchen Equipment', 'JM-KE-3000283', 'operational', s_id) on conflict do nothing;
-  end if;
+  const storeAssets = selectedStore ? assets.filter(a => a.store_id === selectedStore.id) : []
+  const filteredStores = stores.filter(s => !search || s.name?.toLowerCase().includes(search.toLowerCase()))
+  const filteredAssets = storeAssets.filter(a => !search || a.name?.toLowerCase().includes(search.toLowerCase()) || a.category?.toLowerCase().includes(search.toLowerCase()))
 
-  -- JJ Chicken - DFC (10 assets)
-  select id into s_id from stores where lower(name) = lower('JJ Chicken - DFC');
-  if s_id is not null then
-    insert into assets (name, category, serial_number, status, store_id) values ('Samsung galaxy A9+middle east version with cover screen card & Epson TM-M30 with USAB BT Ethernet', 'Office Equipment', 'New Apr 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen equipment''s and packing materials(invoice dated 03-01-25)', 'Kitchen Equipment', 'New Jul 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Pallet for JJ CK', 'Operational Equipment', 'New Jul 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen hood and fire suppression system', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('50%  Amount for Supply of Kitchen Canopies', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen canopies-50% balance', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('supply and instalation of single monitor', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('V-1000008 PROS EQUIPMENTS TRADING LLC', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('V-1000008 PROS EQUIPMENTS TRADING LLC', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('V-1000008 PROS EQUIPMENTS TRADING LLC', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-  end if;
+  const inp = { background:'#0d1117', border:'1px solid #30363d', borderRadius:8, padding:'9px 12px', color:'#e6edf3', fontSize:13, width:'100%', boxSizing:'border-box', outline:'none' }
 
-  -- JJ Reem Mall (14 assets)
-  select id into s_id from stores where lower(name) = lower('JJ Reem Mall');
-  if s_id is not null then
-    insert into assets (name, category, serial_number, status, store_id) values ('Samsung galaxy A9+middle east version with cover screen card & Epson TM-M30 with USAB BT Ethernet', 'Office Equipment', 'New Apr 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('SUPPLY AND INSTALLATION OF STEEL STRUCTURE FOR KITCHEN HOOD-INV DATED -27-03-25', 'Kitchen Equipment', 'New Oct 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('JJ chicken equipment''s reem mall - 50% Advance', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Kitchen hood and fire suppression system', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('50% Amount for Supply of Kitchen Canopies', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('FOH & BOH Lightings material for JJ Reem mall', 'Furniture & Fittings', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('50% Advance Payment Invoice for Supply & Installaon of SCS & 3,750.00 187.50 3,937.50 CCTV System -J', 'Office Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('50% Final Amount for Supply of Kitchen Canopies', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('IT Materials', 'Office Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('JJ chicken equipment''s reem mall - 50 % FINAL PAYMENT FOR PO/JJ/1122 DATED 23-JAN-2025', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('50% Balance Payment Invoice for Supply & Installation of SCS & CCTV System -JJ Restaurant LLC.(Total', 'Office Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('Custom fabricated BBQ', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('V-1000008 PROS EQUIPMENTS TRADING LLC', 'Kitchen Equipment', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-    insert into assets (name, category, serial_number, status, store_id) values ('FOH & BOH Lightings material for JJ Reem mall', 'Furniture & Fittings', 'New Dec 2025', 'operational', s_id) on conflict do nothing;
-  end if;
+  // ── STORES LIST VIEW ──
+  if (view === 'stores') return (
+    <div style={{ fontFamily:"'DM Sans', sans-serif" }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+        <div>
+          <h1 style={{ color:'#e6edf3', fontSize:22, fontWeight:600, margin:0 }}>Stores</h1>
+          <p style={{ color:'#6b7280', fontSize:13, margin:'4px 0 0' }}>{stores.length} locations · {assets.length} total assets</p>
+        </div>
+      </div>
 
-end $$;
+      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search stores..."
+        style={{ ...inp, width:260, marginBottom:16 }}/>
 
-select 'Done! Total: ' || count(*) from assets;
+      {loading ? (
+        <div style={{ color:'#6b7280', padding:40, textAlign:'center' }}>Loading stores...</div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px,1fr))', gap:12 }}>
+          {filteredStores.map(s => {
+            const storeAssetCount = assets.filter(a => a.store_id === s.id).length
+            return (
+              <div key={s.id} onClick={() => selectStore(s)}
+                style={{ background:'#161b22', border:'1px solid #21262d', borderRadius:12, padding:18, cursor:'pointer', transition:'border-color 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor='#1D9E75'}
+                onMouseLeave={e => e.currentTarget.style.borderColor='#21262d'}
+              >
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
+                  <div>
+                    <div style={{ color:'#e6edf3', fontSize:14, fontWeight:600 }}>{s.name}</div>
+                    {s.manager_name && <div style={{ color:'#1D9E75', fontSize:12, marginTop:3 }}>👤 {s.manager_name}</div>}
+                  </div>
+                  <span style={{ background:'#1d2f26', color:'#1D9E75', fontSize:11, padding:'3px 8px', borderRadius:6, fontWeight:500, whiteSpace:'nowrap' }}>
+                    {storeAssetCount} assets
+                  </span>
+                </div>
+                <div style={{ borderTop:'1px solid #21262d', paddingTop:10, display:'flex', flexDirection:'column', gap:5 }}>
+                  {s.phone && <div style={{ color:'#8b949e', fontSize:12 }}>📞 {s.phone}</div>}
+                  {s.email && <div style={{ color:'#8b949e', fontSize:12 }}>✉️ {s.email}</div>}
+                  {!s.phone && !s.email && <div style={{ color:'#6b7280', fontSize:12 }}>No contact info</div>}
+                </div>
+                <div style={{ marginTop:10, color:'#378ADD', fontSize:12, fontWeight:500 }}>
+                  View details →
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+
+  // ── STORE DETAIL VIEW ──
+  if (view === 'store-detail' && selectedStore) return (
+    <div style={{ fontFamily:"'DM Sans', sans-serif" }}>
+      {/* Breadcrumb */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20 }}>
+        <button onClick={goBack} style={{ background:'transparent', border:'none', color:'#6b7280', cursor:'pointer', fontSize:13, padding:0 }}>
+          ← Stores
+        </button>
+        <span style={{ color:'#30363d' }}>/</span>
+        <span style={{ color:'#e6edf3', fontSize:13, fontWeight:500 }}>{selectedStore.name}</span>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:20 }}>
+        {/* Store Info Card */}
+        <div style={{ background:'#161b22', border:'1px solid #21262d', borderRadius:12, padding:20 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+            <h2 style={{ color:'#e6edf3', fontSize:16, fontWeight:600, margin:0 }}>{selectedStore.name}</h2>
+            {isAdmin && editingStore !== selectedStore.id && (
+              <button onClick={() => startEditStore(selectedStore)}
+                style={{ background:'transparent', color:'#6b7280', border:'1px solid #30363d', borderRadius:6, padding:'4px 12px', fontSize:12, cursor:'pointer' }}>
+                Edit
+              </button>
+            )}
+          </div>
+
+          {editingStore === selectedStore.id ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {[['manager_name','Manager Name'],['phone','Phone'],['email','Email'],['address','Address'],['maps_url','Google Maps URL']].map(([key,label]) => (
+                <div key={key}>
+                  <label style={{ color:'#8b949e', fontSize:11, display:'block', marginBottom:4 }}>{label}</label>
+                  <input style={{ ...inp, fontSize:12 }} value={storeForm[key] || ''} onChange={e => setStoreForm({...storeForm,[key]:e.target.value})}/>
+                </div>
+              ))}
+              <div style={{ display:'flex', gap:8, marginTop:4 }}>
+                <button onClick={handleSaveStore} disabled={savingStore}
+                  style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:7, padding:'8px 16px', fontSize:12, cursor:'pointer' }}>
+                  {savingStore ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button onClick={() => setEditingStore(null)}
+                  style={{ background:'transparent', color:'#8b949e', border:'1px solid #30363d', borderRadius:7, padding:'8px 12px', fontSize:12, cursor:'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {selectedStore.manager_name && (
+                <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                  <span style={{ color:'#6b7280', fontSize:12, width:80 }}>Manager</span>
+                  <span style={{ color:'#1D9E75', fontSize:13, fontWeight:500 }}>👤 {selectedStore.manager_name}</span>
+                </div>
+              )}
+              {selectedStore.phone && (
+                <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                  <span style={{ color:'#6b7280', fontSize:12, width:80 }}>Phone</span>
+                  <a href={`tel:${selectedStore.phone}`} style={{ color:'#e6edf3', fontSize:13, textDecoration:'none' }}>📞 {selectedStore.phone}</a>
+                </div>
+              )}
+              {selectedStore.email && (
+                <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                  <span style={{ color:'#6b7280', fontSize:12, width:80 }}>Email</span>
+                  <a href={`mailto:${selectedStore.email}`} style={{ color:'#e6edf3', fontSize:13, textDecoration:'none' }}>✉️ {selectedStore.email}</a>
+                </div>
+              )}
+              {selectedStore.address && (
+                <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+                  <span style={{ color:'#6b7280', fontSize:12, width:80 }}>Address</span>
+                  <span style={{ color:'#8b949e', fontSize:12 }}>{selectedStore.address}</span>
+                </div>
+              )}
+              {selectedStore.maps_url && (
+                <a href={selectedStore.maps_url} target="_blank" rel="noreferrer"
+                  style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#1a2b3c', color:'#378ADD', border:'1px solid #1f3a56', borderRadius:8, padding:'8px 14px', fontSize:12, textDecoration:'none', marginTop:4, width:'fit-content' }}>
+                  📍 Open in Google Maps →
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Stats Card */}
+        <div style={{ background:'#161b22', border:'1px solid #21262d', borderRadius:12, padding:20 }}>
+          <h3 style={{ color:'#e6edf3', fontSize:14, fontWeight:500, margin:'0 0 16px' }}>Store Overview</h3>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            {[
+              { label:'Total Assets',    value: storeAssets.length,                                    color:'#e6edf3' },
+              { label:'Operational',     value: storeAssets.filter(a=>a.status==='operational').length, color:'#1D9E75' },
+              { label:'Maintenance',     value: storeAssets.filter(a=>a.status==='maintenance').length, color:'#EF9F27' },
+              { label:'Inactive',        value: storeAssets.filter(a=>a.status==='inactive').length,    color:'#f85149' },
+            ].map(k => (
+              <div key={k.label} style={{ background:'#0d1117', borderRadius:8, padding:'12px 14px' }}>
+                <div style={{ color:'#6b7280', fontSize:11 }}>{k.label}</div>
+                <div style={{ color: k.color, fontSize:22, fontWeight:600 }}>{k.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* View Assets Button */}
+      <button onClick={() => setView('store-assets')}
+        style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:8, padding:'12px 24px', fontSize:14, fontWeight:500, cursor:'pointer', marginBottom:20, display:'flex', alignItems:'center', gap:8 }}>
+        ◈ View All {storeAssets.length} Assets →
+      </button>
+    </div>
+  )
+
+  // ── STORE ASSETS VIEW ──
+  if (view === 'store-assets' && selectedStore) return (
+    <div style={{ fontFamily:"'DM Sans', sans-serif" }}>
+      {/* Breadcrumb */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20 }}>
+        <button onClick={() => { setView('stores'); setSelectedStore(null) }} style={{ background:'transparent', border:'none', color:'#6b7280', cursor:'pointer', fontSize:13, padding:0 }}>
+          ← Stores
+        </button>
+        <span style={{ color:'#30363d' }}>/</span>
+        <button onClick={() => setView('store-detail')} style={{ background:'transparent', border:'none', color:'#6b7280', cursor:'pointer', fontSize:13, padding:0 }}>
+          {selectedStore.name}
+        </button>
+        <span style={{ color:'#30363d' }}>/</span>
+        <span style={{ color:'#e6edf3', fontSize:13, fontWeight:500 }}>Assets</span>
+      </div>
+
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+        <div>
+          <h1 style={{ color:'#e6edf3', fontSize:20, fontWeight:600, margin:0 }}>{selectedStore.name} — Assets</h1>
+          <p style={{ color:'#6b7280', fontSize:13, margin:'4px 0 0' }}>{storeAssets.length} assets registered</p>
+        </div>
+        {isAdmin && (
+          <button onClick={() => setShowAssetForm(!showAssetForm)}
+            style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:8, padding:'10px 18px', fontSize:13, fontWeight:500, cursor:'pointer' }}>
+            + Add Asset
+          </button>
+        )}
+      </div>
+
+      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search assets..."
+        style={{ ...inp, width:260, marginBottom:16 }}/>
+
+      {showAssetForm && (
+        <div style={{ background:'#161b22', border:'1px solid #1D9E75', borderRadius:12, padding:20, marginBottom:16 }}>
+          <h3 style={{ color:'#e6edf3', fontSize:14, fontWeight:500, margin:'0 0 14px' }}>Add Asset to {selectedStore.name}</h3>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            {[['name','Name *'],['category','Category'],['location','Location'],['serial_number','Serial #']].map(([key,label]) => (
+              <div key={key}>
+                <label style={{ color:'#8b949e', fontSize:11, display:'block', marginBottom:4 }}>{label}</label>
+                <input style={inp} value={assetForm[key]||''} onChange={e => setAssetForm({...assetForm,[key]:e.target.value})}/>
+              </div>
+            ))}
+          </div>
+          <div style={{ display:'flex', gap:8, marginTop:12 }}>
+            <button onClick={handleSaveAsset} disabled={saving||!assetForm.name}
+              style={{ background:saving||!assetForm.name?'#155740':'#1D9E75', color:'white', border:'none', borderRadius:7, padding:'9px 18px', fontSize:13, cursor:'pointer' }}>
+              {saving?'Saving...':'Save Asset'}
+            </button>
+            <button onClick={() => setShowAssetForm(false)}
+              style={{ background:'transparent', color:'#8b949e', border:'1px solid #30363d', borderRadius:7, padding:'9px 14px', fontSize:13, cursor:'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Group assets by category */}
+      {(() => {
+        const grouped = filteredAssets.reduce((acc, a) => {
+          const cat = a.category || 'General'
+          if (!acc[cat]) acc[cat] = []
+          acc[cat].push(a)
+          return acc
+        }, {})
+
+        return Object.entries(grouped).sort().map(([cat, items]) => (
+          <div key={cat} style={{ marginBottom:20 }}>
+            <div style={{ color:'#8b949e', fontSize:12, fontWeight:500, textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:10, display:'flex', alignItems:'center', gap:8 }}>
+              {cat}
+              <span style={{ background:'#21262d', color:'#6b7280', fontSize:10, padding:'2px 7px', borderRadius:10 }}>{items.length}</span>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px,1fr))', gap:8 }}>
+              {items.map(a => (
+                <div key={a.id} style={{ background:'var(--card-bg)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 14px' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
+                    <div style={{ flex:1, minWidth:0, marginRight:8 }}>
+                      <div style={{ color:'var(--text)', fontSize:13, fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>{a.name}</div>
+                      {a.serial_number && <div style={{ color:'var(--text3)', fontSize:11, marginTop:2 }}>🏷 {a.serial_number}</div>}
+                    </div>
+                    <select value={a.status} onChange={e => handleUpdateAssetStatus(a.id, e.target.value)}
+                      style={{ background: STATUS_COLORS[a.status]+'22', color: STATUS_COLORS[a.status], border:'none', borderRadius:6, padding:'3px 6px', fontSize:10, cursor:'pointer', fontWeight:500, flexShrink:0 }}>
+                      <option value="operational">✅ OK</option>
+                      <option value="maintenance">🔧 Maint.</option>
+                      <option value="inactive">❌ Inactive</option>
+                      <option value="retired">🗄 Retired</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={() => navigate('/work-orders?new=1&asset_id=' + a.id + '&store_id=' + (selectedStore?.id||'') + '&asset_name=' + encodeURIComponent(a.name))}
+                    style={{ width:'100%', background:'var(--green-bg)', color:'var(--green)', border:'1px solid var(--green)', borderRadius:7, padding:'6px', fontSize:11, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
+                    🔧 Open Ticket for this Asset
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      })()}
+    </div>
+  )
+
+  return null
+}
