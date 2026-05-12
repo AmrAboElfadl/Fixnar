@@ -79,7 +79,17 @@ export default function WorkOrders() {
   const [filterPriority, setFilterPriority] = useState('all')
   const [search, setSearch] = useState('')
 
-  useEffect(() => { fetchAll() }, [])
+  useEffect(() => {
+    fetchAll()
+    // Pre-fill form if coming from asset page
+    const assetId   = searchParams.get('asset_id')
+    const storeId   = searchParams.get('store_id')
+    const assetName = searchParams.get('asset_name')
+    if (assetId || storeId) {
+      setForm(f => ({...f, asset_id: assetId||'', store_id: storeId||''}))
+      setShowForm(true)
+    }
+  }, [])
 
   useEffect(() => {
     if (!form.store_id) { setFilteredAssets([]); return }
