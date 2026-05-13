@@ -88,16 +88,26 @@ export default function Analytics() {
 
   async function fetchAll() {
     setLoading(true)
-    const [woRes, techRes, ppmRes, storeRes] = await Promise.all([
-      supabase.from('work_orders').select('*,stores(name)').order('created_at'),
-      supabase.from('profiles').select('id,full_name').eq('role','technician'),
-      supabase.from('ppm_tasks').select('*').order('due_date').catch(() => ({ data:[] })),
-      supabase.from('stores').select('id,name').order('name'),
-    ])
-    setWos(woRes.data || [])
-    setTechs(techRes.data || [])
-    setPpms(ppmRes.data || [])
-    setStores(storeRes.data || [])
+    try {
+      const [woRes, techRes, storeRes] = await Promise.all([
+        supabase.from('work_orders').select('*,stores(name)').order('created_at'),
+        supabase.from('profiles').select('id,full_name').eq('role','technician'),
+        supabase.from('stores').select('id,name').order('name'),
+      ])
+      setWos(woRes.data || [])
+      setTechs(techRes.data || [])
+      setStores(storeRes.data || [])
+
+      // PPM is optional — don't let it block loading
+      try {
+        const ppmRes = await supabase.from('ppm_tasks').select('*').order('due_date')
+        setPpms(ppmRes.data || [])
+      } catch(e) {
+        setPpms([])
+      }
+    } catch(e) {
+      console.error('Analytics fetch error:', e)
+    }
     setLoading(false)
   }
 
