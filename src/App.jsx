@@ -28,28 +28,52 @@ function ProtectedRoute({ children, roles }) {
 }
 
 function AppLayout({ children }) {
-  const [open, setOpen] = React.useState(false)
+  const [open,   setOpen]   = React.useState(false)
+  const [pinned, setPinned] = React.useState(() => localStorage.getItem('fixnar_sidebar_pinned') === 'true')
+
+  function togglePin() {
+    const next = !pinned
+    setPinned(next)
+    localStorage.setItem('fixnar_sidebar_pinned', String(next))
+    if (next) setOpen(false)
+  }
+
+  const sidebarVisible = pinned || open
+  const sidebarW = 250
+
   return (
     <div style={{ display:'flex', minHeight:'100vh', background:'var(--bg)', position:'relative' }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
-      <TopBar onMenuToggle={() => setOpen(o => !o)}/>
+      <TopBar onMenuToggle={() => { if (!pinned) setOpen(o => !o) }} pinned={pinned} onPin={togglePin}/>
 
-      {/* Overlay when sidebar open */}
-      {open && (
+      {/* Overlay — only when slide-in mode (not pinned) */}
+      {open && !pinned && (
         <div onClick={() => setOpen(false)}
           style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', zIndex:150, backdropFilter:'blur(2px)' }}/>
       )}
 
-      {/* Sidebar - slides in from left */}
+      {/* Sidebar */}
       <div style={{
-        position:'fixed', top:0, left: open ? 0 : -280, width:260,
-        height:'100vh', zIndex:200, transition:'left 0.25s ease',
-        boxShadow: open ? '4px 0 20px rgba(0,0,0,0.15)' : 'none',
+        position: pinned ? 'fixed' : 'fixed',
+        top:0, left: sidebarVisible ? 0 : -sidebarW,
+        width: sidebarW, height:'100vh',
+        zIndex:200,
+        transition:'left 0.25s ease',
+        boxShadow: !pinned && open ? '4px 0 20px rgba(0,0,0,0.15)' : 'none',
       }}>
-        <Sidebar open={open} onClose={() => setOpen(false)}/>
+        <Sidebar open={sidebarVisible} onClose={() => setOpen(false)} pinned={pinned} onPin={togglePin}/>
       </div>
 
-      <main style={{ flex:1, padding:'32px 32px', paddingTop:'80px', width:'100%', overflowX:'auto', color:'var(--text)' }}>
+      <main style={{
+        flex:1,
+        marginLeft: pinned ? sidebarW : 0,
+        padding:'32px 32px',
+        paddingTop:'80px',
+        minWidth:0,
+        overflowX:'auto',
+        color:'var(--text)',
+        transition:'margin-left 0.25s ease',
+      }}>
         {children}
       </main>
     </div>
