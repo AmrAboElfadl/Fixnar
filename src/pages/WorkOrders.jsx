@@ -58,6 +58,19 @@ const CATEGORIES = {
   }},
 }
 
+// Category icon map for display
+const CAT_ICONS = {
+  'HVAC':'❄️','Plumbing':'🔧','Electrical':'⚡','Kitchen Equipment':'🍳',
+  'Fire & Safety':'🔥','Civil & Structure':'🏗️','Pest Control':'🐛','LPG & Gas':'⛽',
+  'Exhaust-System':'💨','Refrigeration':'🧊','Equipment':'⚙️','Fixture':'🪑',
+  'Fire-Safety':'🔥','General-Building':'🏢','Pest-Control':'🐛','default':'🔩',
+}
+
+function getCatIcon(cat) {
+  if (!cat) return '🔩'
+  return CAT_ICONS[cat] || CAT_ICONS['default']
+}
+
 function getCity(storeName) {
   if (!storeName) return ''
   const name = storeName.toLowerCase()
@@ -108,31 +121,15 @@ function parseTitleParts(title) {
 
 function exportToExcel(data) {
   const headers = [
-    'WO No.',
-    'Brand',
-    'Store Name',
-    'Priority',
-    'Work Order Status',
-    'Category',
-    'Sub Category',
-    'Fault',
-    'SLA (hours)',
-    'City',
-    'Work Description',
-    'Assigned To',
-    'Time to Expire',
-    'Created Date',
+    'WO No.','Brand','Store Name','Priority','Work Order Status',
+    'Category','Sub Category','Fault','Vendor / Technician',
+    'SLA (hours)','City','Work Description','Assigned To','Time to Expire','Created Date',
   ]
-
   const SLA_MAP = { P1:'4 hours', P2:'8 hours', P3:'12 hours', P4:'7 days' }
   const BRAND_MAP = {
-    'JJ Chicken': 'JJ Chicken',
-    'JJ Derawandi': 'JJ Derawandi',
-    'JV ': 'Juan Valdez',
-    'Solidare': 'Solidare',
-    'Derwandi': 'JJ Derawandi',
+    'JJ Chicken':'JJ Chicken','JJ Derawandi':'JJ Derawandi',
+    'JV ':'Juan Valdez','Solidare':'Solidare','Derwandi':'JJ Derawandi',
   }
-
   function getBrand(storeName) {
     if (!storeName) return ''
     for (const [key, val] of Object.entries(BRAND_MAP)) {
@@ -140,7 +137,6 @@ function exportToExcel(data) {
     }
     return storeName.split(' ')[0]
   }
-
   const rows = data.map((wo, i) => {
     const parts = parseTitleParts(wo.title)
     const storeName = wo.stores?.name || ''
@@ -149,10 +145,11 @@ function exportToExcel(data) {
       getBrand(storeName),
       storeName,
       wo.priority || '',
-      (wo.status || '').replace(/_/g,' ').replace(/\w/g, c => c.toUpperCase()),
-      parts.category,
+      (wo.status || '').replace(/_/g,' ').replace(/\w/g, c => c.toUpperCase()),
+      wo.category || parts.category,
       parts.subcategory,
       parts.fault,
+      wo.vendor_name || '',
       SLA_MAP[wo.priority] || '',
       getCity(storeName),
       wo.description || parts.fault,
@@ -161,28 +158,18 @@ function exportToExcel(data) {
       wo.created_at ? new Date(wo.created_at).toLocaleDateString('en-GB') : '',
     ]
   })
-
-  // Build CSV with BOM for Excel UTF-8
   const csvContent = '\uFEFF' + [headers, ...rows]
     .map(row => row.map(cell => {
-      const clean = String(cell)
-        .replace(/—/g, '-')  // em dash to hyphen
-        .replace(/–/g, '-')  // en dash
-        .replace(/â€"/g, '-')     // corrupted dash
-        .replace(/[^ -]/g, c => c) // keep unicode but clean
+      const clean = String(cell).replace(/—/g,'-').replace(/–/g,'-').replace(/â€"/g,'-')
       return '"' + clean.replace(/"/g, '""') + '"'
-    }).join(','))
-    .join('\r\n')
-
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    }).join(',')).join('\r\n')
+  const blob = new Blob([csvContent], { type:'text/csv;charset=utf-8;' })
   const url  = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
   link.setAttribute('download', 'Fixnar_WorkOrders_' + new Date().toISOString().split('T')[0] + '.csv')
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  document.body.appendChild(link); link.click()
+  document.body.removeChild(link); URL.revokeObjectURL(url)
 }
 
 const EMPTY = {
@@ -213,6 +200,8 @@ export default function WorkOrders() {
   const [filterPriority,  setFilterPriority]  = useState('all')
   const [filterTech,      setFilterTech]      = useState('all')
   const [filterStore,     setFilterStore]     = useState('all')
+  const [filterVendor,    setFilterVendor]    = useState('all')   // ← NEW
+  const [filterCategory,  setFilterCategory]  = useState('all')   // ← NEW
   const [filterDateFrom,  setFilterDateFrom]  = useState('')
   const [filterDateTo,    setFilterDateTo]    = useState('')
   const [showFilters,     setShowFilters]     = useState(false)
@@ -260,7 +249,6 @@ export default function WorkOrders() {
       supabase.from('assets').select('id,name,store_id').order('name'),
       supabase.from('profiles').select('id,full_name').eq('role','technician'),
     ])
-    // Fetch tech names for each WO
     const wosData = woRes.data || []
     const techMap = {}
     ;(techRes.data||[]).forEach(t => { techMap[t.id] = t.full_name })
@@ -303,9 +291,20 @@ export default function WorkOrders() {
     fetchAll()
   }
 
+  // ── Derived filter options ──────────────────────────────────────────────
+  const uniqueVendors = [...new Set(
+    wos.map(w => w.vendor_name).filter(Boolean)
+  )].sort()
+
+  const uniqueCategories = [...new Set(
+    wos.map(w => w.category).filter(Boolean)
+  )].sort()
+
   // ── FILTER ──
   const filtered = wos.filter(w => {
-    if (search && !w.title?.toLowerCase().includes(search.toLowerCase()) && !w.stores?.name?.toLowerCase().includes(search.toLowerCase())) return false
+    if (search && !w.title?.toLowerCase().includes(search.toLowerCase()) &&
+        !w.stores?.name?.toLowerCase().includes(search.toLowerCase()) &&
+        !w.vendor_name?.toLowerCase().includes(search.toLowerCase())) return false
     if (filterStatus !== 'all' && w.status !== filterStatus) return false
     if (filterPriority !== 'all' && w.priority !== filterPriority) return false
     if (filterTech !== 'all') {
@@ -313,6 +312,8 @@ export default function WorkOrders() {
       if (filterTech !== 'unassigned' && w.assigned_to !== filterTech) return false
     }
     if (filterStore !== 'all' && w.store_id !== filterStore) return false
+    if (filterVendor !== 'all' && w.vendor_name !== filterVendor) return false   // ← NEW
+    if (filterCategory !== 'all' && w.category !== filterCategory) return false  // ← NEW
     if (filterDateFrom) {
       const created = new Date(w.created_at)
       if (created < new Date(filterDateFrom)) return false
@@ -336,7 +337,8 @@ export default function WorkOrders() {
     breached:   wos.filter(w=>!['closed','completed'].includes(w.status)).length,
   }
 
-  const activeFilters = [filterStatus,filterPriority,filterTech,filterStore,filterDateFrom,filterDateTo].filter(f=>f&&f!=='all').length
+  const activeFilters = [filterStatus,filterPriority,filterTech,filterStore,filterVendor,filterCategory,filterDateFrom,filterDateTo]
+    .filter(f=>f&&f!=='all').length
 
   const subcategories = form.category ? Object.keys(CATEGORIES[form.category]?.subcategories || {}) : []
   const faults = form.subcategory ? CATEGORIES[form.category]?.subcategories[form.subcategory]?.faults || [] : []
@@ -399,8 +401,8 @@ export default function WorkOrders() {
       <div style={{ background:'var(--card-bg)', border:'1px solid var(--border)', borderRadius:12, padding:16, marginBottom:16 }}>
         <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="🔍 Search by title or store..."
-            style={{ ...inp, width:220 }}/>
+            placeholder="🔍 Search title, store, vendor..."
+            style={{ ...inp, width:240 }}/>
 
           <button onClick={() => setShowFilters(f => !f)}
             style={{ background: activeFilters > 0 ? 'var(--green-bg)' : 'var(--bg3)', color: activeFilters > 0 ? 'var(--green)' : 'var(--text2)', border:`1px solid ${activeFilters > 0 ? 'var(--green)' : 'var(--border)'}`, borderRadius:8, padding:'8px 14px', fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
@@ -408,7 +410,7 @@ export default function WorkOrders() {
           </button>
 
           {activeFilters > 0 && (
-            <button onClick={() => { setFilterStatus('all'); setFilterPriority('all'); setFilterTech('all'); setFilterStore('all'); setFilterDateFrom(''); setFilterDateTo('') }}
+            <button onClick={() => { setFilterStatus('all'); setFilterPriority('all'); setFilterTech('all'); setFilterStore('all'); setFilterVendor('all'); setFilterCategory('all'); setFilterDateFrom(''); setFilterDateTo('') }}
               style={{ background:'transparent', color:'#E24B4A', border:'1px solid #E24B4A', borderRadius:8, padding:'8px 12px', fontSize:12, cursor:'pointer' }}>
               ✕ Clear all
             </button>
@@ -437,6 +439,22 @@ export default function WorkOrders() {
                 <option value="P2">P2 — High</option>
                 <option value="P3">P3 — Medium</option>
                 <option value="P4">P4 — Low</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ color:'var(--text3)', fontSize:11, display:'block', marginBottom:4 }}>Category</label>
+              <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={sel}>
+                <option value="all">All categories</option>
+                {uniqueCategories.map(c => (
+                  <option key={c} value={c}>{getCatIcon(c)} {c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={{ color:'var(--text3)', fontSize:11, display:'block', marginBottom:4 }}>Vendor / Technician</label>
+              <select value={filterVendor} onChange={e => setFilterVendor(e.target.value)} style={sel}>
+                <option value="all">All vendors</option>
+                {uniqueVendors.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
             <div>
@@ -577,7 +595,7 @@ export default function WorkOrders() {
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead>
               <tr style={{ borderBottom:'1px solid var(--border)', background:'var(--bg3)' }}>
-                {['#','Priority','Title','Store','Assigned To','Status','Created','SLA'].map(h => (
+                {['#','Priority','Category','Title / Description','Store','Vendor / Tech','Assigned To','Status','Created','SLA'].map(h => (
                   <th key={h} style={{ padding:'10px 14px', color:'var(--text3)', fontSize:12, fontWeight:500, textAlign:'left', whiteSpace:'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -589,15 +607,46 @@ export default function WorkOrders() {
                   style={{ borderBottom:'1px solid var(--border)', cursor:'pointer' }}
                   onMouseEnter={e => e.currentTarget.style.background='var(--hover-bg)'}
                   onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+
+                  {/* # */}
                   <td style={{ padding:'11px 14px', color:'var(--text3)', fontSize:12 }}>#{String(i+1).padStart(4,'0')}</td>
+
+                  {/* Priority */}
                   <td style={{ padding:'11px 14px' }}>
                     <span style={{ background:PRIORITY_COLORS[wo.priority]?.bg, color:PRIORITY_COLORS[wo.priority]?.text, fontSize:11, padding:'3px 9px', borderRadius:6, fontWeight:700 }}>{wo.priority}</span>
                   </td>
-                  <td style={{ padding:'11px 14px', color:'var(--text)', fontSize:13, maxWidth:280 }}>
+
+                  {/* Category ← NEW */}
+                  <td style={{ padding:'11px 14px', whiteSpace:'nowrap' }}>
+                    {wo.category ? (
+                      <span style={{ background:'var(--bg3)', color:'var(--text2)', fontSize:11, padding:'3px 8px', borderRadius:6, display:'inline-flex', alignItems:'center', gap:4 }}>
+                        {getCatIcon(wo.category)} {wo.category}
+                      </span>
+                    ) : <span style={{ color:'var(--text3)', fontSize:11 }}>—</span>}
+                  </td>
+
+                  {/* Title */}
+                  <td style={{ padding:'11px 14px', color:'var(--text)', fontSize:13, maxWidth:260 }}>
                     <div style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{wo.title}</div>
                     {wo.assets?.name && <div style={{ color:'var(--text3)', fontSize:11, marginTop:2 }}>🔧 {wo.assets.name}</div>}
+                    {wo.source_ref && <div style={{ color:'var(--text3)', fontSize:10, marginTop:1, opacity:0.6 }}>{wo.source_ref}</div>}
                   </td>
+
+                  {/* Store */}
                   <td style={{ padding:'11px 14px', color:'var(--text2)', fontSize:12, whiteSpace:'nowrap' }}>{wo.stores?.name || '—'}</td>
+
+                  {/* Vendor / Tech ← NEW */}
+                  <td style={{ padding:'11px 14px', fontSize:12 }}>
+                    {wo.vendor_name ? (
+                      <span style={{ background:'var(--amber-bg)', color:'var(--amber)', padding:'2px 8px', borderRadius:6, fontSize:11, fontWeight:500, whiteSpace:'nowrap' }}>
+                        🔨 {wo.vendor_name}
+                      </span>
+                    ) : (
+                      <span style={{ color:'var(--text3)', fontSize:11 }}>—</span>
+                    )}
+                  </td>
+
+                  {/* Assigned To */}
                   <td style={{ padding:'11px 14px', fontSize:12 }}>
                     {wo.tech_name ? (
                       <span style={{ background:'#f3f0ff', color:'#7F77DD', padding:'2px 8px', borderRadius:6, fontSize:11, fontWeight:500 }}>{wo.tech_name}</span>
@@ -605,6 +654,8 @@ export default function WorkOrders() {
                       <span style={{ color:'var(--text3)', fontSize:11 }}>Unassigned</span>
                     )}
                   </td>
+
+                  {/* Status */}
                   <td style={{ padding:'11px 14px' }}>
                     <select value={wo.status}
                       onChange={e => updateStatus(wo.id, e.target.value, e)}
@@ -613,9 +664,13 @@ export default function WorkOrders() {
                       {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
                     </select>
                   </td>
+
+                  {/* Created */}
                   <td style={{ padding:'11px 14px', color:'var(--text3)', fontSize:11, whiteSpace:'nowrap' }}>
                     {new Date(wo.created_at).toLocaleDateString()}
                   </td>
+
+                  {/* SLA */}
                   <td style={{ padding:'11px 14px', minWidth:150 }}>
                     <SLABadge priority={wo.priority} createdAt={wo.created_at} status={wo.status}/>
                   </td>
