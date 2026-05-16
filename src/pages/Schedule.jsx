@@ -56,11 +56,7 @@ export default function Schedule() {
   const gpsWatch    = useRef(null)
   const gpsInterval = useRef(null)
 
-  // ── KEY FIX: data refs so renderMap always reads fresh data ──
-  const storesRef   = useRef([])
-  const wosRef      = useRef([])
-  const techsRef    = useRef([])
-  const techLocsRef = useRef({})
+  // (data refs removed — initMap now fetches directly from Supabase)
 
   // State (drives UI re-renders)
   const [wos,         setWos]         = useState([])
@@ -89,15 +85,10 @@ export default function Schedule() {
     return () => { clearInterval(iv); stopTracking() }
   }, [])
 
-  // Re-render map whenever view switches to map OR data changes while on map
+  // initMap fetches its own data — only trigger when switching TO map view
   useEffect(() => {
     if (view === 'map') initMap()
-  }, [view, wos, stores, techs, techLocs])
-
-  // ── Sync state → refs so renderMap always has fresh data ──
-  useEffect(() => { storesRef.current   = stores   }, [stores])
-  useEffect(() => { wosRef.current      = wos      }, [wos])
-  useEffect(() => { techsRef.current    = techs    }, [techs])
+  }, [view])
   useEffect(() => { techLocsRef.current = techLocs }, [techLocs])
 
   async function fetchAll() {
@@ -234,39 +225,57 @@ export default function Schedule() {
   })
   Object.keys(woByTech).forEach(key => { woByTech[key] = autoSchedule(woByTech[key]) })
 
-  // ── MAP (uses refs — always fresh data) ──
-  function initMap() {
+  // ── MAP — fetches its own data fresh every time, zero stale-closure risk ──
+  async function initMap() {
     if (!mapRef.current) return
     if (mapInst.current) { mapInst.current.remove(); mapInst.current = null }
+
+    // Load Leaflet CSS+JS if not already present
     if (!window.L) {
-      const link = document.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-      document.head.appendChild(link)
-      const script = document.createElement('script')
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-      script.onload = renderMap   // renderMap reads from refs — always fresh!
-      document.head.appendChild(script)
-    } else {
-      renderMap()
+      await new Promise(resolve => {
+        if (!document.querySelector('link[href*="leaflet"]')) {
+          const link = document.createElement('link')
+          link.rel = 'stylesheet'
+          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+          document.head.appendChild(link)
+        }
+        const script = document.createElement('script')
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+        script.onload = resolve
+        document.head.appendChild(script)
+      })
     }
-  }
+    if (!mapRef.current) return // unmounted while loading
 
-  function renderMap() {
-    if (!mapRef.current || !window.L) return
-    const L = window.L
+    // Fetch fresh data directly from Supabase — never stale
+    const [storeRes, woRes, techRes, locRes] = await Promise.all([
+      supabase.from('stores').select('id,name,latitude,longitude,manager_name,phone'),
+      supabase.from('work_orders').select('id,store_id,assigned_to,status,priority').neq('status','closed'),
+      supabase.from('profiles').select('id,full_name').eq('role','technician'),
+      supabase.from('technician_locations').select('*')
+        .gte('updated_at', new Date(Date.now() - 120*60000).toISOString()).catch(() => ({ data:[] })),
+    ])
 
-    // Read from refs — NOT from closure state (which may be stale)
-    const _stores   = storesRef.current
-    const _wos      = wosRef.current
-    const _techs    = techsRef.current
-    const _techLocs = techLocsRef.current
+    const _stores   = storeRes.data || []
+    const _wos      = woRes.data    || []
+    const _techs    = techRes.data  || []
+    const _techLocs = {}
+    ;((locRes && locRes.data) || []).forEach(l => { _techLocs[l.technician_id] = l })
+
     const _woByTech = {}
     _wos.forEach(wo => {
       const k = wo.assigned_to || 'unassigned'
       if (!_woByTech[k]) _woByTech[k] = []
       _woByTech[k].push(wo)
     })
+
+    if (!mapRef.current) return
+    renderMap(_stores, _wos, _techs, _techLocs, _woByTech)
+  }
+
+  function renderMap(_stores, _wos, _techs, _techLocs, _woByTech) {
+    if (!mapRef.current || !window.L) return
+    const L = window.L
 
     // Find bounds from store coordinates
     const validStores = _stores.filter(s => s.latitude && s.longitude)
