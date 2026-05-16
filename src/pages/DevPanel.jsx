@@ -1,110 +1,124 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
-// ── Only accessible to developer email ──────────────────────────────────────
 const DEV_EMAIL = 'amrmorsy93@gmail.com'
+const DEV_PIN   = '1234'
 
-const TABS = [
-  { id:'stores',   label:'🏪 Stores',       icon:'🏪' },
-  { id:'users',    label:'👥 Users',         icon:'👥' },
-  { id:'wos',      label:'🔧 Work Orders',   icon:'🔧' },
-  { id:'sql',      label:'⚡ SQL Runner',    icon:'⚡' },
-  { id:'settings', label:'⚙️ Site Settings', icon:'⚙️' },
-]
-
-const INPUT = (props) => (
-  <input {...props} style={{
-    width:'100%', padding:'8px 10px', borderRadius:7,
-    border:'1px solid var(--border)', background:'var(--bg)',
-    color:'var(--text)', fontSize:13, boxSizing:'border-box',
-    ...props.style,
-  }}/>
-)
-
-const BTN = ({ children, onClick, color='var(--green)', disabled, style={} }) => (
+// ── Shared UI helpers ─────────────────────────────────────────────────────────
+const Btn = ({ children, onClick, color='var(--green)', disabled, small, style={} }) => (
   <button onClick={onClick} disabled={disabled} style={{
-    background: disabled ? 'var(--border)' : color,
-    color:'white', border:'none', borderRadius:8,
-    padding:'8px 16px', fontSize:13, cursor: disabled ? 'not-allowed' : 'pointer',
-    fontWeight:600, opacity: disabled ? 0.6 : 1, ...style,
+    background: disabled ? '#ccc' : color, color:'white', border:'none',
+    borderRadius: small?7:9, padding: small?'5px 12px':'9px 18px',
+    fontSize: small?12:13, cursor: disabled?'not-allowed':'pointer',
+    fontWeight:600, opacity:disabled?0.6:1, transition:'opacity 0.15s', ...style,
   }}>{children}</button>
 )
 
-// ── Stores Tab ───────────────────────────────────────────────────────────────
+const Field = ({ label, children }) => (
+  <div style={{marginBottom:14}}>
+    <div style={{fontSize:11,fontWeight:700,color:'var(--text3)',letterSpacing:'0.06em',marginBottom:5}}>{label}</div>
+    {children}
+  </div>
+)
+
+const Input = (props) => (
+  <input {...props} style={{
+    width:'100%', padding:'9px 11px', borderRadius:8,
+    border:'1px solid var(--border)', background:'var(--bg)',
+    color:'var(--text)', fontSize:13, boxSizing:'border-box', ...props.style,
+  }}/>
+)
+
+const Select = ({ value, onChange, options, style={} }) => (
+  <select value={value} onChange={onChange} style={{
+    width:'100%', padding:'9px 11px', borderRadius:8,
+    border:'1px solid var(--border)', background:'var(--bg)',
+    color:'var(--text)', fontSize:13, cursor:'pointer', ...style,
+  }}>
+    {options.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+  </select>
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB: STORES
+// ─────────────────────────────────────────────────────────────────────────────
 function StoresTab() {
-  const [stores, setStores] = useState([])
+  const [stores,  setStores]  = useState([])
   const [editing, setEditing] = useState(null)
-  const [saving, setSaving] = useState(false)
-  const [search, setSearch] = useState('')
-  const [msg, setMsg] = useState('')
+  const [saving,  setSaving]  = useState(false)
+  const [search,  setSearch]  = useState('')
+  const [msg,     setMsg]     = useState('')
 
   useEffect(() => { load() }, [])
-
   async function load() {
     const { data } = await supabase.from('stores').select('*').order('name')
     setStores(data || [])
   }
+  function flash(m) { setMsg(m); setTimeout(() => setMsg(''), 3000) }
 
   async function save() {
     setSaving(true)
-    const { error } = await supabase.from('stores').upsert(editing)
-    if (error) setMsg('❌ ' + error.message)
-    else { setMsg('✅ Saved'); setEditing(null); load() }
-    setSaving(false)
-    setTimeout(() => setMsg(''), 3000)
+    const { error } = editing.id
+      ? await supabase.from('stores').update(editing).eq('id', editing.id)
+      : await supabase.from('stores').insert(editing)
+    error ? flash('❌ ' + error.message) : flash('✅ Saved')
+    setEditing(null); load(); setSaving(false)
   }
 
-  async function del(id) {
-    if (!window.confirm('Delete this store?')) return
+  async function del(id, name) {
+    if (!confirm(`Delete "${name}"?`)) return
     await supabase.from('stores').delete().eq('id', id)
-    load()
+    flash('✅ Deleted'); load()
   }
+
+  const FIELDS = [
+    ['name','Store Name *'], ['address','Address'], ['city','City'],
+    ['manager_name','Manager Name'], ['phone','Phone'],
+    ['latitude','Latitude'], ['longitude','Longitude'],
+    ['opening_hours','Opening Hours'], ['notes','Notes'],
+  ]
 
   const filtered = stores.filter(s => s.name?.toLowerCase().includes(search.toLowerCase()))
 
   return (
     <div>
-      <div style={{display:'flex',gap:10,marginBottom:14,alignItems:'center'}}>
-        <INPUT placeholder="Search stores…" value={search} onChange={e=>setSearch(e.target.value)} style={{maxWidth:280}}/>
-        <BTN onClick={() => setEditing({ name:'', address:'', latitude:'', longitude:'', manager_name:'', phone:'' })}>+ Add Store</BTN>
+      <div style={{display:'flex',gap:10,marginBottom:16,alignItems:'center',flexWrap:'wrap'}}>
+        <Input placeholder="Search stores…" value={search} onChange={e=>setSearch(e.target.value)} style={{maxWidth:260}}/>
+        <Btn onClick={() => setEditing({name:'',address:'',city:'',manager_name:'',phone:'',latitude:'',longitude:''})}>+ Add Store</Btn>
         {msg && <span style={{fontSize:13,color:msg.startsWith('✅')?'#1D9E75':'#E24B4A'}}>{msg}</span>}
       </div>
 
       {editing && (
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,padding:20,marginBottom:16}}>
-          <h3 style={{margin:'0 0 14px',fontSize:15}}>{editing.id ? 'Edit Store' : 'New Store'}</h3>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-            {[['name','Name *'],['address','Address'],['manager_name','Manager'],['phone','Phone'],['latitude','Latitude'],['longitude','Longitude']].map(([k,l]) => (
+          <h3 style={{margin:'0 0 16px',fontSize:15}}>{editing.id?'Edit Store':'New Store'}</h3>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+            {FIELDS.map(([k,l]) => (
               <div key={k}>
-                <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>{l}</div>
-                <INPUT value={editing[k]||''} onChange={e=>setEditing({...editing,[k]:e.target.value})}/>
+                <div style={{fontSize:11,color:'var(--text3)',marginBottom:5,fontWeight:600}}>{l}</div>
+                <Input value={editing[k]||''} onChange={e=>setEditing({...editing,[k]:e.target.value})}/>
               </div>
             ))}
           </div>
-          <div style={{display:'flex',gap:8,marginTop:14}}>
-            <BTN onClick={save} disabled={saving||!editing.name}>{saving?'Saving…':'Save'}</BTN>
-            <BTN onClick={()=>setEditing(null)} color='#666'>Cancel</BTN>
+          <div style={{display:'flex',gap:8,marginTop:16}}>
+            <Btn onClick={save} disabled={saving||!editing.name}>{saving?'Saving…':'Save Store'}</Btn>
+            <Btn onClick={()=>setEditing(null)} color='#666'>Cancel</Btn>
           </div>
         </div>
       )}
 
       <div style={{display:'grid',gap:6}}>
         {filtered.map(s => (
-          <div key={s.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:'var(--surface)',borderRadius:10,border:'1px solid var(--border)'}}>
+          <div key={s.id} style={{display:'flex',alignItems:'center',gap:12,padding:'11px 16px',background:'var(--surface)',borderRadius:10,border:'1px solid var(--border)'}}>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontWeight:600,fontSize:13}}>{s.name}</div>
               <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>
-                {s.manager_name && `👤 ${s.manager_name} · `}
-                {s.phone && `📞 ${s.phone} · `}
-                {s.latitude ? `📍 ${parseFloat(s.latitude).toFixed(4)}, ${parseFloat(s.longitude).toFixed(4)}` : '⚠️ No coordinates'}
+                {[s.city, s.manager_name && `👤 ${s.manager_name}`, s.phone && `📞 ${s.phone}`, s.latitude && `📍 ${parseFloat(s.latitude).toFixed(4)}, ${parseFloat(s.longitude).toFixed(4)}`].filter(Boolean).join(' · ')}
               </div>
             </div>
-            <div style={{display:'flex',gap:6,flexShrink:0}}>
-              <BTN onClick={()=>setEditing({...s})} color='#378ADD' style={{padding:'5px 12px',fontSize:12}}>Edit</BTN>
-              <BTN onClick={()=>del(s.id)} color='#E24B4A' style={{padding:'5px 12px',fontSize:12}}>Delete</BTN>
-            </div>
+            <Btn small onClick={()=>setEditing({...s})} color='#378ADD'>Edit</Btn>
+            <Btn small onClick={()=>del(s.id,s.name)} color='#E24B4A'>Delete</Btn>
           </div>
         ))}
       </div>
@@ -112,83 +126,138 @@ function StoresTab() {
   )
 }
 
-// ── Users Tab ────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB: USERS
+// ─────────────────────────────────────────────────────────────────────────────
 function UsersTab() {
-  const [users, setUsers] = useState([])
-  const [editing, setEditing] = useState(null)
+  const [users,  setUsers]  = useState([])
+  const [stores, setStores] = useState([])
+  const [editing,setEditing]= useState(null)
   const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState('')
+  const [msg,    setMsg]    = useState('')
+  const [newUser,setNewUser] = useState({ email:'', name:'', role:'technician', password:'Fixnar2024!' })
+  const [showNew,setShowNew] = useState(false)
+  const [sqlBox, setSqlBox]  = useState('')
+
+  const ROLES = ['admin','technician','operations','viewer']
+  const RC    = { admin:'#E24B4A', technician:'#7F77DD', operations:'#EF9F27', viewer:'#9e9e9e' }
 
   useEffect(() => { load() }, [])
   async function load() {
-    const { data } = await supabase.from('profiles').select('*').order('full_name')
-    setUsers(data || [])
+    const [u, s] = await Promise.all([
+      supabase.from('profiles').select('*').order('full_name'),
+      supabase.from('stores').select('id,name').order('name'),
+    ])
+    setUsers(u.data||[]); setStores(s.data||[])
   }
+  function flash(m) { setMsg(m); setTimeout(()=>setMsg(''),4000) }
 
-  async function save() {
+  async function saveEdit() {
     setSaving(true)
     const { error } = await supabase.from('profiles').update({
-      full_name: editing.full_name,
-      role:      editing.role,
-      phone:     editing.phone,
-    }).eq('id', editing.id)
-    if (error) setMsg('❌ ' + error.message)
-    else { setMsg('✅ Saved'); setEditing(null); load() }
-    setSaving(false)
-    setTimeout(() => setMsg(''), 3000)
+      full_name:editing.full_name, role:editing.role,
+      phone:editing.phone, store_id:editing.store_id||null,
+    }).eq('id',editing.id)
+    error ? flash('❌ '+error.message) : flash('✅ User updated')
+    setEditing(null); load(); setSaving(false)
   }
 
-  const ROLES = ['admin','technician','operations','viewer']
-  const ROLE_COLORS = { admin:'#E24B4A', technician:'#7F77DD', operations:'#EF9F27', viewer:'#9e9e9e' }
+  async function del(u) {
+    if (!confirm(`Delete ${u.full_name}?`)) return
+    await supabase.from('profiles').delete().eq('id',u.id)
+    flash('✅ Removed'); load()
+  }
+
+  function buildSQL() {
+    const sql = `INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, role, aud)\nVALUES (gen_random_uuid(), '${newUser.email}', crypt('${newUser.password}', gen_salt('bf')), now(), '{"full_name":"${newUser.name}"}', now(), now(), 'authenticated', 'authenticated');\n\nUPDATE profiles SET role='${newUser.role}', full_name='${newUser.name}' WHERE email='${newUser.email}';`
+    setSqlBox(sql)
+  }
 
   return (
     <div>
-      <div style={{display:'flex',gap:10,marginBottom:14,alignItems:'center'}}>
+      <div style={{display:'flex',gap:10,marginBottom:16,alignItems:'center'}}>
         <div style={{fontWeight:600,fontSize:14}}>{users.length} users</div>
+        <Btn onClick={()=>setShowNew(true)}>+ New User</Btn>
         {msg && <span style={{fontSize:13,color:msg.startsWith('✅')?'#1D9E75':'#E24B4A'}}>{msg}</span>}
       </div>
 
+      {showNew && (
+        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,padding:20,marginBottom:16}}>
+          <h3 style={{margin:'0 0 14px',fontSize:15}}>Create New User</h3>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+            {[['Full Name','name'],['Email','email'],['Temp Password','password']].map(([l,k])=>(
+              <div key={k}>
+                <div style={{fontSize:11,color:'var(--text3)',marginBottom:5,fontWeight:600}}>{l.toUpperCase()}</div>
+                <Input value={newUser[k]} onChange={e=>setNewUser({...newUser,[k]:e.target.value})}/>
+              </div>
+            ))}
+            <div>
+              <div style={{fontSize:11,color:'var(--text3)',marginBottom:5,fontWeight:600}}>ROLE</div>
+              <Select value={newUser.role} onChange={e=>setNewUser({...newUser,role:e.target.value})} options={ROLES.map(r=>[r,r])}/>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <Btn onClick={buildSQL}>Generate SQL</Btn>
+            <Btn onClick={()=>setShowNew(false)} color='#666'>Cancel</Btn>
+          </div>
+          {sqlBox && (
+            <div style={{marginTop:14}}>
+              <div style={{background:'#1a1a2e',borderRadius:8,padding:14}}>
+                <pre style={{color:'#a8d8a8',fontSize:12,margin:0,whiteSpace:'pre-wrap',fontFamily:'monospace'}}>{sqlBox}</pre>
+              </div>
+              <div style={{display:'flex',gap:8,marginTop:8}}>
+                <Btn small onClick={()=>{navigator.clipboard.writeText(sqlBox);flash('✅ Copied!')}}>📋 Copy SQL</Btn>
+                <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer"
+                  style={{background:'#1D9E75',color:'white',borderRadius:7,padding:'5px 12px',fontSize:12,textDecoration:'none',fontWeight:600}}>
+                  Open Supabase ↗
+                </a>
+              </div>
+              <div style={{fontSize:11,color:'var(--text3)',marginTop:6}}>Copy SQL → paste in Supabase SQL Editor → Run</div>
+            </div>
+          )}
+        </div>
+      )}
+
       {editing && (
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,padding:20,marginBottom:16}}>
-          <h3 style={{margin:'0 0 14px',fontSize:15}}>Edit User: {editing.email}</h3>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+          <h3 style={{margin:'0 0 14px',fontSize:15}}>Edit: {editing.email}</h3>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+            {[['Full Name','full_name'],['Phone','phone']].map(([l,k])=>(
+              <div key={k}>
+                <div style={{fontSize:11,color:'var(--text3)',marginBottom:5,fontWeight:600}}>{l.toUpperCase()}</div>
+                <Input value={editing[k]||''} onChange={e=>setEditing({...editing,[k]:e.target.value})}/>
+              </div>
+            ))}
             <div>
-              <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>Full Name</div>
-              <INPUT value={editing.full_name||''} onChange={e=>setEditing({...editing,full_name:e.target.value})}/>
+              <div style={{fontSize:11,color:'var(--text3)',marginBottom:5,fontWeight:600}}>ROLE</div>
+              <Select value={editing.role||'viewer'} onChange={e=>setEditing({...editing,role:e.target.value})} options={ROLES.map(r=>[r,r])}/>
             </div>
             <div>
-              <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>Phone</div>
-              <INPUT value={editing.phone||''} onChange={e=>setEditing({...editing,phone:e.target.value})}/>
-            </div>
-            <div>
-              <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>Role</div>
-              <select value={editing.role||''} onChange={e=>setEditing({...editing,role:e.target.value})}
-                style={{width:'100%',padding:'8px 10px',borderRadius:7,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:13}}>
-                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
+              <div style={{fontSize:11,color:'var(--text3)',marginBottom:5,fontWeight:600}}>STORE</div>
+              <Select value={editing.store_id||''} onChange={e=>setEditing({...editing,store_id:e.target.value})}
+                options={[['','All stores'],...stores.map(s=>[s.id,s.name])]}/>
             </div>
           </div>
           <div style={{display:'flex',gap:8,marginTop:14}}>
-            <BTN onClick={save} disabled={saving}>{saving?'Saving…':'Save'}</BTN>
-            <BTN onClick={()=>setEditing(null)} color='#666'>Cancel</BTN>
+            <Btn onClick={saveEdit} disabled={saving}>{saving?'Saving…':'Save'}</Btn>
+            <Btn onClick={()=>setEditing(null)} color='#666'>Cancel</Btn>
           </div>
         </div>
       )}
 
       <div style={{display:'grid',gap:6}}>
-        {users.map(u => (
-          <div key={u.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:'var(--surface)',borderRadius:10,border:'1px solid var(--border)'}}>
-            <div style={{width:36,height:36,borderRadius:'50%',background:ROLE_COLORS[u.role]||'#ccc',color:'white',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,flexShrink:0}}>
+        {users.map(u=>(
+          <div key={u.id} style={{display:'flex',alignItems:'center',gap:12,padding:'11px 16px',background:'var(--surface)',borderRadius:10,border:'1px solid var(--border)'}}>
+            <div style={{width:36,height:36,borderRadius:'50%',background:RC[u.role]||'#ccc',color:'white',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,flexShrink:0}}>
               {(u.full_name||u.email||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
             </div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontWeight:600,fontSize:13}}>{u.full_name||'—'}</div>
-              <div style={{fontSize:11,color:'var(--text3)'}}>{u.email} · {u.phone||'no phone'}</div>
+              <div style={{fontSize:11,color:'var(--text3)'}}>{u.email}{u.phone&&` · 📞 ${u.phone}`}</div>
             </div>
-            <span style={{background:ROLE_COLORS[u.role]+'22',color:ROLE_COLORS[u.role],border:`1px solid ${ROLE_COLORS[u.role]}`,borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:600,flexShrink:0}}>
-              {u.role}
-            </span>
-            <BTN onClick={()=>setEditing({...u})} color='#378ADD' style={{padding:'5px 12px',fontSize:12,flexShrink:0}}>Edit</BTN>
+            <span style={{background:RC[u.role]+'22',color:RC[u.role],border:`1px solid ${RC[u.role]}`,borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:600,flexShrink:0}}>{u.role}</span>
+            <Btn small onClick={()=>setEditing({...u})} color='#378ADD'>Edit</Btn>
+            <Btn small onClick={()=>del(u)} color='#E24B4A'>Delete</Btn>
           </div>
         ))}
       </div>
@@ -196,255 +265,304 @@ function UsersTab() {
   )
 }
 
-// ── Work Orders Tab ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB: WORK ORDERS
+// ─────────────────────────────────────────────────────────────────────────────
 function WorkOrdersTab() {
-  const [wos, setWos] = useState([])
+  const [wos,    setWos]    = useState([])
   const [filter, setFilter] = useState('all')
-  const [msg, setMsg] = useState('')
+  const [search, setSearch] = useState('')
+  const [msg,    setMsg]    = useState('')
 
   useEffect(() => { load() }, [])
   async function load() {
     const { data } = await supabase.from('work_orders')
-      .select('*,stores(name),profiles(full_name)')
-      .order('created_at', { ascending:false })
-      .limit(200)
-    setWos(data || [])
+      .select('*,stores(name),profiles(full_name)').order('created_at',{ascending:false}).limit(300)
+    setWos(data||[])
   }
+  function flash(m) { setMsg(m); setTimeout(()=>setMsg(''),3000) }
 
   async function del(id) {
-    if (!window.confirm('Delete this work order permanently?')) return
-    await supabase.from('work_orders').delete().eq('id', id)
-    setMsg('✅ Deleted'); load()
-    setTimeout(() => setMsg(''), 3000)
+    if (!confirm('Delete this work order?')) return
+    await supabase.from('work_orders').delete().eq('id',id)
+    flash('✅ Deleted'); load()
   }
-
   async function clearAll() {
-    if (!window.confirm('Delete ALL work orders? This cannot be undone!')) return
-    if (!window.confirm('Are you absolutely sure? All data will be lost.')) return
-    await supabase.from('work_orders').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    setMsg('✅ All cleared'); load()
+    if (!confirm('Delete ALL work orders? Cannot be undone!')) return
+    if (!confirm('FINAL WARNING: Delete everything?')) return
+    await supabase.from('work_orders').delete().neq('id','00000000-0000-0000-0000-000000000000')
+    flash('✅ All cleared'); load()
+  }
+  async function updateStatus(id, status) {
+    await supabase.from('work_orders').update({status,updated_at:new Date().toISOString()}).eq('id',id)
+    load()
   }
 
-  const STATUS_COLOR = { open:'#EF9F27', in_progress:'#1D9E75', completed:'#7F77DD', closed:'#9e9e9e', on_hold:'#E24B4A', travelling:'#378ADD', arrived:'#283593' }
-  const filtered = filter === 'all' ? wos : wos.filter(w => w.status === filter)
+  const SC = { open:'#EF9F27', in_progress:'#1D9E75', completed:'#7F77DD', closed:'#9e9e9e', on_hold:'#E24B4A', travelling:'#378ADD', arrived:'#283593' }
+  const PC = { P1:'#E24B4A', P2:'#EF9F27', P3:'#378ADD', P4:'#1D9E75' }
+  const STATUSES = ['open','travelling','arrived','in_progress','on_hold','completed','closed']
+
+  const filtered = wos.filter(w =>
+    (filter==='all'||w.status===filter) &&
+    (w.title?.toLowerCase().includes(search.toLowerCase()) || w.stores?.name?.toLowerCase().includes(search.toLowerCase()))
+  )
 
   return (
     <div>
-      <div style={{display:'flex',gap:8,marginBottom:14,alignItems:'center',flexWrap:'wrap'}}>
+      <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap',alignItems:'center'}}>
+        <Input placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)} style={{maxWidth:200}}/>
         <select value={filter} onChange={e=>setFilter(e.target.value)}
-          style={{padding:'7px 10px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:13}}>
+          style={{padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:13}}>
           <option value="all">All ({wos.length})</option>
-          {['open','travelling','arrived','in_progress','on_hold','completed','closed'].map(s =>
-            <option key={s} value={s}>{s} ({wos.filter(w=>w.status===s).length})</option>
-          )}
+          {STATUSES.map(s=><option key={s} value={s}>{s} ({wos.filter(w=>w.status===s).length})</option>)}
         </select>
-        <BTN onClick={load} color='#378ADD' style={{padding:'7px 12px'}}>↻ Refresh</BTN>
-        <BTN onClick={clearAll} color='#E24B4A' style={{padding:'7px 12px'}}>🗑️ Clear All</BTN>
-        {msg && <span style={{fontSize:13,color:'#1D9E75'}}>{msg}</span>}
+        <Btn small onClick={load} color='#378ADD'>↻ Refresh</Btn>
+        <Btn small onClick={clearAll} color='#E24B4A'>🗑️ Clear All</Btn>
+        {msg && <span style={{fontSize:12,color:msg.startsWith('✅')?'#1D9E75':'#E24B4A'}}>{msg}</span>}
       </div>
-      <div style={{display:'grid',gap:6}}>
-        {filtered.map(wo => (
+
+      <div style={{display:'grid',gap:5}}>
+        {filtered.map(wo=>(
           <div key={wo.id} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',background:'var(--surface)',borderRadius:10,border:'1px solid var(--border)'}}>
+            <span style={{width:8,height:8,borderRadius:'50%',background:PC[wo.priority]||'#ccc',flexShrink:0,display:'inline-block'}}/>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontWeight:600,fontSize:13}}>{wo.title||'Untitled'}</div>
-              <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>
-                {wo.stores?.name||'No store'} · {wo.profiles?.full_name||'Unassigned'} · {new Date(wo.created_at).toLocaleDateString()}
-              </div>
+              <div style={{fontWeight:600,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{wo.title||'Untitled'}</div>
+              <div style={{fontSize:11,color:'var(--text3)'}}>{wo.stores?.name} · {wo.profiles?.full_name||'Unassigned'} · {new Date(wo.created_at).toLocaleDateString()}</div>
             </div>
-            <span style={{background:STATUS_COLOR[wo.status]+'22',color:STATUS_COLOR[wo.status]||'#999',border:`1px solid ${STATUS_COLOR[wo.status]||'#ccc'}`,borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:600,flexShrink:0}}>
-              {wo.status}
-            </span>
-            <BTN onClick={()=>del(wo.id)} color='#E24B4A' style={{padding:'4px 10px',fontSize:11,flexShrink:0}}>Delete</BTN>
+            <select value={wo.status} onChange={e=>updateStatus(wo.id,e.target.value)}
+              style={{padding:'4px 8px',borderRadius:7,border:`1px solid ${SC[wo.status]||'#ccc'}`,background:SC[wo.status]+'22',color:SC[wo.status]||'#999',fontSize:11,fontWeight:600,cursor:'pointer'}}>
+              {STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
+            </select>
+            <Btn small onClick={()=>del(wo.id)} color='#E24B4A'>Delete</Btn>
           </div>
         ))}
+        {filtered.length===0 && <div style={{color:'var(--text3)',fontSize:13,padding:20,textAlign:'center'}}>No work orders found</div>}
       </div>
     </div>
   )
 }
 
-// ── SQL Runner Tab ───────────────────────────────────────────────────────────
-function SQLTab() {
-  const [sql, setSql] = useState('SELECT * FROM stores LIMIT 10;')
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState('')
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB: DATABASE (SQL Runner)
+// ─────────────────────────────────────────────────────────────────────────────
+function DatabaseTab() {
+  const [sql,     setSql]     = useState('SELECT * FROM stores LIMIT 10;')
+  const [result,  setResult]  = useState(null)
+  const [error,   setError]   = useState('')
   const [running, setRunning] = useState(false)
 
   const PRESETS = [
-    { label:'All Stores',    sql:'SELECT id, name, latitude, longitude, manager_name FROM stores ORDER BY name;' },
-    { label:'All Users',     sql:'SELECT id, full_name, email, role, phone FROM profiles ORDER BY role;' },
-    { label:'Open WOs',      sql:"SELECT wo.id, wo.title, wo.status, wo.priority, s.name as store FROM work_orders wo LEFT JOIN stores s ON s.id=wo.store_id WHERE wo.status != 'closed' ORDER BY wo.created_at DESC LIMIT 50;" },
-    { label:'Tech Locations',sql:'SELECT p.full_name, tl.latitude, tl.longitude, tl.updated_at FROM technician_locations tl JOIN profiles p ON p.id=tl.technician_id ORDER BY tl.updated_at DESC;' },
-    { label:'Count by status',sql:"SELECT status, count(*) FROM work_orders GROUP BY status ORDER BY count DESC;" },
+    { label:'All Stores',      sql:'SELECT id, name, latitude, longitude, manager_name, phone FROM stores ORDER BY name;' },
+    { label:'All Users',       sql:'SELECT id, full_name, email, role, phone FROM profiles ORDER BY role, full_name;' },
+    { label:'Open WOs',        sql:"SELECT wo.id, wo.title, wo.status, wo.priority, s.name as store, p.full_name as tech FROM work_orders wo LEFT JOIN stores s ON s.id=wo.store_id LEFT JOIN profiles p ON p.id=wo.assigned_to WHERE wo.status != 'closed' ORDER BY wo.created_at DESC LIMIT 50;" },
+    { label:'Tech Locations',  sql:'SELECT p.full_name, tl.latitude, tl.longitude, tl.updated_at FROM technician_locations tl JOIN profiles p ON p.id=tl.technician_id ORDER BY tl.updated_at DESC;' },
+    { label:'WO Stats',        sql:"SELECT status, priority, count(*) FROM work_orders GROUP BY status, priority ORDER BY status, priority;" },
+    { label:'PPM Tasks',       sql:"SELECT pt.title, pt.frequency, pt.next_due, s.name as store FROM ppm_tasks pt LEFT JOIN stores s ON s.id=pt.store_id ORDER BY pt.next_due;" },
+    { label:'All Tables',      sql:"SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;" },
   ]
 
-  async function run() {
+  async function runQuery() {
     setRunning(true); setError(''); setResult(null)
+    // Parse the table from query to use supabase client
+    const match = sql.match(/FROM\s+(\w+)/i)
+    if (!match) { setError('Could not parse table name from query'); setRunning(false); return }
+    const table = match[1]
+    const limitMatch = sql.match(/LIMIT\s+(\d+)/i)
+    const limit = limitMatch ? parseInt(limitMatch[1]) : 100
+
     try {
-      const { data, error: e } = await supabase.rpc('exec_sql', { query: sql }).catch(() => ({ error: { message: 'exec_sql RPC not available' } }))
-      if (e) {
-        // fallback: try as a select via from
-        setError('⚠️ Direct SQL requires exec_sql RPC. Use Supabase dashboard for custom SQL. Error: ' + e.message)
-      } else {
-        setResult(data)
-      }
+      let q = supabase.from(table).select('*').limit(limit)
+
+      // Parse simple WHERE clauses
+      const whereMatch = sql.match(/WHERE\s+(\w+)\s*=\s*'([^']+)'/i)
+      if (whereMatch) q = q.eq(whereMatch[1], whereMatch[2])
+
+      const notMatch = sql.match(/WHERE\s+(\w+)\s+!=\s*'([^']+)'/i)
+      if (notMatch) q = q.neq(notMatch[1], notMatch[2])
+
+      // ORDER BY
+      const orderMatch = sql.match(/ORDER BY\s+(\w+)(?:\s+(ASC|DESC))?/i)
+      if (orderMatch) q = q.order(orderMatch[1], { ascending: orderMatch[2]?.toUpperCase() !== 'DESC' })
+
+      const { data, error: e } = await q
+      if (e) setError(e.message)
+      else setResult(data || [])
     } catch(err) {
       setError(err.message)
     }
     setRunning(false)
   }
 
-  const cols = result && result.length > 0 ? Object.keys(result[0]) : []
+  const cols = result?.length > 0 ? Object.keys(result[0]) : []
 
   return (
     <div>
-      <div style={{marginBottom:10,display:'flex',gap:6,flexWrap:'wrap'}}>
-        {PRESETS.map(p => (
-          <button key={p.label} onClick={()=>setSql(p.sql)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:7,padding:'5px 10px',fontSize:11,cursor:'pointer',color:'var(--text)'}}>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
+        {PRESETS.map(p=>(
+          <button key={p.label} onClick={()=>setSql(p.sql)}
+            style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:7,padding:'5px 10px',fontSize:11,cursor:'pointer',color:'var(--text)',fontWeight:500}}>
             {p.label}
           </button>
         ))}
       </div>
-      <textarea value={sql} onChange={e=>setSql(e.target.value)} rows={5}
-        style={{width:'100%',padding:12,borderRadius:8,border:'1px solid var(--border)',background:'#1a1a2e',color:'#a8d8a8',fontFamily:'monospace',fontSize:13,resize:'vertical',boxSizing:'border-box'}}/>
-      <div style={{display:'flex',gap:8,marginTop:8,marginBottom:12}}>
-        <BTN onClick={run} disabled={running}>{running?'Running…':'▶ Run Query'}</BTN>
-        <span style={{fontSize:11,color:'var(--text3)',alignSelf:'center'}}>Note: SELECT queries only via Supabase client</span>
-      </div>
-      {error && <div style={{background:'#FBE9E7',color:'#BF360C',borderRadius:8,padding:12,fontSize:12,marginBottom:10}}>{error}</div>}
-      {result && result.length > 0 && (
-        <div style={{overflowX:'auto',borderRadius:8,border:'1px solid var(--border)'}}>
-          <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
-            <thead>
-              <tr style={{background:'var(--surface)'}}>
-                {cols.map(c => <th key={c} style={{padding:'8px 12px',textAlign:'left',borderBottom:'1px solid var(--border)',fontWeight:600,color:'var(--text3)'}}>{c}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {result.map((row, i) => (
-                <tr key={i} style={{borderBottom:'1px solid var(--border)',background:i%2?'var(--surface)':'transparent'}}>
-                  {cols.map(c => <td key={c} style={{padding:'7px 12px',color:'var(--text)',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{String(row[c]??'—')}</td>)}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div style={{padding:'6px 12px',fontSize:11,color:'var(--text3)'}}>{result.length} rows</div>
-        </div>
-      )}
-      {result && result.length === 0 && <div style={{color:'var(--text3)',fontSize:13}}>Query returned 0 rows.</div>}
 
-      <div style={{marginTop:20,padding:16,background:'var(--surface)',borderRadius:10,border:'1px solid var(--border)'}}>
-        <div style={{fontWeight:600,marginBottom:8}}>📋 Quick Actions</div>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer"
-            style={{background:'#1D9E75',color:'white',borderRadius:8,padding:'7px 14px',fontSize:12,textDecoration:'none',fontWeight:600}}>
-            Open Supabase Dashboard ↗
-          </a>
-          <a href="https://github.com/AmrAboElfadl/Fixnar" target="_blank" rel="noreferrer"
-            style={{background:'#333',color:'white',borderRadius:8,padding:'7px 14px',fontSize:12,textDecoration:'none',fontWeight:600}}>
-            Open GitHub Repo ↗
-          </a>
-          <a href="https://vercel.com/dashboard" target="_blank" rel="noreferrer"
-            style={{background:'#000',color:'white',borderRadius:8,padding:'7px 14px',fontSize:12,textDecoration:'none',fontWeight:600}}>
-            Open Vercel ↗
-          </a>
-        </div>
+      <textarea value={sql} onChange={e=>setSql(e.target.value)} rows={5}
+        style={{width:'100%',padding:12,borderRadius:9,border:'1px solid var(--border)',background:'#0d1117',color:'#79c0ff',fontFamily:'monospace',fontSize:13,resize:'vertical',boxSizing:'border-box',lineHeight:1.6}}/>
+
+      <div style={{display:'flex',gap:8,marginTop:10,marginBottom:14,alignItems:'center'}}>
+        <Btn onClick={runQuery} disabled={running}>{running?'Running…':'▶ Run Query'}</Btn>
+        <span style={{fontSize:11,color:'var(--text3)'}}>Simple SELECT queries via Supabase client · For complex SQL use the dashboard</span>
+        <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer"
+          style={{marginLeft:'auto',background:'#1D9E75',color:'white',borderRadius:8,padding:'7px 14px',fontSize:12,textDecoration:'none',fontWeight:600}}>
+          Full SQL Editor ↗
+        </a>
       </div>
+
+      {error && <div style={{background:'#FBE9E7',color:'#BF360C',borderRadius:8,padding:12,fontSize:12,marginBottom:12}}>{error}</div>}
+
+      {result && (
+        result.length > 0 ? (
+          <div style={{overflowX:'auto',borderRadius:10,border:'1px solid var(--border)'}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+              <thead>
+                <tr style={{background:'var(--surface)'}}>
+                  {cols.map(c=><th key={c} style={{padding:'8px 12px',textAlign:'left',borderBottom:'1px solid var(--border)',fontWeight:600,color:'var(--text3)',whiteSpace:'nowrap'}}>{c}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {result.map((row,i)=>(
+                  <tr key={i} style={{borderBottom:'1px solid var(--border)',background:i%2?'var(--surface)':'transparent'}}>
+                    {cols.map(c=>(
+                      <td key={c} style={{padding:'7px 12px',color:'var(--text)',maxWidth:240,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={String(row[c]??'')}>
+                        {String(row[c]??'—')}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{padding:'6px 12px',fontSize:11,color:'var(--text3)'}}>{result.length} rows returned</div>
+          </div>
+        ) : <div style={{color:'var(--text3)',fontSize:13}}>Query returned 0 rows.</div>
+      )}
     </div>
   )
 }
 
-// ── Settings Tab ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB: SETTINGS & STATS
+// ─────────────────────────────────────────────────────────────────────────────
 function SettingsTab() {
-  const [stats, setStats] = useState({})
+  const [stats,   setStats]   = useState({})
   const [loading, setLoading] = useState(true)
+  const [msg,     setMsg]     = useState('')
 
-  useEffect(() => {
-    async function load() {
-      const safe = p => p.catch(() => ({ count:0 }))
-      const [s,u,w,p,t] = await Promise.all([
-        safe(supabase.from('stores').select('*', {count:'exact',head:true})),
-        safe(supabase.from('profiles').select('*', {count:'exact',head:true})),
-        safe(supabase.from('work_orders').select('*', {count:'exact',head:true})),
-        safe(supabase.from('ppm_tasks').select('*', {count:'exact',head:true})),
-        safe(supabase.from('technician_locations').select('*', {count:'exact',head:true})),
-      ])
-      setStats({ stores:s.count, users:u.count, wos:w.count, ppm:p.count, techLocs:t.count })
-      setLoading(false)
-    }
-    load()
-  }, [])
+  useEffect(() => { loadStats() }, [])
+  function flash(m) { setMsg(m); setTimeout(()=>setMsg(''),3000) }
 
-  const items = [
-    { label:'Stores',             value:stats.stores,   color:'#1D9E75' },
-    { label:'Users',              value:stats.users,    color:'#7F77DD' },
-    { label:'Work Orders (total)',value:stats.wos,      color:'#EF9F27' },
-    { label:'PPM Tasks',          value:stats.ppm,      color:'#378ADD' },
-    { label:'Tech Location Pings',value:stats.techLocs, color:'#E24B4A' },
+  async function loadStats() {
+    const safe = p => p.catch(()=>({count:0}))
+    const [s,u,w,p,t,a] = await Promise.all([
+      safe(supabase.from('stores').select('*',{count:'exact',head:true})),
+      safe(supabase.from('profiles').select('*',{count:'exact',head:true})),
+      safe(supabase.from('work_orders').select('*',{count:'exact',head:true})),
+      safe(supabase.from('ppm_tasks').select('*',{count:'exact',head:true})),
+      safe(supabase.from('technician_locations').select('*',{count:'exact',head:true})),
+      safe(supabase.from('assets').select('*',{count:'exact',head:true})),
+    ])
+    setStats({stores:s.count,users:u.count,wos:w.count,ppm:p.count,locs:t.count,assets:a.count})
+    setLoading(false)
+  }
+
+  const STAT_ITEMS = [
+    ['Stores',        'stores',  '#1D9E75'],
+    ['Users',         'users',   '#7F77DD'],
+    ['Work Orders',   'wos',     '#EF9F27'],
+    ['PPM Tasks',     'ppm',     '#378ADD'],
+    ['Assets',        'assets',  '#9e9e9e'],
+    ['GPS Pings',     'locs',    '#E24B4A'],
   ]
 
   return (
     <div>
-      <h3 style={{margin:'0 0 16px',fontSize:15}}>📊 Database Stats</h3>
+      {msg && <div style={{padding:'10px 14px',borderRadius:8,marginBottom:14,fontSize:13,background:'#E8F5E9',color:'#1B5E20',border:'1px solid #1D9E75'}}>{msg}</div>}
+
+      <h3 style={{margin:'0 0 14px',fontSize:15}}>📊 Database Overview</h3>
       {loading ? <div style={{color:'var(--text3)'}}>Loading…</div> : (
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:12,marginBottom:24}}>
-          {items.map(i => (
-            <div key={i.label} style={{background:'var(--surface)',borderRadius:12,padding:16,border:`1px solid ${i.color}33`}}>
-              <div style={{fontSize:28,fontWeight:700,color:i.color}}>{i.value ?? '—'}</div>
-              <div style={{fontSize:12,color:'var(--text3)',marginTop:4}}>{i.label}</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:10,marginBottom:28}}>
+          {STAT_ITEMS.map(([label,key,color])=>(
+            <div key={key} style={{background:'var(--surface)',borderRadius:12,padding:'16px 18px',border:`1px solid ${color}33`}}>
+              <div style={{fontSize:30,fontWeight:700,color}}>{stats[key]??'—'}</div>
+              <div style={{fontSize:12,color:'var(--text3)',marginTop:4}}>{label}</div>
             </div>
           ))}
         </div>
       )}
 
-      <h3 style={{margin:'0 0 12px',fontSize:15}}>🔗 Quick Links</h3>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+      <h3 style={{margin:'0 0 14px',fontSize:15}}>🔗 Quick Links</h3>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:28}}>
         {[
-          { label:'Supabase Dashboard', url:'https://supabase.com/dashboard', bg:'#1D9E75' },
-          { label:'GitHub Repository',  url:'https://github.com/AmrAboElfadl/Fixnar', bg:'#333' },
-          { label:'Vercel Dashboard',   url:'https://vercel.com/dashboard', bg:'#000' },
-          { label:'Live Site',          url:'https://fixnar.vercel.app', bg:'#7F77DD' },
-        ].map(l => (
-          <a key={l.label} href={l.url} target="_blank" rel="noreferrer" style={{
-            background:l.bg, color:'white', borderRadius:10, padding:'14px 16px',
-            textDecoration:'none', fontWeight:600, fontSize:13, display:'block',
-          }}>
-            {l.label} ↗
+          ['🟢 Supabase Dashboard', 'https://supabase.com/dashboard',        '#1D9E75'],
+          ['⚫ GitHub Repository',   'https://github.com/AmrAboElfadl/Fixnar','#24292e'],
+          ['🔺 Vercel Dashboard',   'https://vercel.com/dashboard',           '#000'],
+          ['🌐 Live Site',           'https://fixnar.vercel.app',              '#7F77DD'],
+        ].map(([label,url,bg])=>(
+          <a key={label} href={url} target="_blank" rel="noreferrer"
+            style={{background:bg,color:'white',borderRadius:10,padding:'14px 16px',textDecoration:'none',fontWeight:600,fontSize:13,display:'block'}}>
+            {label} ↗
           </a>
         ))}
       </div>
 
-      <div style={{marginTop:20,padding:16,background:'var(--surface)',borderRadius:10,border:'1px solid #E24B4A44'}}>
-        <div style={{fontWeight:600,color:'#E24B4A',marginBottom:8}}>⚠️ Danger Zone</div>
-        <div style={{fontSize:12,color:'var(--text3)',marginBottom:12}}>These actions cannot be undone. Use with extreme caution.</div>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          <BTN color='#E24B4A' onClick={async () => {
-            if (!window.confirm('Clear ALL technician location data?')) return
+      <h3 style={{margin:'0 0 14px',fontSize:15,color:'#E24B4A'}}>⚠️ Danger Zone</h3>
+      <div style={{background:'var(--surface)',border:'1px solid #E24B4A44',borderRadius:12,padding:16}}>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <Btn color='#E24B4A' onClick={async()=>{
+            if(!confirm('Clear ALL GPS location data?')) return
             await supabase.from('technician_locations').delete().neq('id','00000000-0000-0000-0000-000000000000')
-            alert('Done')
-          }}>Clear Tech Locations</BTN>
+            flash('✅ GPS data cleared'); loadStats()
+          }}>Clear GPS Pings</Btn>
+          <Btn color='#E24B4A' onClick={async()=>{
+            if(!confirm('Clear ALL completed/closed work orders?')) return
+            await supabase.from('work_orders').delete().in('status',['completed','closed'])
+            flash('✅ Archived WOs cleared'); loadStats()
+          }}>Clear Archived WOs</Btn>
+          <Btn color='#E24B4A' onClick={async()=>{
+            if(!confirm('Reset ALL store coordinates? They will need to be re-entered.')) return
+            await supabase.from('stores').update({latitude:null,longitude:null}).neq('id','00000000-0000-0000-0000-000000000000')
+            flash('✅ Coordinates reset')
+          }}>Reset Store Coords</Btn>
         </div>
       </div>
     </div>
   )
 }
 
-// ── Main DevPanel ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN DevPanel
+// ─────────────────────────────────────────────────────────────────────────────
+const TABS = [
+  { id:'stores',   label:'🏪 Stores' },
+  { id:'users',    label:'👥 Users' },
+  { id:'wos',      label:'🔧 Work Orders' },
+  { id:'database', label:'⚡ Database' },
+  { id:'settings', label:'⚙️ Settings' },
+]
+
 export default function DevPanel() {
   const { profile } = useAuth()
   const navigate    = useNavigate()
-  const [tab,       setTab]       = useState('stores')
-  const [unlocked,  setUnlocked]  = useState(false)
-  const [pin,       setPin]       = useState('')
-  const DEV_PIN = '1234'  // Change this to your preferred PIN
+  const [tab,      setTab]      = useState('stores')
+  const [unlocked, setUnlocked] = useState(false)
+  const [pin,      setPin]      = useState('')
+  const [pinError, setPinError] = useState(false)
 
-  // Gate: must be dev email AND enter PIN
   if (!profile || profile.email !== DEV_EMAIL) {
     return (
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'60vh'}}>
         <div style={{textAlign:'center',color:'var(--text3)'}}>
           <div style={{fontSize:48,marginBottom:12}}>🚫</div>
           <div style={{fontSize:16,fontWeight:600}}>Access Denied</div>
-          <div style={{fontSize:13,marginTop:8}}>Developer panel is restricted.</div>
         </div>
       </div>
     )
@@ -452,21 +570,28 @@ export default function DevPanel() {
 
   if (!unlocked) {
     return (
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'60vh'}}>
-        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:16,padding:32,textAlign:'center',width:300}}>
-          <div style={{fontSize:40,marginBottom:12}}>🔐</div>
-          <div style={{fontWeight:700,fontSize:18,marginBottom:4}}>Developer Panel</div>
-          <div style={{color:'var(--text3)',fontSize:13,marginBottom:20}}>Enter your developer PIN to continue</div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'70vh'}}>
+        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:36,textAlign:'center',width:320,boxShadow:'0 8px 32px rgba(0,0,0,.2)'}}>
+          <div style={{fontSize:48,marginBottom:8}}>🔐</div>
+          <div style={{fontWeight:700,fontSize:20,marginBottom:4}}>Developer Panel</div>
+          <div style={{color:'var(--text3)',fontSize:13,marginBottom:24}}>Enter your PIN to continue</div>
           <input
-            type="password" placeholder="PIN"
-            value={pin} onChange={e=>setPin(e.target.value)}
-            onKeyDown={e=>{ if(e.key==='Enter' && pin===DEV_PIN) setUnlocked(true) }}
-            style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:16,textAlign:'center',letterSpacing:8,marginBottom:12,boxSizing:'border-box'}}
+            type="password" placeholder="PIN" value={pin}
+            onChange={e=>{ setPin(e.target.value); setPinError(false) }}
+            onKeyDown={e=>{
+              if(e.key==='Enter') {
+                if(pin===DEV_PIN) setUnlocked(true)
+                else { setPinError(true); setPin('') }
+              }
+            }}
+            style={{width:'100%',padding:'12px',borderRadius:10,border:`2px solid ${pinError?'#E24B4A':'var(--border)'}`,background:'var(--bg)',color:'var(--text)',fontSize:20,textAlign:'center',letterSpacing:8,marginBottom:14,boxSizing:'border-box'}}
+            autoFocus
           />
-          <BTN onClick={()=>{ if(pin===DEV_PIN) setUnlocked(true) }} style={{width:'100%'}} disabled={pin!==DEV_PIN}>
+          {pinError && <div style={{color:'#E24B4A',fontSize:12,marginBottom:10}}>Incorrect PIN — try again</div>}
+          <Btn onClick={()=>{ if(pin===DEV_PIN) setUnlocked(true); else { setPinError(true); setPin('') } }}
+            style={{width:'100%',padding:'12px'}} disabled={!pin}>
             Unlock Panel
-          </BTN>
-          {pin.length > 0 && pin !== DEV_PIN && <div style={{color:'#E24B4A',fontSize:12,marginTop:8}}>Incorrect PIN</div>}
+          </Btn>
         </div>
       </div>
     )
@@ -477,36 +602,40 @@ export default function DevPanel() {
       {/* Header */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24,flexWrap:'wrap',gap:12}}>
         <div>
-          <h1 style={{margin:0,fontSize:22,fontWeight:700,display:'flex',alignItems:'center',gap:10}}>
-            <span style={{background:'linear-gradient(135deg,#7F77DD,#1D9E75)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>⚡ Developer Panel</span>
+          <h1 style={{margin:0,fontSize:24,fontWeight:700}}>
+            <span style={{background:'linear-gradient(135deg,#7F77DD,#1D9E75)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>
+              ⚡ Developer Panel
+            </span>
           </h1>
-          <p style={{margin:'4px 0 0',color:'var(--text3)',fontSize:13}}>Full access · {profile.email}</p>
+          <p style={{margin:'4px 0 0',color:'var(--text3)',fontSize:13}}>
+            Full control · {profile.email} · {new Date().toLocaleString()}
+          </p>
         </div>
         <div style={{display:'flex',gap:8}}>
-          <BTN onClick={()=>setUnlocked(false)} color='#666' style={{padding:'7px 14px',fontSize:12}}>🔒 Lock</BTN>
-          <BTN onClick={()=>navigate('/')} color='var(--green)' style={{padding:'7px 14px',fontSize:12}}>← Back to App</BTN>
+          <Btn onClick={()=>setUnlocked(false)} color='#666' small>🔒 Lock</Btn>
+          <Btn onClick={()=>navigate('/')} color='var(--green)' small>← Back to App</Btn>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{display:'flex',gap:4,marginBottom:20,borderBottom:'1px solid var(--border)',paddingBottom:0}}>
-        {TABS.map(t => (
+      <div style={{display:'flex',gap:2,borderBottom:'2px solid var(--border)',marginBottom:24}}>
+        {TABS.map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)} style={{
-            padding:'10px 18px',border:'none',cursor:'pointer',fontSize:13,fontWeight:600,
+            padding:'10px 20px',border:'none',cursor:'pointer',fontSize:13,fontWeight:600,
             background:'transparent',
-            color: tab===t.id ? 'var(--green)' : 'var(--text3)',
-            borderBottom: tab===t.id ? '2px solid var(--green)' : '2px solid transparent',
-            marginBottom:-1,
+            color:tab===t.id?'var(--green)':'var(--text3)',
+            borderBottom:tab===t.id?'2px solid var(--green)':'2px solid transparent',
+            marginBottom:-2, transition:'all 0.15s',
           }}>{t.label}</button>
         ))}
       </div>
 
-      {/* Tab content */}
-      <div style={{minHeight:400}}>
+      {/* Content */}
+      <div style={{minHeight:500}}>
         {tab==='stores'   && <StoresTab/>}
         {tab==='users'    && <UsersTab/>}
         {tab==='wos'      && <WorkOrdersTab/>}
-        {tab==='sql'      && <SQLTab/>}
+        {tab==='database' && <DatabaseTab/>}
         {tab==='settings' && <SettingsTab/>}
       </div>
     </div>
