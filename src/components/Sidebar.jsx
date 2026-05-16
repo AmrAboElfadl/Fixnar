@@ -1,85 +1,140 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-const NAV = [
-  { to:'/',            icon:'⊞', label:'Dashboard',     roles:['admin','technician','operations'] },
-  { to:'/assets',      icon:'◈', label:'Stores',         roles:['admin','operations'] },
-  { to:'/work-orders', icon:'✦', label:'Work Orders',    roles:['admin','technician','operations'] },
-  { to:'/ppm',         icon:'◷', label:'PPM Schedule',   roles:['admin','technician'] },
-  { to:'/schedule',    icon:'◉', label:'Dispatch Board', roles:['admin','technician'] },
-  { to:'/analytics',   icon:'▦', label:'Analytics',      roles:['admin'] },
-  { to:'/users',       icon:'◎', label:'Users & Access', roles:['admin'] },
+const DEV_EMAIL = 'amrmorsy93@gmail.com'
+
+const NAV_ITEMS = [
+  { path:'/',            label:'Dashboard',      icon:'⊞', roles:['admin','operations','technician','viewer'] },
+  { path:'/stores',      label:'Stores',         icon:'◈', roles:['admin','operations'] },
+  { path:'/work-orders', label:'Work Orders',    icon:'✦', roles:['admin','operations','technician'] },
+  { path:'/ppm',         label:'PPM Schedule',   icon:'◎', roles:['admin','operations'] },
+  { path:'/schedule',    label:'Dispatch Board', icon:'◉', roles:['admin','operations'] },
+  { path:'/analytics',   label:'Analytics',      icon:'▤', roles:['admin'] },
+  { path:'/users',       label:'Users & Access', icon:'◎', roles:['admin'] },
 ]
 
-const ROLE_COLORS = { admin:'#1D9E75', technician:'#378ADD', operations:'#7F77DD' }
+const ROLE_COLORS = {
+  admin:      '#E24B4A',
+  technician: '#7F77DD',
+  operations: '#EF9F27',
+  viewer:     '#9e9e9e',
+}
 
 export default function Sidebar({ open, onClose, pinned, onPin }) {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
-  const role     = profile?.role || 'operations'
-  const rc       = ROLE_COLORS[role] || '#6b7280'
-  const initials = (profile?.full_name || 'U').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
+  const role     = profile?.role || 'viewer'
+  const isDev    = profile?.email === DEV_EMAIL
+
+  const initials = (profile?.full_name || profile?.email || 'U')
+    .split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
+
+  const rc = ROLE_COLORS[role] || '#9e9e9e'
 
   async function handleSignOut() {
     await signOut()
     navigate('/login')
   }
 
+  const visibleItems = NAV_ITEMS.filter(item =>
+    !item.roles || item.roles.includes(role)
+  )
+
   return (
     <aside style={{
-      width:'100%', height:'100%',
-      background:'var(--sidebar-bg)',
-      borderRight:'1px solid var(--border)',
-      display:'flex', flexDirection:'column',
-      fontFamily:"'DM Sans', sans-serif",
-      paddingTop:52,
+      width: 200,
+      height: '100vh',
+      background: 'var(--surface)',
+      borderRight: '1px solid var(--border)',
+      display: 'flex',
+      flexDirection: 'column',
+      overflowY: 'auto',
+      position: 'relative',
     }}>
 
-      {/* Header row */}
-      <div style={{ padding:'14px 16px 8px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid var(--border)' }}>
-        <span style={{ color:'var(--text3)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.5px', fontWeight:500 }}>Menu</span>
-        <div style={{ display:'flex', gap:6 }}>
-          {/* Pin / Unpin button */}
-          <button onClick={onPin}
-            title={pinned ? 'Unpin sidebar' : 'Pin sidebar'}
-            style={{
-              background: pinned ? 'var(--green-bg)' : 'var(--bg3)',
-              border:`1px solid ${pinned ? 'var(--green)' : 'var(--border)'}`,
-              borderRadius:7, padding:'3px 10px', cursor:'pointer',
-              color: pinned ? 'var(--green)' : 'var(--text2)',
-              fontSize:11, fontWeight:500,
-            }}>
-            {pinned ? '📌 Pinned' : '📌 Pin'}
-          </button>
-          {/* Close — only when not pinned */}
-          {!pinned && (
-            <button onClick={onClose}
-              style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:7, width:28, height:28, cursor:'pointer', color:'var(--text2)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              ✕
-            </button>
-          )}
+      {/* Logo + Pin */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '18px 16px 12px',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ width:28, height:28, borderRadius:8, background:'var(--green)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <span style={{ color:'white', fontSize:14, fontWeight:700 }}>+</span>
+          </div>
+          <span style={{ fontWeight:700, fontSize:15, color:'var(--text)' }}>Fixnar</span>
         </div>
+        <button
+          onClick={onPin}
+          title={pinned ? 'Unpin sidebar' : 'Pin sidebar'}
+          style={{
+            background: pinned ? '#E24B4A22' : 'var(--surface)',
+            border: `1px solid ${pinned ? '#E24B4A' : 'var(--border)'}`,
+            borderRadius: 20, padding: '2px 10px',
+            fontSize: 11, cursor: 'pointer',
+            color: pinned ? '#E24B4A' : 'var(--text3)',
+            fontWeight: 600, display:'flex', alignItems:'center', gap:4,
+          }}
+        >
+          ★ {pinned ? 'Pinned' : 'Pin'}
+        </button>
       </div>
 
-      {/* Nav links */}
-      <nav style={{ flex:1, padding:'8px 10px', overflowY:'auto' }}>
-        {NAV.filter(n => n.roles.includes(role)).map(item => (
-          <NavLink key={item.to} to={item.to} end={item.to === '/'}
-            onClick={() => { if (!pinned) onClose() }}
+      {/* MENU label */}
+      <div style={{ padding:'14px 16px 6px', fontSize:10, fontWeight:700, color:'var(--text3)', letterSpacing:'0.08em' }}>
+        MENU
+      </div>
+
+      {/* Nav items */}
+      <nav style={{ flex:1, padding:'0 8px', display:'flex', flexDirection:'column', gap:2 }}>
+        {visibleItems.map(item => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.path === '/'}
+            onClick={!pinned ? onClose : undefined}
             style={({ isActive }) => ({
-              display:'flex', alignItems:'center', gap:12,
-              padding:'11px 12px', borderRadius:10, marginBottom:3,
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '9px 10px', borderRadius: 9,
               color: isActive ? 'var(--green)' : 'var(--text2)',
               background: isActive ? 'var(--green-bg)' : 'transparent',
-              textDecoration:'none', fontSize:14,
-              fontWeight: isActive ? 500 : 400,
-              transition:'all 0.15s',
-            })}>
-            <span style={{ fontSize:18, width:22, textAlign:'center' }}>{item.icon}</span>
+              textDecoration: 'none', fontSize: 14,
+              fontWeight: isActive ? 600 : 400,
+              transition: 'all 0.15s',
+            })}
+          >
+            <span style={{ fontSize:16, width:20, textAlign:'center', opacity:0.8 }}>{item.icon}</span>
             {item.label}
           </NavLink>
         ))}
       </nav>
+
+      {/* Developer Panel — only for dev email */}
+      {isDev && (
+        <div style={{ padding:'8px', borderTop:'1px solid var(--border)', marginTop:4 }}>
+          <NavLink
+            to="/dev"
+            onClick={!pinned ? onClose : undefined}
+            style={({ isActive }) => ({
+              display:'flex', alignItems:'center', gap:10,
+              padding:'10px 12px', borderRadius:10,
+              background: isActive
+                ? 'linear-gradient(135deg,#7F77DD33,#1D9E7533)'
+                : 'linear-gradient(135deg,#7F77DD11,#1D9E7511)',
+              border:`1px solid ${isActive?'#7F77DD':'#7F77DD44'}`,
+              textDecoration:'none', transition:'all 0.15s',
+            })}
+          >
+            <span style={{ fontSize:18 }}>⚡</span>
+            <div>
+              <div style={{ fontSize:13, fontWeight:700, background:'linear-gradient(135deg,#7F77DD,#1D9E75)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>
+                Developer
+              </div>
+              <div style={{ fontSize:10, color:'var(--text3)', marginTop:1 }}>Full control panel</div>
+            </div>
+          </NavLink>
+        </div>
+      )}
 
       {/* Divider */}
       <div style={{ height:1, background:'var(--border)', margin:'0 16px' }}/>
@@ -87,7 +142,12 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
       {/* User profile */}
       <div style={{ padding:16 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-          <div style={{ width:38, height:38, borderRadius:10, background:rc, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:13, fontWeight:600, flexShrink:0 }}>
+          <div style={{
+            width:38, height:38, borderRadius:10,
+            background:rc, display:'flex', alignItems:'center',
+            justifyContent:'center', color:'white',
+            fontSize:13, fontWeight:600, flexShrink:0,
+          }}>
             {initials}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
@@ -97,8 +157,12 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
             <div style={{ color:rc, fontSize:11, textTransform:'capitalize' }}>{role}</div>
           </div>
         </div>
-        <button onClick={handleSignOut}
-          style={{ width:'100%', background:'transparent', border:'1px solid var(--border)', borderRadius:8, padding:'8px', color:'var(--text2)', fontSize:13, cursor:'pointer' }}>
+        <button onClick={handleSignOut} style={{
+          width:'100%', background:'transparent',
+          border:'1px solid var(--border)',
+          borderRadius:8, padding:'8px',
+          color:'var(--text2)', fontSize:13, cursor:'pointer',
+        }}>
           Sign out
         </button>
       </div>
