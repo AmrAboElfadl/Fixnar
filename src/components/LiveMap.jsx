@@ -3,24 +3,26 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
 const BRANCHES = [
-  { id:'b1',  name:'Al Barsha',        lat:25.1003, lng:55.1734 },
-  { id:'b2',  name:'Al Raha Mall',     lat:24.4686, lng:54.6041 },
-  { id:'b3',  name:'DFC',              lat:25.2327, lng:55.3267 },
-  { id:'b4',  name:'Discovery Garden', lat:25.0480, lng:55.1500 },
-  { id:'b5',  name:'Dubai Mall',       lat:25.1972, lng:55.2796 },
-  { id:'b6',  name:'Kite Beach',       lat:25.1878, lng:55.2485 },
-  { id:'b7',  name:'Mirdif',           lat:25.2217, lng:55.4072 },
-  { id:'b8',  name:'Motor City',       lat:25.0700, lng:55.2500 },
-  { id:'b9',  name:'WTC',              lat:25.2285, lng:55.2867 },
-  { id:'b10', name:'Derawandi AUH',    lat:24.4241, lng:54.4699 },
-  { id:'b11', name:'Al Wasl',          lat:25.1973, lng:55.2522 },
-  { id:'b12', name:'Reem Mall',        lat:24.5477, lng:54.3818 },
-  { id:'b13', name:'Shmkha',           lat:24.4695, lng:54.3277 },
-  { id:'b14', name:'Jimi Mall',        lat:24.2154, lng:55.7554 },
-  { id:'b15', name:'JV Dubai Mall',    lat:25.1960, lng:55.2790 },
-  { id:'b16', name:'JV Jumeirah',      lat:25.2099, lng:55.2476 },
-  { id:'b17', name:'JV Abu Dhabi',     lat:24.4052, lng:54.5014 },
-  { id:'b18', name:'Adnoc Truck',      lat:24.4500, lng:54.3700 },
+  // JJ Chicken — official locations from jjchicken.com
+  { id:'b1',  name:'JJ — Al Barsha',        lat:25.1122, lng:55.1986 },
+  { id:'b2',  name:'JJ — Al Raha Mall',     lat:24.4194, lng:54.6254 },
+  { id:'b3',  name:'JJ — DFC / WTC',        lat:25.2258, lng:55.2867 },
+  { id:'b4',  name:'JJ — Discovery Garden', lat:25.0346, lng:55.1502 },
+  { id:'b5',  name:'JJ — Dubai Mall',       lat:25.1977, lng:55.2796 },
+  { id:'b6',  name:'JJ — Kite Beach',       lat:25.1990, lng:55.2311 },
+  { id:'b7',  name:'JJ — Mirdif CC',        lat:25.2291, lng:55.4139 },
+  { id:'b8',  name:'JJ — Motor City',       lat:25.0514, lng:55.2405 },
+  { id:'b9',  name:'JJ — Festival City',    lat:25.2311, lng:55.3519 },
+  { id:'b10', name:'JJ — Reem Mall AUH',   lat:24.5013, lng:54.6077 },
+  { id:'b11', name:'JJ — AUH Corniche',    lat:24.4930, lng:54.3564 },
+  // JJ Derawandi / Solidare / JV — approximate from known areas
+  { id:'b12', name:'JJ Derawandi — Al Wasl', lat:25.1862, lng:55.2445 },
+  { id:'b13', name:'JJ Derawandi — AUH',     lat:24.4539, lng:54.3773 },
+  { id:'b14', name:'Solidare — Jimi Mall',   lat:24.2219, lng:55.7306 },
+  { id:'b15', name:'JJ — Shmkha AUH',        lat:24.3185, lng:54.5219 },
+  { id:'b16', name:'JV — Dubai Mall',         lat:25.1972, lng:55.2800 },
+  { id:'b17', name:'JV — Jumeirah',           lat:25.2042, lng:55.2500 },
+  { id:'b18', name:'Derawandi Truck Adnoc',   lat:24.4333, lng:54.3947 },
 ]
 
 // ── Tile math ────────────────────────────────────────────────────────────────
