@@ -1,25 +1,27 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
-import { ThemeProvider } from './context/ThemeContext'
 import Login from './pages/Login'
 import ResetPassword from './pages/ResetPassword'
-import WorkOrderDetail from './pages/WorkOrderDetail'
 import Dashboard from './pages/Dashboard'
 import WorkOrders from './pages/WorkOrders'
+import WorkOrderDetail from './pages/WorkOrderDetail'
 import Assets from './pages/Assets'
 import PPM from './pages/PPM'
 import Analytics from './pages/Analytics'
 import Users from './pages/Users'
 import Schedule from './pages/Schedule'
+import Stores from './pages/Stores'
+import DevPanel from './pages/DevPanel'
 
 function ProtectedRoute({ children, roles }) {
   const { user, profile, loading } = useAuth()
   if (loading) return (
-    <div style={{ minHeight:'100vh', background:'#0d1117', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ color:'#1D9E75', fontSize:14, fontFamily:"'DM Sans', sans-serif" }}>Loading Fixnar...</div>
+    <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ color:'var(--green)', fontSize:14, fontFamily:"'DM Sans', sans-serif" }}>Loading Fixnar...</div>
     </div>
   )
   if (!user) return <Navigate to="/login" replace/>
@@ -30,23 +32,23 @@ function ProtectedRoute({ children, roles }) {
 function AppLayout({ children }) {
   const [open,   setOpen]   = React.useState(false)
   const [pinned, setPinned] = React.useState(() => localStorage.getItem('fixnar_sidebar_pinned') === 'true')
+  const sidebarW = 240
 
   function togglePin() {
     const next = !pinned
     setPinned(next)
     localStorage.setItem('fixnar_sidebar_pinned', String(next))
-    if (next) setOpen(false)
+    if (next) setOpen(true)
   }
 
   const sidebarVisible = pinned || open
-  const sidebarW = 250
 
   return (
     <div style={{ display:'flex', minHeight:'100vh', background:'var(--bg)', position:'relative' }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
-      <TopBar onMenuToggle={() => { if (!pinned) setOpen(o => !o) }} pinned={pinned} onPin={togglePin}/>
+      <TopBar onMenuToggle={() => setOpen(o => !o)} pinned={pinned} onPin={togglePin}/>
 
-      {/* Overlay — only when slide-in mode (not pinned) */}
+      {/* Overlay when sidebar open but not pinned */}
       {open && !pinned && (
         <div onClick={() => setOpen(false)}
           style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', zIndex:150, backdropFilter:'blur(2px)' }}/>
@@ -54,11 +56,10 @@ function AppLayout({ children }) {
 
       {/* Sidebar */}
       <div style={{
-        position: pinned ? 'fixed' : 'fixed',
-        top:0, left: sidebarVisible ? 0 : -sidebarW,
+        position:'fixed', top:0,
+        left: sidebarVisible ? 0 : -sidebarW,
         width: sidebarW, height:'100vh',
-        zIndex:200,
-        transition:'left 0.25s ease',
+        zIndex:200, transition:'left 0.25s ease',
         boxShadow: !pinned && open ? '4px 0 20px rgba(0,0,0,0.15)' : 'none',
       }}>
         <Sidebar open={sidebarVisible} onClose={() => setOpen(false)} pinned={pinned} onPin={togglePin}/>
@@ -81,35 +82,25 @@ function AppLayout({ children }) {
 }
 
 function AppRoutes() {
-  const { user, loading } = useAuth()
-
-  if (loading) return (
-    <div style={{ minHeight:'100vh', background:'#0d1117', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ textAlign:'center', fontFamily:"'DM Sans', sans-serif" }}>
-        <div style={{ width:48, height:48, background:'#1D9E75', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M3 12h6M15 12h6M12 3v6M12 15v6" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-            <circle cx="12" cy="12" r="2.5" fill="white"/>
-          </svg>
-        </div>
-        <div style={{ color:'#1D9E75', fontSize:18, fontWeight:600 }}>Fixnar</div>
-        <div style={{ color:'#6b7280', fontSize:13, marginTop:4 }}>Loading...</div>
-      </div>
-    </div>
-  )
-
+  const { user } = useAuth()
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace/> : <Login/>}/>
+      <Route path="/login" element={!user ? <Login/> : <Navigate to="/" replace/>}/>
       <Route path="/reset-password" element={<ResetPassword/>}/>
+
       <Route path="/" element={<ProtectedRoute><AppLayout><Dashboard/></AppLayout></ProtectedRoute>}/>
+      <Route path="/stores" element={<ProtectedRoute><AppLayout><Stores/></AppLayout></ProtectedRoute>}/>
       <Route path="/work-orders" element={<ProtectedRoute><AppLayout><WorkOrders/></AppLayout></ProtectedRoute>}/>
       <Route path="/work-orders/:id" element={<ProtectedRoute><AppLayout><WorkOrderDetail/></AppLayout></ProtectedRoute>}/>
-      <Route path="/assets" element={<ProtectedRoute roles={['admin','operations']}><AppLayout><Assets/></AppLayout></ProtectedRoute>}/>
-      <Route path="/ppm" element={<ProtectedRoute roles={['admin','technician']}><AppLayout><PPM/></AppLayout></ProtectedRoute>}/>
-      <Route path="/schedule" element={<ProtectedRoute roles={['admin','technician']}><AppLayout><Schedule/></AppLayout></ProtectedRoute>}/>
+      <Route path="/assets" element={<ProtectedRoute><AppLayout><Assets/></AppLayout></ProtectedRoute>}/>
+      <Route path="/ppm" element={<ProtectedRoute><AppLayout><PPM/></AppLayout></ProtectedRoute>}/>
+      <Route path="/schedule" element={<ProtectedRoute><AppLayout><Schedule/></AppLayout></ProtectedRoute>}/>
       <Route path="/analytics" element={<ProtectedRoute roles={['admin']}><AppLayout><Analytics/></AppLayout></ProtectedRoute>}/>
       <Route path="/users" element={<ProtectedRoute roles={['admin']}><AppLayout><Users/></AppLayout></ProtectedRoute>}/>
+
+      {/* Developer Panel - restricted to dev email + PIN */}
+      <Route path="/dev" element={<ProtectedRoute><AppLayout><DevPanel/></AppLayout></ProtectedRoute>}/>
+
       <Route path="*" element={<Navigate to="/" replace/>}/>
     </Routes>
   )
@@ -117,12 +108,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <ThemeProvider>
           <AppRoutes/>
-        </AuthProvider>
-      </BrowserRouter>
-    </ThemeProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
