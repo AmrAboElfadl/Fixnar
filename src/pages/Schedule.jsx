@@ -102,31 +102,39 @@ export default function Schedule() {
 
   async function fetchAll() {
     setLoading(true)
-    const [woRes, techRes, storeRes, asnRes] = await Promise.all([
-      supabase.from('work_orders')
-        .select('*,stores(name,latitude,longitude,manager_name,phone)')
-        .neq('status','closed').order('priority'),
-      supabase.from('profiles').select('id,full_name,phone').eq('role','technician'),
-      supabase.from('stores').select('id,name,latitude,longitude,manager_name,phone'),
-      supabase.from('store_technician_assignments').select('*').catch(() => ({ data:[] })),
-    ])
-    const newStores = storeRes.data || []
-    const newWos    = woRes.data    || []
-    const newTechs  = techRes.data  || []
-    const newAsn    = asnRes.data   || []
+    try {
+      const safe = (promise) => promise.catch(() => ({ data: [] }))
 
-    // Update refs immediately (before setState batching)
-    storesRef.current = newStores
-    wosRef.current    = newWos
-    techsRef.current  = newTechs
+      const [woRes, techRes, storeRes, asnRes] = await Promise.all([
+        safe(supabase.from('work_orders')
+          .select('*,stores(name,latitude,longitude,manager_name,phone)')
+          .neq('status','closed').order('priority')),
+        safe(supabase.from('profiles').select('id,full_name,phone').eq('role','technician')),
+        safe(supabase.from('stores').select('id,name,latitude,longitude,manager_name,phone')),
+        safe(supabase.from('store_technician_assignments').select('*')),
+      ])
 
-    setStores(newStores)
-    setWos(newWos)
-    setTechs(newTechs)
-    setAssignments(newAsn)
+      const newStores = storeRes.data || []
+      const newWos    = woRes.data    || []
+      const newTechs  = techRes.data  || []
+      const newAsn    = asnRes.data   || []
 
-    await fetchLocs()
-    setLoading(false)
+      // Update refs immediately (before setState batching)
+      storesRef.current = newStores
+      wosRef.current    = newWos
+      techsRef.current  = newTechs
+
+      setStores(newStores)
+      setWos(newWos)
+      setTechs(newTechs)
+      setAssignments(newAsn)
+
+      await fetchLocs()
+    } catch(err) {
+      console.error('Dispatch board load error:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function fetchLocs() {
@@ -134,10 +142,10 @@ export default function Schedule() {
       const res = await supabase.from('technician_locations').select('*')
         .gte('updated_at', new Date(Date.now() - 120 * 60000).toISOString())
       const locs = {}
-      ;(res.data || []).forEach(l => { locs[l.technician_id] = l })
+      ;((res && res.data) || []).forEach(l => { locs[l.technician_id] = l })
       techLocsRef.current = locs
       setTechLocs(locs)
-    } catch {}
+    } catch { /* table may not exist yet */ }
   }
 
   // ── GPS ──
