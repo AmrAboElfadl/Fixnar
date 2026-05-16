@@ -123,7 +123,18 @@ function TileCanvas({ centerLat, centerLng, zoom, width, height }) {
 export default function LiveMap() {
   const { profile, isAdmin } = useAuth()
 
-  const W = 900, H = 520
+  const containerRef = useRef(null)
+  const [mapW, setMapW] = useState(900)
+  const W = mapW, H = 520
+
+  useEffect(() => {
+    function updateWidth() {
+      if (containerRef.current) setMapW(containerRef.current.offsetWidth)
+    }
+    updateWidth()
+    window.addEventListener('resize', updateWidth)
+    return () => window.removeEventListener('resize', updateWidth)
+  }, [])
 
   const [wos,        setWos]        = useState([])
   const [techs,      setTechs]      = useState([])
@@ -132,8 +143,8 @@ export default function LiveMap() {
   const [gpsError,   setGpsError]   = useState(null)
   const [lastUpdate, setLastUpdate] = useState(null)
   const [tooltip,    setTooltip]    = useState(null)
-  const [zoom,       setZoom]       = useState(8)
-  const [center,     setCenter]     = useState({ lat:24.8, lng:55.0 })
+  const [zoom,       setZoom]       = useState(9)
+  const [center,     setCenter]     = useState({ lat:25.05, lng:55.25 })
   const [dragging,   setDragging]   = useState(false)
   const [dragStart,  setDragStart]  = useState(null)
 
@@ -243,11 +254,11 @@ export default function LiveMap() {
           {lastUpdate && <span style={{fontSize:11,color:'var(--text3)'}}>· {lastUpdate.toLocaleTimeString()}</span>}
         </div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          <button onClick={() => { setCenter({lat:25.15,lng:55.25}); setZoom(11) }}
+          <button onClick={() => { setCenter({lat:25.18,lng:55.28}); setZoom(12) }}
             style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 10px',fontSize:12,cursor:'pointer',color:'var(--text)'}}>Dubai</button>
-          <button onClick={() => { setCenter({lat:24.45,lng:54.40}); setZoom(11) }}
+          <button onClick={() => { setCenter({lat:24.48,lng:54.37}); setZoom(12) }}
             style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 10px',fontSize:12,cursor:'pointer',color:'var(--text)'}}>Abu Dhabi</button>
-          <button onClick={() => { setCenter({lat:24.8,lng:55.0}); setZoom(8) }}
+          <button onClick={() => { setCenter({lat:25.05,lng:55.25}); setZoom(9) }}
             style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 10px',fontSize:12,cursor:'pointer',color:'var(--text)'}}>🇦🇪 All UAE</button>
           <button onClick={loadData}
             style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 10px',fontSize:12,cursor:'pointer',color:'var(--text)'}}>↻</button>
@@ -266,6 +277,7 @@ export default function LiveMap() {
 
       {/* Map container */}
       <div
+        ref={containerRef}
         style={{
           position:'relative', width:'100%', height:H,
           borderRadius:12, overflow:'hidden',
