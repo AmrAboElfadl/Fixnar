@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import LiveMap from '../components/LiveMap'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -64,7 +65,6 @@ export default function Schedule() {
   const [assignTech,  setAssignTech]  = useState('')
   const [dragging,    setDragging]    = useState(null)
   const [dragOver,    setDragOver]    = useState(null)
-  const [selectedStore, setSelectedStore] = useState(null)
 
   useEffect(() => {
     fetchAll()
@@ -163,12 +163,6 @@ export default function Schedule() {
     woByTech[key].push(wo)
   })
   Object.keys(woByTech).forEach(k => { woByTech[k] = autoSchedule(woByTech[k]) })
-
-  // Build Google Maps URL with all store pins
-  const validStores = stores.filter(s => s.latitude && s.longitude)
-  const mapCenter = validStores.length > 0
-    ? `${validStores.reduce((s,x)=>s+parseFloat(x.latitude),0)/validStores.length},${validStores.reduce((s,x)=>s+parseFloat(x.longitude),0)/validStores.length}`
-    : '25.2048,55.2708'
 
   // Build Google Maps embed URL with markers
   const buildMapUrl = () => {
@@ -289,85 +283,8 @@ export default function Schedule() {
         </div>
       )}
 
-      {/* STORE MAP VIEW — clean iframe, no Leaflet */}
-      {view==='map' && (
-        <div>
-          {/* Store list as clickable pills */}
-          <div style={{marginBottom:14}}>
-            <p style={{margin:'0 0 10px',fontSize:13,color:'var(--text3)'}}>
-              Click a store to zoom in on the map · {validStores.length} branches with coordinates
-            </p>
-            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-              <button
-                onClick={()=>setSelectedStore(null)}
-                style={{
-                  background:!selectedStore?'var(--green)':'var(--surface)',
-                  color:!selectedStore?'white':'var(--text)',
-                  border:`1px solid ${!selectedStore?'var(--green)':'var(--border)'}`,
-                  borderRadius:20,padding:'5px 14px',fontSize:12,cursor:'pointer',fontWeight:600,
-                }}>
-                🌍 All Branches
-              </button>
-              {validStores.map(s => {
-                const hasWO = wos.some(w => w.store_id === s.id)
-                const isSelected = selectedStore?.id === s.id
-                return (
-                  <button key={s.id} onClick={()=>setSelectedStore(isSelected ? null : s)} style={{
-                    background: isSelected ? '#7F77DD' : hasWO ? '#FFF3E0' : 'var(--surface)',
-                    color: isSelected ? 'white' : hasWO ? '#E65100' : 'var(--text)',
-                    border: `1px solid ${isSelected ? '#7F77DD' : hasWO ? '#EF9F27' : 'var(--border)'}`,
-                    borderRadius:20, padding:'5px 14px', fontSize:12, cursor:'pointer', fontWeight:500,
-                  }}>
-                    {hasWO ? '🔴' : '🟢'} {s.name.split('-').pop().trim()}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Map iframe */}
-          <div style={{borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',height:500}}>
-            <iframe
-              key={selectedStore?.id || 'all'}
-              title="Store Map"
-              width="100%"
-              height="100%"
-              style={{border:'none',display:'block'}}
-              loading="lazy"
-              allowFullScreen
-              referrerPolicy="no-referrer-when-downgrade"
-              src={buildMapUrl()}
-            />
-          </div>
-
-          {/* Selected store info */}
-          {selectedStore && (
-            <div style={{marginTop:12,padding:'12px 16px',background:'var(--surface)',borderRadius:10,border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
-              <div>
-                <div style={{fontWeight:600,fontSize:14}}>{selectedStore.name}</div>
-                {selectedStore.manager_name && <div style={{color:'var(--text3)',fontSize:12}}>👤 {selectedStore.manager_name}</div>}
-                {selectedStore.phone && <div style={{color:'var(--text3)',fontSize:12}}>📞 {selectedStore.phone}</div>}
-              </div>
-              <div style={{display:'flex',gap:8}}>
-                <a href={`https://maps.google.com/?q=${selectedStore.latitude},${selectedStore.longitude}`}
-                  target="_blank" rel="noreferrer"
-                  style={{background:'var(--green)',color:'white',borderRadius:8,padding:'7px 14px',fontSize:12,textDecoration:'none',fontWeight:600}}>
-                  Open in Google Maps ↗
-                </a>
-                {wos.filter(w=>w.store_id===selectedStore.id).length > 0 && (
-                  <span style={{background:'#FFF3E0',color:'#E65100',border:'1px solid #EF9F27',borderRadius:8,padding:'7px 12px',fontSize:12,fontWeight:600}}>
-                    🔴 {wos.filter(w=>w.store_id===selectedStore.id).length} open WO{wos.filter(w=>w.store_id===selectedStore.id).length!==1?'s':''}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          <p style={{color:'var(--text3)',fontSize:12,marginTop:10}}>
-            🟢 Green = no open work orders · 🔴 Red = has open work orders
-          </p>
-        </div>
-      )}
+      {/* LIVE MAP VIEW */}
+      {view==='map' && <LiveMap height={520} />}
 
       {/* WO Detail popup */}
       {activeWO && (
