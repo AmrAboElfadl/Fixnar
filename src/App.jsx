@@ -14,7 +14,6 @@ import PPM from './pages/PPM'
 import Analytics from './pages/Analytics'
 import Users from './pages/Users'
 import Schedule from './pages/Schedule'
-import Stores from './pages/Stores'
 import DevPanel from './pages/DevPanel'
 
 function ProtectedRoute({ children, roles }) {
@@ -89,7 +88,6 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword/>}/>
 
       <Route path="/" element={<ProtectedRoute><AppLayout><Dashboard/></AppLayout></ProtectedRoute>}/>
-      <Route path="/stores" element={<ProtectedRoute><AppLayout><Stores/></AppLayout></ProtectedRoute>}/>
       <Route path="/work-orders" element={<ProtectedRoute><AppLayout><WorkOrders/></AppLayout></ProtectedRoute>}/>
       <Route path="/work-orders/:id" element={<ProtectedRoute><AppLayout><WorkOrderDetail/></AppLayout></ProtectedRoute>}/>
       <Route path="/assets" element={<ProtectedRoute><AppLayout><Assets/></AppLayout></ProtectedRoute>}/>
