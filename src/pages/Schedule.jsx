@@ -79,7 +79,11 @@ export default function Schedule() {
   }, [])
 
   useEffect(() => {
-    if (view === 'map') initMap()
+    if (view === 'map') {
+      // Small delay ensures the map div is rendered in the DOM before Leaflet mounts
+      const t = setTimeout(() => initMap(), 100)
+      return () => clearTimeout(t)
+    }
   }, [view])
 
   async function fetchAll() {
@@ -247,9 +251,19 @@ export default function Schedule() {
           validStores.reduce((s,x) => s + parseFloat(x.longitude), 0) / validStores.length ]
       : [25.2048, 55.2708]
 
-    const map = L.map(mapRef.current).setView(center, 10)
+    const mapEl = mapRef.current
+    const map = L.map(mapEl, { zoomControl: true }).setView(center, 11)
     mapInst.current = map
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap' }).addTo(map)
+
+    // Use CartoDB tiles — more reliable than OSM in production
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap © CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map)
+
+    // Force map to recalculate its container size after render
+    setTimeout(() => { map.invalidateSize() }, 200)
 
     const bounds = []
 
@@ -427,7 +441,7 @@ export default function Schedule() {
             })}
             {techs.length===0 && <div style={{color:'var(--text3)',fontSize:13}}>No technicians added yet</div>}
           </div>
-          <div ref={mapRef} style={{height:520,borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',background:'#e5e3df'}}/>
+          <div ref={mapRef} style={{height:520,borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',background:'#e5e3df',position:'relative',minHeight:520}}/>
           <p style={{color:'var(--text3)',fontSize:12,marginTop:8}}>🟢 Green = online (updated &lt;5min) · 🔴 Red = open work orders · Badge = active jobs · Updates every 60s</p>
         </div>
       )}
