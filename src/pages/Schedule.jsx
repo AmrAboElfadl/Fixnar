@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -48,43 +48,29 @@ export default function Schedule() {
   const { profile, isAdmin } = useAuth()
   const navigate = useNavigate()
 
-  const mapRef      = useRef(null)
-  const mapInst     = useRef(null)
-  const gpsWatch    = useRef(null)
-  const gpsInterval = useRef(null)
-
-  const [wos,          setWos]          = useState([])
-  const [techs,        setTechs]        = useState([])
-  const [stores,       setStores]       = useState([])
-  const [assignments,  setAssignments]  = useState([])
-  const [techLocs,     setTechLocs]     = useState({})
-  const [loading,      setLoading]      = useState(true)
-  const [view,         setView]         = useState('timeline')
-  const [activeWO,     setActiveWO]     = useState(null)
-  const [saving,       setSaving]       = useState(false)
-  const [holdReason,   setHoldReason]   = useState('')
-  const [showHold,     setShowHold]     = useState(false)
-  const [isTracking,   setIsTracking]   = useState(false)
-  const [gpsError,     setGpsError]     = useState(null)
-  const [showAssign,   setShowAssign]   = useState(false)
-  const [assignStore,  setAssignStore]  = useState('')
-  const [assignTech,   setAssignTech]   = useState('')
-  const [dragging,     setDragging]     = useState(null)
-  const [dragOver,     setDragOver]     = useState(null)
+  const [wos,         setWos]         = useState([])
+  const [techs,       setTechs]       = useState([])
+  const [stores,      setStores]      = useState([])
+  const [assignments, setAssignments] = useState([])
+  const [techLocs,    setTechLocs]    = useState({})
+  const [loading,     setLoading]     = useState(true)
+  const [view,        setView]        = useState('timeline')
+  const [activeWO,    setActiveWO]    = useState(null)
+  const [saving,      setSaving]      = useState(false)
+  const [holdReason,  setHoldReason]  = useState('')
+  const [showHold,    setShowHold]    = useState(false)
+  const [showAssign,  setShowAssign]  = useState(false)
+  const [assignStore, setAssignStore] = useState('')
+  const [assignTech,  setAssignTech]  = useState('')
+  const [dragging,    setDragging]    = useState(null)
+  const [dragOver,    setDragOver]    = useState(null)
+  const [selectedStore, setSelectedStore] = useState(null)
 
   useEffect(() => {
     fetchAll()
     const iv = setInterval(fetchLocs, 60000)
-    return () => { clearInterval(iv); stopTracking() }
+    return () => clearInterval(iv)
   }, [])
-
-  useEffect(() => {
-    if (view === 'map') {
-      // Small delay ensures the map div is rendered in the DOM before Leaflet mounts
-      const t = setTimeout(() => initMap(), 100)
-      return () => clearTimeout(t)
-    }
-  }, [view])
 
   async function fetchAll() {
     setLoading(true)
@@ -118,26 +104,6 @@ export default function Schedule() {
       ;((res && res.data) || []).forEach(l => { locs[l.technician_id] = l })
       setTechLocs(locs)
     } catch { /* table may not exist yet */ }
-  }
-
-  function startTracking() {
-    if (!navigator.geolocation) { setGpsError('GPS not supported'); return }
-    setIsTracking(true); setGpsError(null)
-    const push = pos => supabase.from('technician_locations').upsert({
-      technician_id: profile.id,
-      latitude: pos.coords.latitude, longitude: pos.coords.longitude,
-      accuracy: pos.coords.accuracy, heading: pos.coords.heading,
-      speed: pos.coords.speed, updated_at: new Date().toISOString(),
-    }, { onConflict:'technician_id' }).catch(() => {})
-    gpsWatch.current = navigator.geolocation.watchPosition(push, () => {}, { enableHighAccuracy:true })
-    gpsInterval.current = setInterval(
-      () => navigator.geolocation.getCurrentPosition(push, () => {}, { enableHighAccuracy:true }), 60000)
-  }
-  function stopTracking() {
-    if (gpsWatch.current)    navigator.geolocation.clearWatch(gpsWatch.current)
-    if (gpsInterval.current) clearInterval(gpsInterval.current)
-    gpsWatch.current = null; gpsInterval.current = null
-    setIsTracking(false)
   }
 
   async function quickStatus(wo, nextStatus) {
@@ -198,111 +164,24 @@ export default function Schedule() {
   })
   Object.keys(woByTech).forEach(k => { woByTech[k] = autoSchedule(woByTech[k]) })
 
-  // ── MAP: fetches its own data fresh every call ──
-  async function initMap() {
-    if (!mapRef.current) return
-    if (mapInst.current) { mapInst.current.remove(); mapInst.current = null }
+  // Build Google Maps URL with all store pins
+  const validStores = stores.filter(s => s.latitude && s.longitude)
+  const mapCenter = validStores.length > 0
+    ? `${validStores.reduce((s,x)=>s+parseFloat(x.latitude),0)/validStores.length},${validStores.reduce((s,x)=>s+parseFloat(x.longitude),0)/validStores.length}`
+    : '25.2048,55.2708'
 
-    if (!window.L) {
-      await new Promise(resolve => {
-        if (!document.querySelector('link[href*="leaflet"]')) {
-          const link = document.createElement('link')
-          link.rel = 'stylesheet'
-          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-          document.head.appendChild(link)
-        }
-        const script = document.createElement('script')
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-        script.onload = resolve
-        document.head.appendChild(script)
-      })
+  // Build Google Maps embed URL with markers
+  const buildMapUrl = () => {
+    const base = 'https://maps.google.com/maps'
+    if (selectedStore) {
+      return `${base}?q=${selectedStore.latitude},${selectedStore.longitude}&z=15&output=embed`
     }
-
-    if (!mapRef.current) return
-
-    const safe = p => p.catch(() => ({ data:[] }))
-    const [storeRes, woRes, techRes, locRes] = await Promise.all([
-      safe(supabase.from('stores').select('id,name,latitude,longitude,manager_name,phone')),
-      safe(supabase.from('work_orders').select('id,store_id,assigned_to,status,priority').neq('status','closed')),
-      safe(supabase.from('profiles').select('id,full_name').eq('role','technician')),
-      safe(supabase.from('technician_locations').select('*')
-        .gte('updated_at', new Date(Date.now()-120*60000).toISOString())),
-    ])
-
-    const _stores = storeRes.data || []
-    const _wos    = woRes.data    || []
-    const _techs  = techRes.data  || []
-    const _locs   = {}
-    ;(locRes.data || []).forEach(l => { _locs[l.technician_id] = l })
-
-    const _woByTech = {}
-    _wos.forEach(wo => {
-      const k = wo.assigned_to || 'unassigned'
-      if (!_woByTech[k]) _woByTech[k] = []
-      _woByTech[k].push(wo)
-    })
-
-    if (!mapRef.current || !window.L) return
-    const L = window.L
-    const validStores = _stores.filter(s => s.latitude && s.longitude)
-
-    const center = validStores.length > 0
-      ? [ validStores.reduce((s,x) => s + parseFloat(x.latitude),  0) / validStores.length,
-          validStores.reduce((s,x) => s + parseFloat(x.longitude), 0) / validStores.length ]
-      : [25.2048, 55.2708]
-
-    const mapEl = mapRef.current
-    const map = L.map(mapEl, { zoomControl: true }).setView(center, 11)
-    mapInst.current = map
-
-    // Use CartoDB tiles — more reliable than OSM in production
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '© OpenStreetMap © CARTO',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }).addTo(map)
-
-    // Force map to recalculate its container size after render
-    setTimeout(() => { map.invalidateSize() }, 200)
-
-    const bounds = []
-
-    validStores.forEach(s => {
-      const lat = parseFloat(s.latitude), lng = parseFloat(s.longitude)
-      bounds.push([lat, lng])
-      const hasWO     = _wos.some(w => w.store_id === s.id)
-      const shortName = s.name.includes('-') ? s.name.split('-').pop().trim() : s.name
-      const icon = L.divIcon({
-        className:'',
-        html:`<div style="background:${hasWO?'#E24B4A':'#1D9E75'};color:white;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);border:2px solid white;">🏪 ${shortName}</div>`,
-        iconAnchor:[0,0],
-      })
-      L.marker([lat,lng],{icon}).addTo(map)
-        .bindPopup(`<b>${s.name}</b>${s.manager_name?`<br>👤 ${s.manager_name}`:''}${s.phone?`<br>📞 ${s.phone}`:''}`)
-    })
-
-    _techs.forEach(t => {
-      const loc = _locs[t.id]; if (!loc) return
-      const lat = parseFloat(loc.latitude), lng = parseFloat(loc.longitude)
-      bounds.push([lat, lng])
-      const isRecent = (Date.now() - new Date(loc.updated_at)) / 60000 < 5
-      const initials = t.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()
-      const woCnt    = (_woByTech[t.id]||[]).length
-      const icon = L.divIcon({
-        className:'',
-        html:`<div style="position:relative;display:inline-block">
-          <div style="background:${isRecent?'#7F77DD':'#9e9e9e'};color:white;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid ${isRecent?'white':'#ccc'};">${initials}</div>
-          ${woCnt>0?`<div style="position:absolute;top:-4px;right:-4px;background:#E24B4A;color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">${woCnt}</div>`:''}
-          <div style="position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);background:${isRecent?'#7F77DD':'#9e9e9e'};color:white;border-radius:4px;padding:1px 6px;font-size:10px;white-space:nowrap;">${t.full_name.split(' ')[0]}</div>
-        </div>`,
-        iconAnchor:[22,22],
-      })
-      L.marker([lat,lng],{icon}).addTo(map)
-        .bindPopup(`<b>${t.full_name}</b><br>${isRecent?'🟢 Online':'⚫ Offline'} · ${woCnt} job${woCnt!==1?'s':''}`)
-    })
-
-    if (bounds.length > 1)      map.fitBounds(bounds, { padding:[40,40] })
-    else if (bounds.length===1) map.setView(bounds[0], 13)
+    if (validStores.length === 0) {
+      return `${base}?q=25.2048,55.2708&z=10&output=embed`
+    }
+    // Show first store by default, user can click to zoom
+    const first = validStores[0]
+    return `${base}?q=${mapCenter}&z=10&output=embed`
   }
 
   if (loading) return (
@@ -339,24 +218,13 @@ export default function Schedule() {
               border:`1px solid ${view===v?'var(--green)':'var(--border)'}`,
               borderRadius:8,padding:'8px 14px',fontSize:13,cursor:'pointer',fontWeight:600,
             }}>
-              {v==='timeline'?'📋 Timeline':'🗺️ Live Map'}
+              {v==='timeline'?'📋 Timeline':'🗺️ Store Map'}
             </button>
           ))}
         </div>
       </div>
 
-      {/* GPS bar */}
-      {!isAdmin && (
-        <div style={{background:isTracking?'#E8F5E9':'var(--surface)',border:`1px solid ${isTracking?'#1D9E75':'var(--border)'}`,borderRadius:10,padding:'10px 16px',marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}>
-          <span style={{fontWeight:600,fontSize:13,color:isTracking?'#1D9E75':'var(--text)'}}>{isTracking?'🟢 Sharing location':'⚫ Location sharing off'}</span>
-          {gpsError && <span style={{color:'#E24B4A',fontSize:12}}>{gpsError}</span>}
-          <button onClick={isTracking?stopTracking:startTracking} style={{background:isTracking?'#E24B4A':'#1D9E75',color:'white',border:'none',borderRadius:7,padding:'7px 14px',fontSize:13,cursor:'pointer',fontWeight:600}}>
-            {isTracking?'⏹ Stop':'▶ Share Location'}
-          </button>
-        </div>
-      )}
-
-      {/* TIMELINE */}
+      {/* TIMELINE VIEW */}
       {view==='timeline' && (
         <div style={{overflowX:'auto'}}>
           <div style={{minWidth:900}}>
@@ -421,28 +289,83 @@ export default function Schedule() {
         </div>
       )}
 
-      {/* LIVE MAP */}
+      {/* STORE MAP VIEW — clean iframe, no Leaflet */}
       {view==='map' && (
         <div>
-          <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:14}}>
-            {techs.map(tech=>{
-              const loc=techLocs[tech.id], online=loc&&(Date.now()-new Date(loc.updated_at))<5*60000, woCnt=(woByTech[tech.id]||[]).length
-              return (
-                <div key={tech.id} style={{border:`1.5px solid ${online?'var(--green)':'var(--border)'}`,borderRadius:10,padding:'8px 12px',display:'flex',alignItems:'center',gap:8,minWidth:160,background:'var(--surface)'}}>
-                  <div style={{width:34,height:34,borderRadius:'50%',background:'#7F77DD',color:'white',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,flexShrink:0}}>
-                    {tech.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
-                  </div>
-                  <div>
-                    <div style={{color:'var(--text)',fontSize:13,fontWeight:500}}>{tech.full_name}</div>
-                    <div style={{color:online?'#1D9E75':'var(--text3)',fontSize:11}}>{online?`🟢 Online · ${woCnt} job${woCnt!==1?'s':''}` :'⚫ Not sharing'}</div>
-                  </div>
-                </div>
-              )
-            })}
-            {techs.length===0 && <div style={{color:'var(--text3)',fontSize:13}}>No technicians added yet</div>}
+          {/* Store list as clickable pills */}
+          <div style={{marginBottom:14}}>
+            <p style={{margin:'0 0 10px',fontSize:13,color:'var(--text3)'}}>
+              Click a store to zoom in on the map · {validStores.length} branches with coordinates
+            </p>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+              <button
+                onClick={()=>setSelectedStore(null)}
+                style={{
+                  background:!selectedStore?'var(--green)':'var(--surface)',
+                  color:!selectedStore?'white':'var(--text)',
+                  border:`1px solid ${!selectedStore?'var(--green)':'var(--border)'}`,
+                  borderRadius:20,padding:'5px 14px',fontSize:12,cursor:'pointer',fontWeight:600,
+                }}>
+                🌍 All Branches
+              </button>
+              {validStores.map(s => {
+                const hasWO = wos.some(w => w.store_id === s.id)
+                const isSelected = selectedStore?.id === s.id
+                return (
+                  <button key={s.id} onClick={()=>setSelectedStore(isSelected ? null : s)} style={{
+                    background: isSelected ? '#7F77DD' : hasWO ? '#FFF3E0' : 'var(--surface)',
+                    color: isSelected ? 'white' : hasWO ? '#E65100' : 'var(--text)',
+                    border: `1px solid ${isSelected ? '#7F77DD' : hasWO ? '#EF9F27' : 'var(--border)'}`,
+                    borderRadius:20, padding:'5px 14px', fontSize:12, cursor:'pointer', fontWeight:500,
+                  }}>
+                    {hasWO ? '🔴' : '🟢'} {s.name.split('-').pop().trim()}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-          <div ref={mapRef} style={{height:520,borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',background:'#e5e3df',position:'relative',minHeight:520}}/>
-          <p style={{color:'var(--text3)',fontSize:12,marginTop:8}}>🟢 Green = online (updated &lt;5min) · 🔴 Red = open work orders · Badge = active jobs · Updates every 60s</p>
+
+          {/* Map iframe */}
+          <div style={{borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',height:500}}>
+            <iframe
+              key={selectedStore?.id || 'all'}
+              title="Store Map"
+              width="100%"
+              height="100%"
+              style={{border:'none',display:'block'}}
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+              src={buildMapUrl()}
+            />
+          </div>
+
+          {/* Selected store info */}
+          {selectedStore && (
+            <div style={{marginTop:12,padding:'12px 16px',background:'var(--surface)',borderRadius:10,border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+              <div>
+                <div style={{fontWeight:600,fontSize:14}}>{selectedStore.name}</div>
+                {selectedStore.manager_name && <div style={{color:'var(--text3)',fontSize:12}}>👤 {selectedStore.manager_name}</div>}
+                {selectedStore.phone && <div style={{color:'var(--text3)',fontSize:12}}>📞 {selectedStore.phone}</div>}
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <a href={`https://maps.google.com/?q=${selectedStore.latitude},${selectedStore.longitude}`}
+                  target="_blank" rel="noreferrer"
+                  style={{background:'var(--green)',color:'white',borderRadius:8,padding:'7px 14px',fontSize:12,textDecoration:'none',fontWeight:600}}>
+                  Open in Google Maps ↗
+                </a>
+                {wos.filter(w=>w.store_id===selectedStore.id).length > 0 && (
+                  <span style={{background:'#FFF3E0',color:'#E65100',border:'1px solid #EF9F27',borderRadius:8,padding:'7px 12px',fontSize:12,fontWeight:600}}>
+                    🔴 {wos.filter(w=>w.store_id===selectedStore.id).length} open WO{wos.filter(w=>w.store_id===selectedStore.id).length!==1?'s':''}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <p style={{color:'var(--text3)',fontSize:12,marginTop:10}}>
+            🟢 Green = no open work orders · 🔴 Red = has open work orders
+          </p>
         </div>
       )}
 
