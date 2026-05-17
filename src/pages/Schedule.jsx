@@ -87,10 +87,9 @@ export default function Schedule() {
       setWos(woRes.data       || [])
       setTechs(techRes.data   || [])
       setStores(storeRes.data || [])
-      setAssignments(asnRes.data || [])
       await fetchLocs()
     } catch(e) {
-      console.error('fetchAll error:', e)
+      // silent error handler
     } finally {
       setLoading(false)
     }
