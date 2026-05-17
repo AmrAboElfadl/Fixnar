@@ -172,16 +172,18 @@ export default function Dashboard() {
   async function load() {
     setLoading(true)
     try {
-      const [woRes, assetRes, ppmRes] = await Promise.all([
-        supabase.from('work_orders').select('*,stores(name)').order('created_at',{ascending:false}).catch(()=>({data:[]})),
-        supabase.from('assets').select('id,name,category,status,store_id,stores(name)').catch(()=>({data:[]})),
-        supabase.from('ppm_tasks').select('id,title,due_date,status,store_id,stores(name)').order('due_date').catch(()=>({data:[]})),
-      ])
-      setWos(woRes.data       || [])
+      // Fetch each query individually so one failure doesn't block others
+      const woRes = await supabase.from('work_orders').select('*,stores(name)').order('created_at',{ascending:false})
+      setWos(woRes.data || [])
+
+      const assetRes = await supabase.from('assets').select('id,name,category,status,store_id,stores(name)')
       setAssets(assetRes.data || [])
+
+      const ppmRes = await supabase.from('ppm_tasks').select('id,title,due_date,status,store_id,stores(name)').order('due_date')
       setPpmTasks(ppmRes.data || [])
+
     } catch(e) {
-      // error silently handled
+      // partial data already set above
     } finally {
       setLoading(false)
     }
