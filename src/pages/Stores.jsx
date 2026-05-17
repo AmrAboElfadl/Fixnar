@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -53,9 +53,11 @@ export default function Stores() {
     setLoading(false)
   }
 
+  const flashTimer = useRef(null)
   function flash(text, type='success') {
+    if (flashTimer.current) clearTimeout(flashTimer.current)
     setMsg({ text, type })
-    setTimeout(() => setMsg({ text:'', type:'' }), 4000)
+    flashTimer.current = setTimeout(() => setMsg({ text:'', type:'' }), 4000)
   }
 
   function openNew() {
