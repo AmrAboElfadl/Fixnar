@@ -76,13 +76,16 @@ function Modal({ title, subtitle, onClose, children }) {
 
   return (
     <div onClick={e=>{if(e.target===e.currentTarget)onClose()}} style={{
-      position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',
+      position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',
       zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',padding:20,
+      backdropFilter:'blur(4px)',WebkitBackdropFilter:'blur(4px)',
     }}>
       <div style={{
-        background:'var(--surface)',borderRadius:16,width:'100%',maxWidth:800,
+        background:'var(--bg)',borderRadius:16,width:'100%',maxWidth:800,
         maxHeight:'90vh',overflow:'hidden',display:'flex',flexDirection:'column',
-        boxShadow:'0 8px 40px rgba(0,0,0,0.3)',
+        boxShadow:'0 16px 60px rgba(0,0,0,0.5)',
+        border:'1px solid var(--border)',
+        opacity:1,
       }}>
         <div style={{padding:'20px 24px 16px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexShrink:0}}>
           <div>
