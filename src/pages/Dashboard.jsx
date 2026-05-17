@@ -181,7 +181,7 @@ export default function Dashboard() {
       setAssets(assetRes.data || [])
       setPpmTasks(ppmRes.data || [])
     } catch(e) {
-      console.error('Dashboard load error:', e)
+      // error silently handled
     } finally {
       setLoading(false)
     }
