@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
-const DEV_EMAIL = 'amrmorsy93@gmail.com'
-const DEV_PIN   = '1234'
+const DEV_EMAIL = import.meta.env.VITE_DEV_EMAIL || 'amrmorsy93@gmail.com'
+const DEV_PIN   = '1234' // ⚠️ Change this to a stronger PIN in production
 
 // ── Shared UI helpers ─────────────────────────────────────────────────────────
 const Btn = ({ children, onClick, color='var(--green)', disabled, small, style={} }) => (
