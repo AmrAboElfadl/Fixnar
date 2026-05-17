@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-const DEV_EMAIL = 'amrmorsy93@gmail.com'
+const DEV_EMAIL = import.meta.env.VITE_DEV_EMAIL || 'amrmorsy93@gmail.com'
 
 const NAV_ITEMS = [
   { path:'/',            label:'Dashboard',      icon:'⊞', roles:['admin','operations','technician','viewer'] },
@@ -32,8 +32,13 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
   const rc = ROLE_COLORS[role] || '#9e9e9e'
 
   async function handleSignOut() {
-    await signOut()
-    navigate('/login')
+    try {
+      await signOut()
+    } catch(e) {
+      // signOut failed, navigate anyway
+    } finally {
+      navigate('/login')
+    }
   }
 
   const visibleItems = NAV_ITEMS.filter(item =>
