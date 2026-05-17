@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
@@ -137,9 +137,11 @@ export default function Users() {
     setLoading(false)
   }
 
+  const flashTimer = useRef(null)
   function flash(text, type='success') {
+    if (flashTimer.current) clearTimeout(flashTimer.current)
     setMsg({ text, type })
-    setTimeout(() => setMsg({ text:'', type:'' }), 5000)
+    flashTimer.current = setTimeout(() => setMsg({ text:'', type:'' }), 5000)
   }
 
   async function saveUserStores(userId, storeIds) {
@@ -153,7 +155,7 @@ export default function Users() {
       // Also update legacy store_id (first store or null)
       await supabase.from('profiles').update({ store_id: storeIds[0] || null }).eq('id', userId)
     } catch(e) {
-      console.warn('user_stores table may not exist yet — run the SQL migration first')
+      // user_stores table may not exist yet
     }
   }
 
