@@ -115,26 +115,34 @@ export default function Users() {
 
   async function loadAll() {
     setLoading(true)
-    const [uRes, sRes, usRes] = await Promise.all([
-      supabase.from('profiles').select('*').order('full_name'),
-      supabase.from('stores').select('id,name').order('name'),
-      supabase.from('user_stores').select('user_id,store_id').catch(() => ({ data:[] })),
-    ])
-    setUsers(uRes.data || [])
-    setStores(sRes.data || [])
+    try {
+      const uRes = await supabase.from('profiles').select('*').order('full_name')
+      const userData = uRes.data || []
+      setUsers(userData)
 
-    // Build map of userId -> [storeIds]
-    const map = {}
-    ;(usRes.data || []).forEach(({ user_id, store_id }) => {
-      if (!map[user_id]) map[user_id] = []
-      map[user_id].push(store_id)
-    })
-    // Fallback: if user_stores table doesn't exist, use store_id from profiles
-    ;(uRes.data || []).forEach(u => {
-      if (!map[u.id] && u.store_id) map[u.id] = [u.store_id]
-    })
-    setUserStores(map)
-    setLoading(false)
+      const sRes = await supabase.from('stores').select('id,name').order('name')
+      setStores(sRes.data || [])
+
+      const map = {}
+      try {
+        const usRes = await supabase.from('user_stores').select('user_id,store_id')
+        if (usRes.data) {
+          usRes.data.forEach(({ user_id, store_id }) => {
+            if (!map[user_id]) map[user_id] = []
+            map[user_id].push(store_id)
+          })
+        }
+      } catch { /* user_stores not created yet */ }
+
+      userData.forEach(u => {
+        if (!map[u.id] && u.store_id) map[u.id] = [u.store_id]
+      })
+      setUserStores(map)
+    } catch(e) {
+      // silent
+    } finally {
+      setLoading(false)
+    }
   }
 
   const flashTimer = useRef(null)
