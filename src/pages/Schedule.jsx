@@ -28,25 +28,53 @@ const DAY_END   = 18
 const DAY_MINS  = (DAY_END - DAY_START) * 60
 const HOURS     = Array.from({length: DAY_END - DAY_START + 1}, (_,i) => DAY_START + i)
 
+// Lay out a technician's jobs on the 9am–6pm strip.
+// If a job has a real scheduled_time, honor it (placed at that time, sized by duration_hours).
+// Jobs without a scheduled_time are packed back-to-back by priority into the gaps.
 function autoSchedule(list) {
   const order = { P1:0, P2:1, P3:2, P4:3 }
-  const sorted = [...list].sort((a,b) => (order[a.priority]||3) - (order[b.priority]||3))
-  let cursor = 0
-  return sorted.map(wo => {
-    const dur = (wo.duration_hours || 1) * 60
-    const startMin = cursor
-    const endMin = Math.min(cursor + dur, DAY_MINS)
-    cursor = endMin
-    const pad = n => String(n).padStart(2,'0')
-    const sh = Math.floor(startMin/60) + DAY_START, sm = startMin%60
-    const eh = Math.floor(endMin/60)   + DAY_START, em = endMin%60
+  const pad = n => String(n).padStart(2,'0')
+
+  // Parse 'HH:MM[:SS]' → minutes from DAY_START (clamped to the strip)
+  const toStripMin = (timeStr) => {
+    if (!timeStr) return null
+    const [h, m] = timeStr.split(':').map(Number)
+    const mins = (h * 60 + (m || 0)) - DAY_START * 60
+    return Math.max(0, Math.min(DAY_MINS, mins))
+  }
+
+  const place = (wo, startMin, durMin) => {
+    const endMin = Math.min(startMin + durMin, DAY_MINS)
+    const sh = Math.floor(startMin / 60) + DAY_START, sm = startMin % 60
+    const eh = Math.floor(endMin / 60) + DAY_START, em = endMin % 60
     return { ...wo, _startMin:startMin, _endMin:endMin,
       _startTime:`${pad(sh)}:${pad(sm)}`, _endTime:`${pad(eh)}:${pad(em)}` }
+  }
+
+  const fixed = []
+  const floating = []
+  list.forEach(wo => {
+    const dur = Math.max(15, (Number(wo.duration_hours) || 1) * 60)
+    const start = toStripMin(wo.scheduled_time)
+    if (start !== null) fixed.push(place(wo, start, dur))
+    else floating.push({ wo, dur })
   })
+
+  // Pack floating jobs (priority order) into the first free cursor slot
+  floating.sort((a, b) => (order[a.wo.priority] ?? 3) - (order[b.wo.priority] ?? 3))
+  let cursor = 0
+  const packed = floating.map(({ wo, dur }) => {
+    const card = place(wo, cursor, dur)
+    cursor = card._endMin
+    return card
+  })
+
+  return [...fixed, ...packed].sort((a, b) => a._startMin - b._startMin)
 }
 
 export default function Schedule() {
   const { profile, isAdmin } = useAuth()
+  const isTechnician = profile?.role === 'technician'
   const navigate = useNavigate()
 
   const [wos,         setWos]         = useState([])
@@ -65,6 +93,12 @@ export default function Schedule() {
   const [assignTech,  setAssignTech]  = useState('')
   const [dragging,    setDragging]    = useState(null)
   const [dragOver,    setDragOver]    = useState(null)
+
+  // Schedule editor (date / time / duration) inside the WO popup
+  const [editSched,  setEditSched]  = useState(false)
+  const [schedDate,  setSchedDate]  = useState('')
+  const [schedTime,  setSchedTime]  = useState('')
+  const [schedDur,   setSchedDur]   = useState(1)
 
   useEffect(() => {
     fetchAll()
@@ -152,7 +186,38 @@ export default function Schedule() {
     fetchAll()
   }
 
-  function onDragStart(wo, techId) { setDragging({ wo, techId }) }
+  // Open the schedule editor, pre-filled from the active work order
+  function openScheduleEditor() {
+    if (!activeWO) return
+    const today = new Date()
+    const yyyy = today.getFullYear(), mm = String(today.getMonth()+1).padStart(2,'0'), dd = String(today.getDate()).padStart(2,'0')
+    setSchedDate(activeWO.scheduled_date || `${yyyy}-${mm}-${dd}`)
+    setSchedTime((activeWO.scheduled_time || '09:00').slice(0,5))
+    setSchedDur(Number(activeWO.duration_hours) || 1)
+    setEditSched(true)
+  }
+
+  async function saveSchedule() {
+    if (!activeWO) return
+    setSaving(true)
+    const patch = {
+      scheduled_date: schedDate || null,
+      scheduled_time: schedTime || null,
+      duration_hours: schedDur,
+      updated_at: new Date().toISOString(),
+    }
+    const { error } = await supabase.from('work_orders').update(patch).eq('id', activeWO.id)
+    if (error && Object.keys(error).length) console.error('Save schedule error:', error)
+    // log to timeline (best-effort)
+    supabase.from('wo_updates').insert({
+      work_order_id: activeWO.id, user_id: profile?.id,
+      type: 'status_change',
+      content: `Rescheduled → ${schedDate} ${schedTime} · ${schedDur}h`,
+    }).then(()=>{}, ()=>{})
+    setEditSched(false); setActiveWO(null); setSaving(false); fetchAll()
+  }
+
+  async function onDragStart(wo, techId) { setDragging({ wo, techId }) }
   async function onDrop(targetTechId, newTime) {
     if (!dragging) return
     await supabase.from('work_orders').update({
@@ -310,12 +375,60 @@ export default function Schedule() {
             {activeWO.description && <p style={{fontSize:13,color:'var(--text2)',margin:'0 0 16px',lineHeight:1.5}}>{activeWO.description}</p>}
             <div style={{display:'flex',gap:8,justifyContent:'flex-end',flexWrap:'wrap'}}>
               <button onClick={()=>navigate(`/work-orders/${activeWO.id}`)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 14px',fontSize:13,cursor:'pointer',color:'var(--text)'}}>📄 Full Details</button>
+              {(isAdmin || isTechnician) && (
+                <button onClick={openScheduleEditor} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 14px',fontSize:13,cursor:'pointer',color:'var(--text)'}}>🗓 Reschedule</button>
+              )}
               {NEXT_STATUS[activeWO.status] && (
                 <button disabled={saving} onClick={()=>quickStatus(activeWO,NEXT_STATUS[activeWO.status].next)} style={{background:'var(--green)',color:'white',border:'none',borderRadius:8,padding:'8px 16px',fontSize:13,cursor:'pointer',fontWeight:600,opacity:saving?0.6:1}}>
                   {saving?'Saving…':NEXT_STATUS[activeWO.status].label}
                 </button>
               )}
               <button onClick={()=>setShowHold(true)} style={{background:'#FBE9E7',color:'#BF360C',border:'1px solid #E24B4A',borderRadius:8,padding:'8px 14px',fontSize:13,cursor:'pointer',fontWeight:600}}>⏸ Hold</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule editor modal */}
+      {editSched && activeWO && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1020,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}
+          onClick={e=>{if(e.target===e.currentTarget)setEditSched(false)}}>
+          <div style={{background:'var(--surface)',borderRadius:14,padding:24,width:'100%',maxWidth:380}}>
+            <h3 style={{margin:'0 0 4px',fontSize:16,fontWeight:700}}>Reschedule Work Order</h3>
+            <div style={{color:'var(--text3)',fontSize:12,marginBottom:18}}>{activeWO.title}</div>
+
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--text3)',letterSpacing:'0.05em',textTransform:'uppercase',marginBottom:6}}>Date</div>
+              <input type="date" value={schedDate} onChange={e=>setSchedDate(e.target.value)}
+                style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border)',fontSize:14,background:'var(--bg)',color:'var(--text)',boxSizing:'border-box'}}/>
+            </div>
+
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--text3)',letterSpacing:'0.05em',textTransform:'uppercase',marginBottom:6}}>Start Time</div>
+              <input type="time" value={schedTime} onChange={e=>setSchedTime(e.target.value)} step="900"
+                style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border)',fontSize:14,background:'var(--bg)',color:'var(--text)',boxSizing:'border-box'}}/>
+            </div>
+
+            <div style={{marginBottom:20}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--text3)',letterSpacing:'0.05em',textTransform:'uppercase',marginBottom:6}}>Duration</div>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <button onClick={()=>setSchedDur(d=>Math.max(0.5, Math.round((d-0.5)*2)/2))}
+                  style={{width:40,height:40,borderRadius:8,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:20,cursor:'pointer',fontWeight:700,lineHeight:1}}>−</button>
+                <div style={{flex:1,textAlign:'center',fontSize:18,fontWeight:700}}>
+                  {schedDur} <span style={{fontSize:13,fontWeight:500,color:'var(--text3)'}}>hour{schedDur===1?'':'s'}</span>
+                </div>
+                <button onClick={()=>setSchedDur(d=>Math.min(9, Math.round((d+0.5)*2)/2))}
+                  style={{width:40,height:40,borderRadius:8,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:20,cursor:'pointer',fontWeight:700,lineHeight:1}}>+</button>
+              </div>
+              <div style={{fontSize:11,color:'var(--text3)',marginTop:6,textAlign:'center'}}>Adjust in 30-minute steps (0.5h – 9h)</div>
+            </div>
+
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button onClick={()=>setEditSched(false)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'9px 16px',fontSize:13,cursor:'pointer',color:'var(--text)'}}>Cancel</button>
+              <button onClick={saveSchedule} disabled={saving||!schedDate||!schedTime}
+                style={{background:'var(--green)',color:'white',border:'none',borderRadius:8,padding:'9px 18px',fontSize:13,cursor:'pointer',fontWeight:600,opacity:(saving||!schedDate||!schedTime)?0.6:1}}>
+                {saving?'Saving…':'Save Schedule'}
+              </button>
             </div>
           </div>
         </div>
