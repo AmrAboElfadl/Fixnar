@@ -75,21 +75,28 @@ export default function Schedule() {
   async function fetchAll() {
     setLoading(true)
     try {
-      const safe = p => p.catch(() => ({ data:[] }))
       const [woRes, techRes, storeRes, asnRes] = await Promise.all([
-        safe(supabase.from('work_orders')
+        supabase.from('work_orders')
           .select('*,stores(name,latitude,longitude,manager_name,phone)')
-          .neq('status','closed').order('priority')),
-        safe(supabase.from('profiles').select('id,full_name,phone').eq('role','technician')),
-        safe(supabase.from('stores').select('id,name,latitude,longitude,manager_name,phone')),
-        safe(supabase.from('store_technician_assignments').select('*')),
+          .neq('status','closed').order('priority'),
+        supabase.from('profiles').select('id,full_name,phone').eq('role','technician'),
+        supabase.from('stores').select('id,name,latitude,longitude,manager_name,phone'),
+        supabase.from('store_technician_assignments').select('*'),
       ])
-      setWos(woRes.data       || [])
-      setTechs(techRes.data   || [])
-      setStores(storeRes.data || [])
+
+      // Supabase returns {data, error} and does NOT throw, so check error as an object.
+      if (woRes.error && Object.keys(woRes.error).length)       console.error('WO load error:', woRes.error)
+      if (techRes.error && Object.keys(techRes.error).length)   console.error('Tech load error:', techRes.error)
+      if (storeRes.error && Object.keys(storeRes.error).length) console.error('Store load error:', storeRes.error)
+      if (asnRes.error && Object.keys(asnRes.error).length)     console.error('Assignment load error:', asnRes.error)
+
+      setWos(woRes.data         || [])
+      setTechs(techRes.data     || [])
+      setStores(storeRes.data   || [])
+      setAssignments(asnRes.data || [])
       await fetchLocs()
     } catch(e) {
-      // silent error handler
+      console.error('Dispatch board load threw:', e)
     } finally {
       setLoading(false)
     }
