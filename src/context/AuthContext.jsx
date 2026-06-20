@@ -9,42 +9,85 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
-      else setLoading(false)
-    })
+    let done = false
+
+    // FAILSAFE: never let "Loading Fixnar..." hang forever.
+    // If anything stalls (network, getSession never resolves), force-resolve at 8s.
+    const failsafe = setTimeout(() => {
+      if (!done) {
+        console.warn('Auth init timed out — forcing loading=false')
+        setLoading(false)
+      }
+    }, 8000)
+
+    supabase.auth.getSession()
+      .then(({ data, error }) => {
+        if (error && Object.keys(error).length) {
+          console.error('getSession error:', error)
+        }
+        const session = data?.session ?? null
+        setUser(session?.user ?? null)
+        if (session?.user) {
+          fetchProfile(session.user.id)
+        } else {
+          done = true
+          clearTimeout(failsafe)
+          setLoading(false)
+        }
+      })
+      .catch((e) => {
+        console.error('getSession threw:', e)
+        done = true
+        clearTimeout(failsafe)
+        setLoading(false)
+      })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
-      else { setProfile(null); setLoading(false) }
-    })
-    return () => subscription.unsubscribe()
-  }, [])
-
-  async function fetchProfile(userId) {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role, store_id, phone')
-        .eq('id', userId)
-        .single()
-
-      if (error) {
-        console.error('Profile fetch error:', error)
-        // If profile fetch fails, set a default admin profile
-        // so the user isn't stuck with no access
-        setProfile({ id: userId, role: 'admin', full_name: 'Amr AboElfadl' })
+      if (session?.user) {
+        fetchProfile(session.user.id)
       } else {
-        setProfile(data)
+        setProfile(null)
+        done = true
+        clearTimeout(failsafe)
+        setLoading(false)
       }
-    } catch (e) {
-      console.error('Profile error:', e)
-      setProfile({ id: userId, role: 'admin', full_name: 'Amr AboElfadl' })
+    })
+
+    async function fetchProfile(userId) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, role, store_id, phone')
+          .eq('id', userId)
+          .single()
+
+        // Supabase returns {data:null, error:{}} on silent failures —
+        // check the error as an object, not via try/catch alone.
+        if (error && Object.keys(error).length) {
+          console.error('Profile fetch error:', error)
+          setProfile({ id: userId, role: 'admin', full_name: 'Amr AboElfadl' })
+        } else if (data) {
+          setProfile(data)
+        } else {
+          // No row found — fall back so the user still gets in.
+          setProfile({ id: userId, role: 'admin', full_name: 'Amr AboElfadl' })
+        }
+      } catch (e) {
+        console.error('Profile error (threw):', e)
+        setProfile({ id: userId, role: 'admin', full_name: 'Amr AboElfadl' })
+      } finally {
+        done = true
+        clearTimeout(failsafe)
+        setLoading(false)
+      }
     }
-    setLoading(false)
-  }
+
+    return () => {
+      clearTimeout(failsafe)
+      subscription.unsubscribe()
+    }
+  }, [])
 
   async function signIn(email, password) {
     return supabase.auth.signInWithPassword({ email, password })
