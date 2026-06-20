@@ -3,6 +3,43 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
+// ── Auto-schedule config ──
+// Higher priority = scheduled sooner. Days to push out the scheduled date from today.
+const SCHED_PUSH_DAYS = { P1: 0, P2: 0, P3: 1, P4: 3 }
+const SCHED_DURATION  = { P1: 2, P2: 2, P3: 1, P4: 1 } // hours blocked on board
+const WORK_START = 9, WORK_END = 18
+
+// Move a date into the next valid working slot (Mon–Fri, 9am–6pm)
+function nextWorkingSlot(date) {
+  const d = new Date(date)
+  if (d.getDay() === 6) { d.setDate(d.getDate() + 2); d.setHours(WORK_START, 0, 0, 0) }
+  else if (d.getDay() === 0) { d.setDate(d.getDate() + 1); d.setHours(WORK_START, 0, 0, 0) }
+  if (d.getHours() < WORK_START) d.setHours(WORK_START, 0, 0, 0)
+  if (d.getHours() >= WORK_END) {
+    d.setDate(d.getDate() + 1); d.setHours(WORK_START, 0, 0, 0)
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1)
+  }
+  return d
+}
+
+// Given a priority, return { scheduled_date 'YYYY-MM-DD', scheduled_time 'HH:MM', duration_hours }
+function autoSchedule(priority) {
+  const push = SCHED_PUSH_DAYS[priority] ?? 1
+  let base = new Date()
+  base.setDate(base.getDate() + push)
+  const slot = nextWorkingSlot(base)
+  const yyyy = slot.getFullYear()
+  const mm = String(slot.getMonth() + 1).padStart(2, '0')
+  const dd = String(slot.getDate()).padStart(2, '0')
+  const hh = String(slot.getHours()).padStart(2, '0')
+  const mi = String(slot.getMinutes()).padStart(2, '0')
+  return {
+    scheduled_date: `${yyyy}-${mm}-${dd}`,
+    scheduled_time: `${hh}:${mi}`,
+    duration_hours: SCHED_DURATION[priority] ?? 1,
+  }
+}
+
 const FIELDS = [
   { key:'name',          label:'Store Name *',    type:'text',   col:2 },
   { key:'address',       label:'Address',          type:'text',   col:2 },
@@ -69,6 +106,13 @@ export default function Stores() {
   const [assetWOs,       setAssetWOs]       = useState([])
   const [assetWOLoading, setAssetWOLoading] = useState(false)
 
+  // ── Inline ticket form ──
+  const [technicians,  setTechnicians]  = useState([])
+  const [ticketAsset,  setTicketAsset]  = useState(null)   // asset the ticket is for (null = closed)
+  const [ticketForm,   setTicketForm]   = useState({ title:'', priority:'P3', description:'' })
+  const [ticketSaving, setTicketSaving] = useState(false)
+  const [ticketDone,   setTicketDone]   = useState(null)   // created WO id
+
   useEffect(() => { loadAll() }, [])
 
   async function loadAll() {
@@ -92,7 +136,7 @@ export default function Stores() {
     setAssetSearch(''); setAssetCat('all'); setAssetStatus('all'); setCollapsed({})
     setDetailLoading(true)
 
-    const [assetRes, woRes] = await Promise.all([
+    const [assetRes, woRes, techRes] = await Promise.all([
       supabase.from('assets')
         .select('id, name, category, subcategory, location, serial_number, status, brand, model, purchase_date, notes')
         .eq('store_id', store.id)
@@ -101,11 +145,13 @@ export default function Stores() {
         .select('id, title, priority, status, asset_id, created_at, closed_at')
         .eq('store_id', store.id)
         .order('created_at', { ascending:false }),
+      supabase.from('profiles').select('id, full_name').eq('role','technician').order('full_name'),
     ])
     if (assetRes.error && Object.keys(assetRes.error).length) console.error('Asset load error:', assetRes.error)
     if (woRes.error && Object.keys(woRes.error).length) console.error('WO load error:', woRes.error)
     setDetailAssets(assetRes.data || [])
     setDetailWOs(woRes.data || [])
+    setTechnicians(techRes.data || [])
     setDetailLoading(false)
   }
 
@@ -124,6 +170,67 @@ export default function Stores() {
     if (error && Object.keys(error).length) console.error('Asset WO load error:', error)
     setAssetWOs(data || [])
     setAssetWOLoading(false)
+  }
+
+  // ── Open inline ticket form for an asset ──
+  function openTicketForm(asset) {
+    setTicketAsset(asset)
+    setTicketDone(null)
+    setTicketForm({
+      title: asset.category ? `${asset.category} — ${asset.name}` : asset.name,
+      priority: 'P3',
+      description: '',
+    })
+  }
+
+  function closeTicketForm() {
+    setTicketAsset(null)
+    setTicketDone(null)
+    setTicketSaving(false)
+  }
+
+  // ── Create the work order: auto-assign + auto-schedule ──
+  async function createTicket() {
+    if (!ticketForm.title.trim()) return flash('Ticket title is required', 'error')
+    setTicketSaving(true)
+
+    const techId = technicians[0]?.id || null   // auto-assign to first technician
+    const sched  = autoSchedule(ticketForm.priority)
+
+    const payload = {
+      title: ticketForm.title.trim(),
+      description: ticketForm.description.trim() || null,
+      priority: ticketForm.priority,
+      status: 'open',
+      store_id: detailStore.id,
+      asset_id: ticketAsset.id,
+      category: ticketAsset.category || null,
+      assigned_to: techId,
+      created_by: profile?.id || null,
+      scheduled_date: sched.scheduled_date,
+      scheduled_time: sched.scheduled_time,
+      duration_hours: sched.duration_hours,
+    }
+
+    const { data, error } = await supabase.from('work_orders').insert(payload).select('id').single()
+
+    if (error && Object.keys(error).length) {
+      console.error('Create ticket error:', error)
+      flash('❌ ' + (error.message || 'Could not create ticket'), 'error')
+      setTicketSaving(false)
+      return
+    }
+
+    setTicketDone(data?.id || true)
+    setTicketSaving(false)
+
+    // Refresh asset service history + store WO list in the background
+    if (selectedAsset && selectedAsset.id === ticketAsset.id) openAsset(selectedAsset)
+    supabase.from('work_orders')
+      .select('id, title, priority, status, asset_id, created_at, closed_at')
+      .eq('store_id', detailStore.id)
+      .order('created_at', { ascending:false })
+      .then(({ data }) => { if (data) setDetailWOs(data) })
   }
 
   const flashTimer = useRef(null)
@@ -223,7 +330,7 @@ export default function Stores() {
             <StatCard label="Total Repair Cost" value={AED(totalRepairCost)} accent="#1D9E75"/>
           </div>
 
-          <button onClick={() => { const sid = detailStore.id, aid = selectedAsset.id; closeDetail(); navigate(`/work-orders?store=${sid}&asset=${aid}`) }}
+          <button onClick={() => openTicketForm(selectedAsset)}
             style={{ width:'100%', marginTop:14, padding:'10px', background:'var(--green)11', color:'var(--green)', border:'1px solid var(--green)44', borderRadius:9, fontSize:13, fontWeight:600, cursor:'pointer' }}>
             + Open New Ticket for this Asset
           </button>
@@ -323,17 +430,29 @@ export default function Stores() {
                         {subs[sub].map(a => {
                           const sc = ASSET_STATUS_COLOR[a.status] || ASSET_STATUS_COLOR.operational
                           return (
-                            <div key={a.id} onClick={() => openAsset(a)}
-                              style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'11px 14px', cursor:'pointer' }}>
-                              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
-                                <div style={{ fontWeight:600, fontSize:13.5 }}>{a.name}</div>
-                                <span style={{ background:sc.bg, color:sc.text, borderRadius:20, padding:'2px 10px', fontSize:10.5, fontWeight:700, flexShrink:0, textTransform:'capitalize' }}>{a.status || 'operational'}</span>
+                            <div key={a.id}
+                              style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'11px 14px' }}>
+                              <div onClick={() => openAsset(a)} style={{ cursor:'pointer' }}>
+                                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
+                                  <div style={{ fontWeight:600, fontSize:13.5 }}>{a.name}</div>
+                                  <span style={{ background:sc.bg, color:sc.text, borderRadius:20, padding:'2px 10px', fontSize:10.5, fontWeight:700, flexShrink:0, textTransform:'capitalize' }}>{a.status || 'operational'}</span>
+                                </div>
+                                <div style={{ display:'flex', flexWrap:'wrap', gap:10, marginTop:5, fontSize:11.5, color:'var(--text3)' }}>
+                                  {a.brand && <span>🏭 {a.brand}</span>}
+                                  {a.model && <span>📋 {a.model}</span>}
+                                  {a.serial_number && <span>#️⃣ {a.serial_number}</span>}
+                                  {a.location && <span>📌 {a.location}</span>}
+                                </div>
                               </div>
-                              <div style={{ display:'flex', flexWrap:'wrap', gap:10, marginTop:5, fontSize:11.5, color:'var(--text3)' }}>
-                                {a.brand && <span>🏭 {a.brand}</span>}
-                                {a.model && <span>📋 {a.model}</span>}
-                                {a.serial_number && <span>#️⃣ {a.serial_number}</span>}
-                                {a.location && <span>📌 {a.location}</span>}
+                              <div style={{ display:'flex', gap:8, marginTop:9 }}>
+                                <button onClick={() => openAsset(a)}
+                                  style={{ padding:'5px 12px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:7, fontSize:11.5, cursor:'pointer', color:'var(--text2)', fontWeight:600 }}>
+                                  Details
+                                </button>
+                                <button onClick={() => openTicketForm(a)}
+                                  style={{ padding:'5px 12px', background:'var(--green)11', color:'var(--green)', border:'1px solid var(--green)44', borderRadius:7, fontSize:11.5, cursor:'pointer', fontWeight:600 }}>
+                                  + Ticket
+                                </button>
                               </div>
                             </div>
                           )
@@ -562,6 +681,92 @@ export default function Stores() {
                 )}
               </div>
             )}
+
+            {/* ── INLINE TICKET FORM ── */}
+            {ticketAsset && (
+              <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:1300, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}
+                onClick={e => { if (e.target === e.currentTarget && !ticketSaving) closeTicketForm() }}>
+                <div style={{ background:'var(--bg)', borderRadius:16, padding:24, width:'100%', maxWidth:460, boxShadow:'0 8px 40px rgba(0,0,0,.4)', maxHeight:'90vh', overflowY:'auto' }}>
+
+                  {ticketDone ? (
+                    <div style={{ textAlign:'center', padding:'10px 0' }}>
+                      <div style={{ fontSize:48, marginBottom:10 }}>✅</div>
+                      <h3 style={{ margin:'0 0 6px', fontSize:18 }}>Ticket Created</h3>
+                      <p style={{ color:'var(--text3)', fontSize:13, margin:'0 0 6px', lineHeight:1.6 }}>
+                        Assigned to <b>{technicians[0]?.full_name || 'technician'}</b> and scheduled on the Dispatch Board.
+                      </p>
+                      <p style={{ color:'var(--text3)', fontSize:12, margin:'0 0 20px' }}>
+                        {ticketForm.priority} · {autoSchedule(ticketForm.priority).scheduled_date} at {autoSchedule(ticketForm.priority).scheduled_time}
+                      </p>
+                      <div style={{ display:'flex', gap:10 }}>
+                        <button onClick={closeTicketForm}
+                          style={{ flex:1, padding:'10px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:9, fontSize:14, cursor:'pointer', color:'var(--text)' }}>
+                          Done
+                        </button>
+                        <button onClick={() => { closeTicketForm(); closeDetail(); navigate('/schedule') }}
+                          style={{ flex:1, padding:'10px', background:'var(--green)', color:'white', border:'none', borderRadius:9, fontSize:14, fontWeight:600, cursor:'pointer' }}>
+                          Go to Dispatch Board
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:4 }}>
+                        <h3 style={{ margin:0, fontSize:17, fontWeight:700 }}>New Ticket</h3>
+                        <button onClick={closeTicketForm} disabled={ticketSaving}
+                          style={{ background:'none', border:'none', fontSize:20, cursor:'pointer', color:'var(--text3)', lineHeight:1 }}>✕</button>
+                      </div>
+                      <div style={{ fontSize:12, color:'var(--text3)', marginBottom:16 }}>
+                        🔧 {ticketAsset.name}{ticketAsset.location ? ` · 📌 ${ticketAsset.location}` : ''}
+                      </div>
+
+                      <Field label="Title">
+                        <input value={ticketForm.title} onChange={e => setTicketForm(f => ({ ...f, title:e.target.value }))}
+                          style={inputStyle}/>
+                      </Field>
+
+                      <Field label="Priority">
+                        <div style={{ display:'flex', gap:8 }}>
+                          {['P1','P2','P3','P4'].map(p => (
+                            <button key={p} onClick={() => setTicketForm(f => ({ ...f, priority:p }))}
+                              style={{ flex:1, padding:'8px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer',
+                                border: `1px solid ${ticketForm.priority===p ? PRIORITY_COLOR[p] : 'var(--border)'}`,
+                                background: ticketForm.priority===p ? PRIORITY_COLOR[p] : 'var(--surface)',
+                                color: ticketForm.priority===p ? 'white' : 'var(--text2)' }}>
+                              {p}
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{ fontSize:11, color:'var(--text3)', marginTop:6 }}>
+                          Auto-schedules to {autoSchedule(ticketForm.priority).scheduled_date} at {autoSchedule(ticketForm.priority).scheduled_time}
+                        </div>
+                      </Field>
+
+                      <Field label="Description (optional)">
+                        <textarea value={ticketForm.description} onChange={e => setTicketForm(f => ({ ...f, description:e.target.value }))}
+                          rows={3} style={{ ...inputStyle, resize:'vertical' }}/>
+                      </Field>
+
+                      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:9, padding:'10px 12px', fontSize:12, color:'var(--text2)', marginBottom:18 }}>
+                        👤 Auto-assigned to <b>{technicians[0]?.full_name || 'first available technician'}</b>
+                        {technicians.length === 0 && <span style={{ color:'#E24B4A' }}> — no technician found, will be unassigned</span>}
+                      </div>
+
+                      <div style={{ display:'flex', gap:10 }}>
+                        <button onClick={closeTicketForm} disabled={ticketSaving}
+                          style={{ flex:1, padding:'10px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:9, fontSize:14, cursor:'pointer', color:'var(--text)' }}>
+                          Cancel
+                        </button>
+                        <button onClick={createTicket} disabled={ticketSaving || !ticketForm.title.trim()}
+                          style={{ flex:2, padding:'10px', background:'var(--green)', color:'white', border:'none', borderRadius:9, fontSize:14, fontWeight:600, cursor:'pointer', opacity: ticketSaving || !ticketForm.title.trim() ? 0.6 : 1 }}>
+                          {ticketSaving ? 'Creating…' : 'Create & Schedule'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -613,6 +818,21 @@ export default function Stores() {
 function Chip({ children }) {
   return (
     <span style={{ display:'inline-flex', alignItems:'center', gap:4, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:20, padding:'4px 12px', fontSize:12, color:'var(--text2)' }}>{children}</span>
+  )
+}
+
+const inputStyle = {
+  width:'100%', padding:'10px 12px', borderRadius:9, border:'1px solid var(--border)',
+  background:'var(--surface)', color:'var(--text)', fontSize:14, boxSizing:'border-box',
+  fontFamily:'inherit',
+}
+
+function Field({ label, children }) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      <div style={{ fontSize:11, fontWeight:700, color:'var(--text3)', letterSpacing:'0.05em', textTransform:'uppercase', marginBottom:6 }}>{label}</div>
+      {children}
+    </div>
   )
 }
 function Empty({ children }) {
