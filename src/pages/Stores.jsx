@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 // ── Auto-schedule config ──
 // Higher priority = scheduled sooner. Days to push out the scheduled date from today.
 const SCHED_PUSH_DAYS = { P1: 0, P2: 0, P3: 1, P4: 3 }
-const SCHED_DURATION  = { P1: 2, P2: 2, P3: 1, P4: 1 } // hours blocked on board
+const SCHED_DURATION  = { P1: 1, P2: 1, P3: 1, P4: 1 } // hours blocked on board (default 1h, adjustable later)
 const WORK_START = 9, WORK_END = 18
 
 // Move a date into the next valid working slot (Mon–Fri, 9am–6pm)
