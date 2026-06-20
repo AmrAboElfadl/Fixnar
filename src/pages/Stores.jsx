@@ -74,6 +74,89 @@ const CAT_ICON = {
 }
 const AED = (n) => `AED ${Number(n||0).toLocaleString(undefined,{minimumFractionDigits:0, maximumFractionDigits:2})}`
 
+// ── Work order category → subcategory → faults (with suggested priority) ──
+const CATEGORIES = {
+  'HVAC': { icon:'❄️', subcategories: {
+    'Air Conditioning': { faults:[
+      { name:'Not Cooling', priority:'P2' }, { name:'Water Leaking', priority:'P2' },
+      { name:'Strange Noise', priority:'P3' }, { name:'Unit Not Starting', priority:'P1' },
+      { name:'Filter Clogged', priority:'P3' }, { name:'Remote Not Working', priority:'P4' } ] },
+    'Exhaust System': { faults:[
+      { name:'Fan Not Working', priority:'P1' }, { name:'Excessive Noise', priority:'P2' },
+      { name:'Weak Airflow', priority:'P2' }, { name:'Motor Fault', priority:'P1' },
+      { name:'Belt Broken', priority:'P2' } ] },
+    'Ventilation': { faults:[
+      { name:'Duct Blocked', priority:'P2' }, { name:'Damper Stuck', priority:'P3' },
+      { name:'Grille Damaged', priority:'P4' } ] } } },
+  'Plumbing': { icon:'🔧', subcategories: {
+    'Drainage': { faults:[
+      { name:'Drain Blocked', priority:'P1' }, { name:'Slow Drainage', priority:'P2' },
+      { name:'Bad Odor', priority:'P2' }, { name:'Grease Trap Full', priority:'P1' },
+      { name:'Overflow', priority:'P1' } ] },
+    'Water Supply': { faults:[
+      { name:'No Water', priority:'P1' }, { name:'Low Pressure', priority:'P2' },
+      { name:'Pipe Leaking', priority:'P1' }, { name:'Tap Dripping', priority:'P4' } ] },
+    'Grease Trap': { faults:[
+      { name:'Needs Cleaning', priority:'P2' }, { name:'Overflow', priority:'P1' },
+      { name:'Bad Odor', priority:'P2' } ] } } },
+  'Electrical': { icon:'⚡', subcategories: {
+    'Lighting': { faults:[
+      { name:'Light Not Working', priority:'P3' }, { name:'Flickering', priority:'P3' },
+      { name:'Bulb Replacement', priority:'P4' }, { name:'Emergency Light Fault', priority:'P1' } ] },
+    'Power': { faults:[
+      { name:'No Power', priority:'P1' }, { name:'Tripping Breaker', priority:'P1' },
+      { name:'Socket Not Working', priority:'P3' }, { name:'Voltage Fluctuation', priority:'P2' } ] },
+    'Generator': { faults:[
+      { name:'Not Starting', priority:'P1' }, { name:'Low Fuel', priority:'P2' },
+      { name:'Overheating', priority:'P1' }, { name:'Service Due', priority:'P3' } ] } } },
+  'Kitchen Equipment': { icon:'🍳', subcategories: {
+    'Cooking Equipment': { faults:[
+      { name:'Not Heating', priority:'P1' }, { name:'Gas Leak', priority:'P1' },
+      { name:'Temperature Issue', priority:'P2' }, { name:'Ignition Fault', priority:'P2' } ] },
+    'Refrigeration': { faults:[
+      { name:'Not Cooling', priority:'P1' }, { name:'Temperature High', priority:'P1' },
+      { name:'Door Seal Broken', priority:'P3' }, { name:'Ice Build Up', priority:'P2' },
+      { name:'Compressor Noise', priority:'P2' } ] },
+    'Dishwasher': { faults:[
+      { name:'Not Starting', priority:'P2' }, { name:'Not Draining', priority:'P2' },
+      { name:'Water Leaking', priority:'P1' }, { name:'Poor Cleaning', priority:'P3' } ] } } },
+  'Fire & Safety': { icon:'🔥', subcategories: {
+    'Fire Suppression': { faults:[
+      { name:'System Fault', priority:'P1' }, { name:'Nozzle Blocked', priority:'P1' },
+      { name:'Pressure Low', priority:'P1' }, { name:'Service Due', priority:'P2' } ] },
+    'Fire Alarm': { faults:[
+      { name:'False Alarm', priority:'P2' }, { name:'Detector Fault', priority:'P1' },
+      { name:'Panel Error', priority:'P1' }, { name:'Battery Low', priority:'P2' } ] },
+    'Emergency Exit': { faults:[
+      { name:'Door Blocked', priority:'P1' }, { name:'Sign Not Lit', priority:'P2' },
+      { name:'Lock Fault', priority:'P1' } ] } } },
+  'Civil & Structure': { icon:'🏗️', subcategories: {
+    'Flooring': { faults:[
+      { name:'Tile Broken', priority:'P3' }, { name:'Floor Slippery', priority:'P2' },
+      { name:'Water Seepage', priority:'P2' } ] },
+    'Walls & Ceiling': { faults:[
+      { name:'Paint Peeling', priority:'P4' }, { name:'Crack in Wall', priority:'P3' },
+      { name:'Ceiling Damaged', priority:'P2' }, { name:'Water Stain', priority:'P3' } ] },
+    'Doors & Windows': { faults:[
+      { name:'Door Not Closing', priority:'P3' }, { name:'Lock Broken', priority:'P2' },
+      { name:'Glass Cracked', priority:'P3' }, { name:'Hinge Broken', priority:'P3' } ] } } },
+  'Pest Control': { icon:'🐛', subcategories: {
+    'Infestation': { faults:[
+      { name:'Cockroach Sighting', priority:'P1' }, { name:'Rodent Activity', priority:'P1' },
+      { name:'Fly Infestation', priority:'P2' }, { name:'Ant Infestation', priority:'P3' } ] },
+    'Preventive': { faults:[
+      { name:'Scheduled Treatment', priority:'P3' }, { name:'Bait Station Check', priority:'P4' } ] } } },
+  'LPG & Gas': { icon:'⛽', subcategories: {
+    'Gas System': { faults:[
+      { name:'Gas Leak', priority:'P1' }, { name:'Low Pressure', priority:'P1' },
+      { name:'Valve Fault', priority:'P1' }, { name:'Meter Issue', priority:'P2' },
+      { name:'Service Due', priority:'P3' } ] } } },
+  'General': { icon:'🛠️', subcategories: {
+    'Other': { faults:[
+      { name:'Inspection', priority:'P3' }, { name:'Repair', priority:'P3' },
+      { name:'Replacement', priority:'P3' }, { name:'Other Issue', priority:'P3' } ] } } },
+}
+
 export default function Stores() {
   const { profile } = useAuth()
   const navigate    = useNavigate()
@@ -109,7 +192,7 @@ export default function Stores() {
   // ── Inline ticket form ──
   const [technicians,  setTechnicians]  = useState([])
   const [ticketAsset,  setTicketAsset]  = useState(null)   // asset the ticket is for (null = closed)
-  const [ticketForm,   setTicketForm]   = useState({ title:'', priority:'P3', description:'' })
+  const [ticketForm,   setTicketForm]   = useState({ category:'', subcategory:'', fault:'', title:'', priority:'P3', description:'' })
   const [ticketSaving, setTicketSaving] = useState(false)
   const [ticketDone,   setTicketDone]   = useState(null)   // created WO id
 
@@ -176,7 +259,12 @@ export default function Stores() {
   function openTicketForm(asset) {
     setTicketAsset(asset)
     setTicketDone(null)
+    // Default category to the asset's category if it exists in our fault tree, else 'General'
+    const cat = CATEGORIES[asset.category] ? asset.category : 'General'
     setTicketForm({
+      category: cat,
+      subcategory: '',
+      fault: '',
       title: asset.category ? `${asset.category} — ${asset.name}` : asset.name,
       priority: 'P3',
       description: '',
@@ -187,6 +275,27 @@ export default function Stores() {
     setTicketAsset(null)
     setTicketDone(null)
     setTicketSaving(false)
+  }
+
+  // When category changes: reset subcategory + fault
+  function selectCategory(cat) {
+    setTicketForm(f => ({ ...f, category:cat, subcategory:'', fault:'' }))
+  }
+  // When subcategory changes: reset fault
+  function selectSubcategory(sub) {
+    setTicketForm(f => ({ ...f, subcategory:sub, fault:'' }))
+  }
+  // When fault changes: auto-set priority + build title
+  function selectFault(faultName) {
+    setTicketForm(f => {
+      const faultObj = CATEGORIES[f.category]?.subcategories[f.subcategory]?.faults
+        .find(x => x.name === faultName)
+      const pr = faultObj?.priority || f.priority
+      const assetName = ticketAsset?.name || ''
+      const title = [f.category, f.subcategory, faultName].filter(Boolean).join(' — ')
+        + (assetName ? ` (${assetName})` : '')
+      return { ...f, fault:faultName, priority:pr, title }
+    })
   }
 
   // ── Create the work order: auto-assign + auto-schedule ──
@@ -204,7 +313,7 @@ export default function Stores() {
       status: 'open',
       store_id: detailStore.id,
       asset_id: ticketAsset.id,
-      category: ticketAsset.category || null,
+      category: ticketForm.category || ticketAsset.category || null,
       assigned_to: techId,
       created_by: profile?.id || null,
       scheduled_date: sched.scheduled_date,
@@ -720,6 +829,35 @@ export default function Stores() {
                         🔧 {ticketAsset.name}{ticketAsset.location ? ` · 📌 ${ticketAsset.location}` : ''}
                       </div>
 
+                      <Field label="Category">
+                        <select value={ticketForm.category} onChange={e => selectCategory(e.target.value)} style={inputStyle}>
+                          <option value="">Select category…</option>
+                          {Object.keys(CATEGORIES).map(c => (
+                            <option key={c} value={c}>{CATEGORIES[c].icon} {c}</option>
+                          ))}
+                        </select>
+                      </Field>
+
+                      <Field label="Subcategory">
+                        <select value={ticketForm.subcategory} onChange={e => selectSubcategory(e.target.value)}
+                          disabled={!ticketForm.category} style={{ ...inputStyle, opacity: ticketForm.category ? 1 : 0.5 }}>
+                          <option value="">Select subcategory…</option>
+                          {ticketForm.category && Object.keys(CATEGORIES[ticketForm.category].subcategories).map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </Field>
+
+                      <Field label="Fault">
+                        <select value={ticketForm.fault} onChange={e => selectFault(e.target.value)}
+                          disabled={!ticketForm.subcategory} style={{ ...inputStyle, opacity: ticketForm.subcategory ? 1 : 0.5 }}>
+                          <option value="">Select fault…</option>
+                          {ticketForm.subcategory && CATEGORIES[ticketForm.category].subcategories[ticketForm.subcategory].faults.map(fl => (
+                            <option key={fl.name} value={fl.name}>{fl.name} ({fl.priority})</option>
+                          ))}
+                        </select>
+                      </Field>
+
                       <Field label="Title">
                         <input value={ticketForm.title} onChange={e => setTicketForm(f => ({ ...f, title:e.target.value }))}
                           style={inputStyle}/>
@@ -738,6 +876,7 @@ export default function Stores() {
                           ))}
                         </div>
                         <div style={{ fontSize:11, color:'var(--text3)', marginTop:6 }}>
+                          {ticketForm.fault ? `Suggested from fault — adjustable. ` : ''}
                           Auto-schedules to {autoSchedule(ticketForm.priority).scheduled_date} at {autoSchedule(ticketForm.priority).scheduled_time}
                         </div>
                       </Field>
