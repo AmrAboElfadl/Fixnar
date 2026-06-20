@@ -18,6 +18,20 @@ const FIELDS = [
 
 const EMPTY = { name:'', address:'', city:'', manager_name:'', phone:'', email:'', latitude:'', longitude:'', opening_hours:'', notes:'' }
 
+const PRIORITY_COLOR = { P1:'#E24B4A', P2:'#EF9F27', P3:'#378ADD', P4:'#1D9E75' }
+const STATUS_COLOR = {
+  open:        { bg:'#FBE9E7', text:'#BF360C', label:'Open' },
+  in_progress: { bg:'#FFF3E0', text:'#E65100', label:'In Progress' },
+  on_hold:     { bg:'#ECEFF1', text:'#455A64', label:'On Hold' },
+  closed:      { bg:'#E8F5E9', text:'#1B5E20', label:'Closed' },
+}
+const ASSET_STATUS_COLOR = {
+  operational: { bg:'#E8F5E9', text:'#1B5E20' },
+  maintenance: { bg:'#FFF3E0', text:'#E65100' },
+  inactive:    { bg:'#ECEFF1', text:'#455A64' },
+  retired:     { bg:'#FBE9E7', text:'#BF360C' },
+}
+
 export default function Stores() {
   const { profile } = useAuth()
   const navigate    = useNavigate()
@@ -35,6 +49,13 @@ export default function Stores() {
   const [confirmDel, setConfirmDel] = useState(null)
   const [view,     setView]     = useState('grid') // 'grid' | 'list'
 
+  // ── Store detail drawer state ──
+  const [detailStore, setDetailStore] = useState(null) // the open store
+  const [detailTab,    setDetailTab]   = useState('assets') // 'assets' | 'workorders'
+  const [detailAssets, setDetailAssets] = useState([])
+  const [detailWOs,    setDetailWOs]   = useState([])
+  const [detailLoading, setDetailLoading] = useState(false)
+
   useEffect(() => { loadAll() }, [])
 
   async function loadAll() {
@@ -51,6 +72,41 @@ export default function Stores() {
     })
     setWoCounts(counts)
     setLoading(false)
+  }
+
+  // ── Open store detail: load its assets + work orders ──
+  async function openDetail(store) {
+    setDetailStore(store)
+    setDetailTab('assets')
+    setDetailAssets([])
+    setDetailWOs([])
+    setDetailLoading(true)
+
+    const [assetRes, woRes] = await Promise.all([
+      supabase.from('assets')
+        .select('id, name, category, location, serial_number, status')
+        .eq('store_id', store.id)
+        .order('name'),
+      supabase.from('work_orders')
+        .select('id, title, priority, status, asset_id, created_at, closed_at')
+        .eq('store_id', store.id)
+        .order('created_at', { ascending:false }),
+    ])
+
+    if (assetRes.error && Object.keys(assetRes.error).length)
+      console.error('Asset load error:', assetRes.error)
+    if (woRes.error && Object.keys(woRes.error).length)
+      console.error('WO load error:', woRes.error)
+
+    setDetailAssets(assetRes.data || [])
+    setDetailWOs(woRes.data || [])
+    setDetailLoading(false)
+  }
+
+  function closeDetail() {
+    setDetailStore(null)
+    setDetailAssets([])
+    setDetailWOs([])
   }
 
   const flashTimer = useRef(null)
@@ -180,8 +236,9 @@ export default function Stores() {
                 background:'var(--surface)', borderRadius:14,
                 border: `1px solid ${openWOs > 0 ? '#EF9F2766' : 'var(--border)'}`,
                 padding:20, display:'flex', flexDirection:'column', gap:10,
-                transition:'box-shadow 0.15s',
+                transition:'box-shadow 0.15s', cursor:'pointer',
               }}
+                onClick={() => openDetail(s)}
                 onMouseEnter={e => e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'}
                 onMouseLeave={e => e.currentTarget.style.boxShadow='none'}
               >
@@ -209,11 +266,12 @@ export default function Stores() {
                 </div>
 
                 {/* Actions */}
-                <div style={{ display:'flex', gap:8, marginTop:'auto', paddingTop:8, borderTop:'1px solid var(--border)' }}>
+                <div style={{ display:'flex', gap:8, marginTop:'auto', paddingTop:8, borderTop:'1px solid var(--border)' }}
+                  onClick={e => e.stopPropagation()}>
                   <button
-                    onClick={() => navigate(`/work-orders?store=${s.id}`)}
+                    onClick={() => openDetail(s)}
                     style={{ flex:1, padding:'7px', background:'var(--green)11', color:'var(--green)', border:'1px solid var(--green)44', borderRadius:8, fontSize:12, cursor:'pointer', fontWeight:600 }}
-                  >View WOs</button>
+                  >View Details</button>
                   {isAdmin && <>
                     <button onClick={() => openEdit(s)}
                       style={{ padding:'7px 14px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, fontSize:12, cursor:'pointer', color:'var(--text)' }}>
@@ -252,8 +310,9 @@ export default function Stores() {
                 display:'flex', alignItems:'center', gap:14,
                 padding:'14px 18px', background:'var(--surface)',
                 borderRadius:12, border:`1px solid ${openWOs>0?'#EF9F2744':'var(--border)'}`,
-                flexWrap:'wrap',
-              }}>
+                flexWrap:'wrap', cursor:'pointer',
+              }}
+                onClick={() => openDetail(s)}>
                 <div style={{ flex:1, minWidth:200 }}>
                   <div style={{ fontWeight:600, fontSize:14 }}>{s.name}</div>
                   <div style={{ fontSize:12, color:'var(--text3)', marginTop:2 }}>
@@ -270,10 +329,11 @@ export default function Stores() {
                     📍 {parseFloat(s.latitude).toFixed(4)}, {parseFloat(s.longitude).toFixed(4)}
                   </span>
                 )}
-                <div style={{ display:'flex', gap:6, flexShrink:0 }}>
-                  <button onClick={() => navigate(`/work-orders?store=${s.id}`)}
+                <div style={{ display:'flex', gap:6, flexShrink:0 }}
+                  onClick={e => e.stopPropagation()}>
+                  <button onClick={() => openDetail(s)}
                     style={{ padding:'6px 12px', background:'var(--green)11', color:'var(--green)', border:'1px solid var(--green)44', borderRadius:8, fontSize:12, cursor:'pointer', fontWeight:600 }}>
-                    WOs
+                    Details
                   </button>
                   {isAdmin && <>
                     <button onClick={() => openEdit(s)}
@@ -295,6 +355,151 @@ export default function Stores() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* ── STORE DETAIL DRAWER ── */}
+      {detailStore && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:1100, display:'flex', justifyContent:'flex-end' }}
+          onClick={e => { if (e.target === e.currentTarget) closeDetail() }}>
+          <div style={{
+            width:'100%', maxWidth:640, height:'100vh', background:'var(--bg)',
+            boxShadow:'-8px 0 40px rgba(0,0,0,.3)', overflowY:'auto',
+            display:'flex', flexDirection:'column',
+          }}>
+            {/* Drawer header */}
+            <div style={{ padding:'24px 28px', borderBottom:'1px solid var(--border)', background:'var(--surface)', position:'sticky', top:0, zIndex:2 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12 }}>
+                <div>
+                  <h2 style={{ margin:0, fontSize:20, fontWeight:700 }}>{detailStore.name}</h2>
+                  {detailStore.city && <div style={{ fontSize:13, color:'var(--text3)', marginTop:4 }}>📍 {detailStore.city}</div>}
+                </div>
+                <button onClick={closeDetail}
+                  style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, width:34, height:34, fontSize:18, cursor:'pointer', color:'var(--text)', lineHeight:1 }}>
+                  ✕
+                </button>
+              </div>
+
+              {/* Store info chips */}
+              <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:14 }}>
+                {detailStore.address && <Chip>🏠 {detailStore.address}</Chip>}
+                {detailStore.manager_name && <Chip>👤 {detailStore.manager_name}</Chip>}
+                {detailStore.phone && <Chip>📞 {detailStore.phone}</Chip>}
+                {detailStore.email && <Chip>✉️ {detailStore.email}</Chip>}
+                {detailStore.opening_hours && <Chip>🕐 {detailStore.opening_hours}</Chip>}
+                {detailStore.latitude && (
+                  <a href={`https://maps.google.com/?q=${detailStore.latitude},${detailStore.longitude}`} target="_blank" rel="noreferrer"
+                    style={{ textDecoration:'none' }}>
+                    <Chip>🗺️ Open in Maps</Chip>
+                  </a>
+                )}
+              </div>
+              {detailStore.notes && (
+                <div style={{ marginTop:12, fontSize:13, color:'var(--text2)', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px' }}>
+                  📝 {detailStore.notes}
+                </div>
+              )}
+
+              {/* Tabs */}
+              <div style={{ display:'flex', gap:8, marginTop:18 }}>
+                {[
+                  { key:'assets',     label:`Assets (${detailAssets.length})` },
+                  { key:'workorders', label:`Work Orders (${detailWOs.length})` },
+                ].map(t => (
+                  <button key={t.key} onClick={() => setDetailTab(t.key)} style={{
+                    padding:'8px 16px', borderRadius:8, fontSize:13, fontWeight:600, cursor:'pointer',
+                    border: `1px solid ${detailTab===t.key ? 'var(--green)' : 'var(--border)'}`,
+                    background: detailTab===t.key ? 'var(--green)' : 'var(--surface)',
+                    color: detailTab===t.key ? 'white' : 'var(--text2)',
+                  }}>{t.label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Drawer body */}
+            <div style={{ padding:'20px 28px', flex:1 }}>
+              {detailLoading ? (
+                <div style={{ textAlign:'center', padding:40, color:'var(--text3)' }}>Loading…</div>
+              ) : detailTab === 'assets' ? (
+                detailAssets.length === 0 ? (
+                  <Empty>No assets registered for this store.</Empty>
+                ) : (
+                  <div style={{ display:'grid', gap:10 }}>
+                    {detailAssets.map(a => {
+                      const sc = ASSET_STATUS_COLOR[a.status] || ASSET_STATUS_COLOR.operational
+                      return (
+                        <div key={a.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 14px' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
+                            <div style={{ fontWeight:600, fontSize:14 }}>{a.name}</div>
+                            <span style={{ background:sc.bg, color:sc.text, borderRadius:20, padding:'2px 10px', fontSize:11, fontWeight:700, flexShrink:0, textTransform:'capitalize' }}>
+                              {a.status || 'operational'}
+                            </span>
+                          </div>
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:10, marginTop:6, fontSize:12, color:'var(--text3)' }}>
+                            {a.category && <span>🏷️ {a.category}</span>}
+                            {a.location && <span>📌 {a.location}</span>}
+                            {a.serial_number && <span>#️⃣ {a.serial_number}</span>}
+                          </div>
+                          <div style={{ marginTop:10 }}>
+                            <button onClick={() => { closeDetail(); navigate(`/work-orders?store=${detailStore.id}&asset=${a.id}`) }}
+                              style={{ padding:'6px 12px', background:'var(--green)11', color:'var(--green)', border:'1px solid var(--green)44', borderRadius:8, fontSize:12, cursor:'pointer', fontWeight:600 }}>
+                              + Open Ticket
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              ) : (
+                detailWOs.length === 0 ? (
+                  <Empty>No work orders for this store yet.</Empty>
+                ) : (
+                  <div style={{ display:'grid', gap:10 }}>
+                    {detailWOs.map(wo => {
+                      const st = STATUS_COLOR[wo.status] || STATUS_COLOR.open
+                      const asset = detailAssets.find(a => a.id === wo.asset_id)
+                      return (
+                        <div key={wo.id}
+                          onClick={() => { closeDetail(); navigate(`/work-orders/${wo.id}`) }}
+                          style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 14px', cursor:'pointer' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
+                              <span style={{ width:8, height:8, borderRadius:'50%', background:PRIORITY_COLOR[wo.priority]||'#888', flexShrink:0 }}/>
+                              <span style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{wo.title}</span>
+                            </div>
+                            <span style={{ background:st.bg, color:st.text, borderRadius:20, padding:'2px 10px', fontSize:11, fontWeight:700, flexShrink:0 }}>
+                              {st.label}
+                            </span>
+                          </div>
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:10, marginTop:6, fontSize:12, color:'var(--text3)' }}>
+                            <span style={{ color:PRIORITY_COLOR[wo.priority], fontWeight:700 }}>{wo.priority}</span>
+                            {asset && <span>🔧 {asset.name}</span>}
+                            {wo.created_at && <span>📅 {new Date(wo.created_at).toLocaleDateString()}</span>}
+                            {wo.closed_at && <span>✅ {new Date(wo.closed_at).toLocaleDateString()}</span>}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              )}
+            </div>
+
+            {/* Drawer footer */}
+            <div style={{ padding:'16px 28px', borderTop:'1px solid var(--border)', background:'var(--surface)', display:'flex', gap:10, position:'sticky', bottom:0 }}>
+              <button onClick={() => { closeDetail(); navigate(`/work-orders?store=${detailStore.id}`) }}
+                style={{ flex:1, padding:'10px', background:'var(--green)', color:'white', border:'none', borderRadius:9, fontSize:14, fontWeight:600, cursor:'pointer' }}>
+                View All Work Orders
+              </button>
+              {isAdmin && (
+                <button onClick={() => { const st = detailStore; closeDetail(); openEdit(st) }}
+                  style={{ padding:'10px 18px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:9, fontSize:14, cursor:'pointer', color:'var(--text)' }}>
+                  ✏️ Edit Store
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -358,6 +563,25 @@ export default function Stores() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Small helper components ──
+function Chip({ children }) {
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', gap:4,
+      background:'var(--bg)', border:'1px solid var(--border)',
+      borderRadius:20, padding:'4px 12px', fontSize:12, color:'var(--text2)',
+    }}>{children}</span>
+  )
+}
+
+function Empty({ children }) {
+  return (
+    <div style={{ textAlign:'center', padding:'40px 20px', color:'var(--text3)', fontSize:14 }}>
+      {children}
     </div>
   )
 }
