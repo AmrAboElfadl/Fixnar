@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, fetchAllRows } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { getSLADeadline } from '../lib/sla'
 
 const P_COLORS = { P1:'#E24B4A', P2:'#EF9F27', P3:'#378ADD', P4:'#1D9E75' }
-const SLA_HOURS = { P1:4, P2:8, P3:12, P4:168 }
-
+const SLA_HOURS = { P1:4, P2:8, P3:12, P4:63 }  // working hours
+// SLA counts working hours only (09:00–18:00, Mon–Fri) — same rule as the server
 function slaBreached(wo) {
   if (!wo.created_at) return false
   if (['closed','completed'].includes(wo.status)) return false
-  const hours = (Date.now() - new Date(wo.created_at)) / 3600000
-  return hours > (SLA_HOURS[wo.priority] || 24)
+  const due = wo.sla_due_at ? new Date(wo.sla_due_at) : getSLADeadline(wo.priority, wo.created_at)
+  return !!due && due < new Date()
 }
 
 const STATUS_CFG = {
@@ -176,10 +177,10 @@ export default function Dashboard() {
     setLoading(true)
     try {
       // Fetch each query individually so one failure doesn't block others
-      const woRes = await supabase.from('work_orders').select('*,stores(name)').order('created_at',{ascending:false})
+      const woRes = await fetchAllRows(() => supabase.from('work_orders').select('*,stores(name)').order('created_at',{ascending:false}))
       setWos(woRes.data || [])
 
-      const assetRes = await supabase.from('assets').select('id,name,category,status,store_id,stores(name)')
+      const assetRes = await fetchAllRows(() => supabase.from('assets').select('id,name,category,status,store_id,stores(name)').order('id'))
       setAssets(assetRes.data || [])
 
       const ppmRes = await supabase.from('ppm_tasks').select('id,title,due_date,status,store_id,stores(name)').order('due_date')
@@ -196,7 +197,7 @@ export default function Dashboard() {
   const open        = wos.filter(w=>['open','travelling','arrived'].includes(w.status))
   const inProgress  = wos.filter(w=>w.status==='in_progress')
   const allClosed   = wos.filter(w=>w.status==='closed')
-  const closedToday = allClosed.filter(w=>new Date(w.updated_at).toDateString()===new Date().toDateString())
+  const closedToday = allClosed.filter(w=>new Date(w.closed_at||w.updated_at).toDateString()===new Date().toDateString())
   const breached    = wos.filter(slaBreached)
   const ppmDue      = ppmTasks.filter(t=>t.status!=='done'&&new Date(t.due_date)<=new Date(Date.now()+7*86400000))
   const ppmOverdue  = ppmTasks.filter(t=>t.status!=='done'&&new Date(t.due_date)<new Date())
@@ -223,9 +224,9 @@ export default function Dashboard() {
   const assetMax = Math.max(...catData.map(d=>d.count),1)
 
   const avgRes = () => {
-    const cl = allClosed.filter(w=>w.created_at&&w.updated_at)
+    const cl = allClosed.filter(w=>w.created_at&&(w.closed_at||w.updated_at))
     if (!cl.length) return 'N/A'
-    const avgH = cl.reduce((s,w)=>(s+(new Date(w.updated_at)-new Date(w.created_at))/3600000),0)/cl.length
+    const avgH = cl.reduce((s,w)=>(s+(new Date(w.closed_at||w.updated_at)-new Date(w.created_at))/3600000),0)/cl.length
     return avgH < 24 ? avgH.toFixed(1)+'h' : (avgH/24).toFixed(1)+'d'
   }
 

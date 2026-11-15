@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [profileError, setProfileError] = useState(null)
 
   useEffect(() => {
     let done = false
@@ -65,17 +66,21 @@ export function AuthProvider({ children }) {
         // Supabase returns {data:null, error:{}} on silent failures —
         // check the error as an object, not via try/catch alone.
         if (error && Object.keys(error).length) {
+          // Never grant a role on failure — show the "no access" screen instead.
           console.error('Profile fetch error:', error)
-          setProfile({ id: userId, role: 'admin', full_name: 'Amr AboElfadl' })
+          setProfile(null)
+          setProfileError(error.message || 'Could not load your profile')
         } else if (data) {
           setProfile(data)
+          setProfileError(null)
         } else {
-          // No row found — fall back so the user still gets in.
-          setProfile({ id: userId, role: 'admin', full_name: 'Amr AboElfadl' })
+          setProfile(null)
+          setProfileError('Your account has no Fixnar profile yet. Ask the admin to give you access.')
         }
       } catch (e) {
         console.error('Profile error (threw):', e)
-        setProfile({ id: userId, role: 'admin', full_name: 'Amr AboElfadl' })
+        setProfile(null)
+        setProfileError('Could not load your profile. Check your connection and refresh.')
       } finally {
         done = true
         clearTimeout(failsafe)
@@ -95,6 +100,7 @@ export function AuthProvider({ children }) {
 
   async function signOut() {
     setProfile(null)
+    setProfileError(null)
     return supabase.auth.signOut()
   }
 
@@ -103,7 +109,7 @@ export function AuthProvider({ children }) {
   const isOperations = profile?.role === 'operations'
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut, isAdmin, isTechnician, isOperations }}>
+    <AuthContext.Provider value={{ user, profile, profileError, loading, signIn, signOut, isAdmin, isTechnician, isOperations }}>
       {children}
     </AuthContext.Provider>
   )

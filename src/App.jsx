@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import Sidebar from './components/Sidebar'
@@ -9,22 +9,38 @@ import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import WorkOrders from './pages/WorkOrders'
 import WorkOrderDetail from './pages/WorkOrderDetail'
-import Assets from './pages/Assets'
 import PPM from './pages/PPM'
 import Analytics from './pages/Analytics'
 import Users from './pages/Users'
 import Schedule from './pages/Schedule'
 import Stores from './pages/Stores'
 import DevPanel from './pages/DevPanel'
+import AuditLog from './pages/AuditLog'
+import AssetScan from './pages/AssetScan'
+import Vendors from './pages/Vendors'
+import Inventory from './pages/Inventory'
+import Budgets from './pages/Budgets'
+import WorkOrderReport from './pages/WorkOrderReport'
 
 function ProtectedRoute({ children, roles }) {
-  const { user, profile, loading } = useAuth()
-  if (loading) return (
+  const { user, profile, profileError, loading, signOut } = useAuth()
+  const location = useLocation()
+  if (loading || (user && !profile && !profileError)) return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center' }}>
       <div style={{ color:'var(--green)', fontSize:14, fontFamily:"'DM Sans', sans-serif" }}>Loading Fixnar...</div>
     </div>
   )
-  if (!user) return <Navigate to="/login" replace/>
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }}/>
+  if (!profile) return (
+    <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, fontFamily:"'DM Sans', sans-serif" }}>
+      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:14, padding:28, maxWidth:420, textAlign:'center', color:'var(--text)' }}>
+        <div style={{ fontSize:40, marginBottom:10 }}>🔒</div>
+        <h3 style={{ margin:'0 0 8px' }}>No access yet</h3>
+        <p style={{ color:'var(--text3)', fontSize:14, margin:'0 0 18px' }}>{profileError || 'Your account is not set up in Fixnar.'}</p>
+        <button onClick={() => signOut()} style={{ background:'var(--green)', color:'white', border:'none', borderRadius:9, padding:'10px 22px', fontSize:14, cursor:'pointer', fontWeight:600 }}>Sign out</button>
+      </div>
+    </div>
+  )
   if (roles && profile && !roles.includes(profile.role)) return <Navigate to="/" replace/>
   return children
 }
@@ -65,7 +81,7 @@ function AppLayout({ children }) {
         <Sidebar open={sidebarVisible} onClose={() => setOpen(false)} pinned={pinned} onPin={togglePin}/>
       </div>
 
-      <main style={{
+      <main className="fx-main" style={{
         flex:1,
         marginLeft: pinned ? sidebarW : 0,
         padding:'32px 32px',
@@ -81,25 +97,48 @@ function AppLayout({ children }) {
   )
 }
 
-function AppRoutes() {
+const STAFF = ['admin','operations']
+const INTERNAL = ['admin','operations','technician']
+
+function Home() {
+  const { profile } = useAuth()
+  if (profile?.role === 'vendor') return <Navigate to="/work-orders" replace/>
+  return <Dashboard/>
+}
+
+function LoginRoute() {
   const { user } = useAuth()
+  const location = useLocation()
+  const from = location.state?.from
+  if (!user) return <Login/>
+  return <Navigate to={from && from !== '/login' ? from : '/'} replace/>
+}
+
+function AppRoutes() {
+  const page = (el, roles) => <ProtectedRoute roles={roles}><AppLayout>{el}</AppLayout></ProtectedRoute>
   return (
     <Routes>
-      <Route path="/login" element={!user ? <Login/> : <Navigate to="/" replace/>}/>
+      <Route path="/login" element={<LoginRoute/>}/>
       <Route path="/reset-password" element={<ResetPassword/>}/>
 
-      <Route path="/" element={<ProtectedRoute><AppLayout><Dashboard/></AppLayout></ProtectedRoute>}/>
-      <Route path="/stores" element={<ProtectedRoute><AppLayout><Stores/></AppLayout></ProtectedRoute>}/>
-      <Route path="/work-orders" element={<ProtectedRoute><AppLayout><WorkOrders/></AppLayout></ProtectedRoute>}/>
-      <Route path="/work-orders/:id" element={<ProtectedRoute><AppLayout><WorkOrderDetail/></AppLayout></ProtectedRoute>}/>
-      <Route path="/assets" element={<ProtectedRoute><AppLayout><Assets/></AppLayout></ProtectedRoute>}/>
-      <Route path="/ppm" element={<ProtectedRoute><AppLayout><PPM/></AppLayout></ProtectedRoute>}/>
-      <Route path="/schedule" element={<ProtectedRoute><AppLayout><Schedule/></AppLayout></ProtectedRoute>}/>
-      <Route path="/analytics" element={<ProtectedRoute roles={['admin']}><AppLayout><Analytics/></AppLayout></ProtectedRoute>}/>
-      <Route path="/users" element={<ProtectedRoute roles={['admin']}><AppLayout><Users/></AppLayout></ProtectedRoute>}/>
+      <Route path="/"                element={page(<Home/>)}/>
+      <Route path="/stores"          element={page(<Stores/>, INTERNAL)}/>
+      <Route path="/work-orders"     element={page(<WorkOrders/>)}/>
+      <Route path="/work-orders/:id" element={page(<WorkOrderDetail/>)}/>
+      <Route path="/work-orders/:id/report" element={<ProtectedRoute><WorkOrderReport/></ProtectedRoute>}/>
+      <Route path="/a/:id"           element={page(<AssetScan/>, INTERNAL)}/>
+      <Route path="/assets"          element={<Navigate to="/stores" replace/>}/>
+      <Route path="/ppm"             element={page(<PPM/>, INTERNAL)}/>
+      <Route path="/schedule"        element={page(<Schedule/>, INTERNAL)}/>
+      <Route path="/vendors"         element={page(<Vendors/>, STAFF)}/>
+      <Route path="/inventory"       element={page(<Inventory/>, INTERNAL)}/>
+      <Route path="/budgets"         element={page(<Budgets/>, STAFF)}/>
+      <Route path="/analytics"       element={page(<Analytics/>, ['admin'])}/>
+      <Route path="/users"           element={page(<Users/>, ['admin'])}/>
+      <Route path="/audit"           element={page(<AuditLog/>, ['admin'])}/>
 
-      {/* Developer Panel - restricted to dev email + PIN */}
-      <Route path="/dev" element={<ProtectedRoute><AppLayout><DevPanel/></AppLayout></ProtectedRoute>}/>
+      {/* Developer Panel - admin only, plus dev email + PIN inside */}
+      <Route path="/dev"             element={page(<DevPanel/>, ['admin'])}/>
 
       <Route path="*" element={<Navigate to="/" replace/>}/>
     </Routes>

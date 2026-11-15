@@ -2,11 +2,12 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
-const ROLES = ['admin', 'technician', 'operations', 'viewer']
+const ROLES = ['admin', 'operations', 'technician', 'vendor']
 const ROLE_COLORS = {
   admin:      { bg:'#E24B4A22', text:'#E24B4A', border:'#E24B4A' },
   technician: { bg:'#7F77DD22', text:'#7F77DD', border:'#7F77DD' },
   operations: { bg:'#EF9F2722', text:'#EF9F27', border:'#EF9F27' },
+  vendor:     { bg:'#378ADD22', text:'#378ADD', border:'#378ADD' },
   viewer:     { bg:'#9e9e9e22', text:'#9e9e9e', border:'#9e9e9e' },
 }
 
@@ -108,7 +109,8 @@ export default function Users() {
   const [sqlFallback,setSqlFallback]= useState('')
 
   // Invite form state
-  const [form, setForm] = useState({ email:'', name:'', role:'technician', password:'Fixnar2024!' })
+  const [form, setForm] = useState({ email:'', name:'', role:'technician', password:'Fixnar2024!', vendor_id:'' })
+  const [vendors, setVendors] = useState([])
   const [inviteStores, setInviteStores] = useState([])
 
   useEffect(() => { loadAll() }, [])
@@ -122,6 +124,8 @@ export default function Users() {
 
       const sRes = await supabase.from('stores').select('id,name').order('name')
       setStores(sRes.data || [])
+      const vRes = await supabase.from('vendors').select('id,name').order('name')
+      setVendors(vRes.data || [])
 
       const map = {}
       try {
@@ -152,64 +156,56 @@ export default function Users() {
     flashTimer.current = setTimeout(() => setMsg({ text:'', type:'' }), 5000)
   }
 
+  const errMsg = (error) => (error && Object.keys(error).length) ? (error.message || 'Unknown error') : null
+
   async function saveUserStores(userId, storeIds) {
-    try {
-      // Delete existing
-      await supabase.from('user_stores').delete().eq('user_id', userId)
-      // Insert new
-      if (storeIds.length > 0) {
-        await supabase.from('user_stores').insert(storeIds.map(sid => ({ user_id: userId, store_id: sid })))
-      }
-      // Also update legacy store_id (first store or null)
-      await supabase.from('profiles').update({ store_id: storeIds[0] || null }).eq('id', userId)
-    } catch(e) {
-      // user_stores table may not exist yet
+    const d = await supabase.from('user_stores').delete().eq('user_id', userId)
+    if (errMsg(d.error)) return errMsg(d.error)
+    if (storeIds.length > 0) {
+      const i = await supabase.from('user_stores').insert(storeIds.map(sid => ({ user_id: userId, store_id: sid })))
+      if (errMsg(i.error)) return errMsg(i.error)
     }
+    // Keep legacy profiles.store_id in sync (first store or null)
+    const u = await supabase.from('profiles').update({ store_id: storeIds[0] || null }).eq('id', userId)
+    return errMsg(u.error)
   }
 
   // ── Inline store change ───────────────────────────────────────────────────
   async function changeStores(userId, storeIds) {
-    await saveUserStores(userId, storeIds)
+    const err = await saveUserStores(userId, storeIds)
+    if (err) return flash('❌ ' + err, 'error')
     setUserStores(prev => ({ ...prev, [userId]: storeIds }))
   }
 
   // ── Inline role change ────────────────────────────────────────────────────
   async function changeRole(userId, role) {
-    await supabase.from('profiles').update({ role }).eq('id', userId)
+    const { error } = await supabase.from('profiles').update({ role }).eq('id', userId)
+    if (errMsg(error)) flash('❌ ' + errMsg(error), 'error')
     loadAll()
   }
 
   // ── Invite ────────────────────────────────────────────────────────────────
   async function inviteUser() {
     if (!form.email || !form.name) return flash('Name and email are required', 'error')
+    if ((form.password || '').length < 8) return flash('Password must be at least 8 characters', 'error')
+    if (form.role === 'vendor' && !form.vendor_id) return flash('Choose which vendor company this login belongs to', 'error')
     setSaving(true)
     setSqlFallback('')
-
-    // Try RPC first, fall back to SQL hint
-    const { error } = await supabase.rpc('create_user_with_role', {
+    const { data: newId, error } = await supabase.rpc('create_user_with_role', {
       p_email: form.email.trim().toLowerCase(),
       p_password: form.password,
       p_name: form.name.trim(),
       p_role: form.role,
       p_store_id: inviteStores[0] || null,
-    }).catch(() => ({ error: { message: 'RPC not available' } }))
-
-    if (error) {
-      const storeUpdate = inviteStores.length > 0
-        ? `\nUPDATE profiles SET role='${form.role}', full_name='${form.name.trim()}', store_id='${inviteStores[0]}' WHERE email='${form.email.trim()}';`
-        : `\nUPDATE profiles SET role='${form.role}', full_name='${form.name.trim()}' WHERE email='${form.email.trim()}';`
-
-      setSqlFallback(
-        `-- Paste in Supabase SQL Editor:\nINSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, role, aud)\nVALUES (gen_random_uuid(), '${form.email.trim()}', crypt('${form.password}', gen_salt('bf')), now(), '{"full_name":"${form.name.trim()}"}', now(), now(), 'authenticated', 'authenticated');${storeUpdate}`
-      )
-      flash('⚠️ Copy the SQL below and run it in Supabase to create this user.', 'warn')
+    })
+    if (errMsg(error)) {
+      flash('❌ ' + errMsg(error), 'error')
     } else {
-      // Save multi-store assignments after user is created
-      const { data: newUser } = await supabase.from('profiles').select('id').eq('email', form.email.trim()).single()
-      if (newUser && inviteStores.length > 0) await saveUserStores(newUser.id, inviteStores)
-      flash(`✅ ${form.name} created! Login: ${form.email} / ${form.password}`)
+      if (newId && form.role === 'vendor') await supabase.rpc('link_vendor_user', { p_user: newId, p_vendor: form.vendor_id })
+      if (newId && inviteStores.length > 0 && form.role !== 'vendor') await saveUserStores(newId, inviteStores)
+      flash(`✅ ${form.name} created! Login: ${form.email.trim().toLowerCase()} / ${form.password}`)
       setShowInvite(false)
-      setForm({ email:'', name:'', role:'technician', password:'Fixnar2024!' })
+      setForm({ email:'', name:'', role:'technician', password:'Fixnar2024!', vendor_id:'' })
       setInviteStores([])
       loadAll()
     }
@@ -219,23 +215,27 @@ export default function Users() {
   // ── Edit save ─────────────────────────────────────────────────────────────
   async function saveEdit() {
     setSaving(true)
-    await supabase.from('profiles').update({
+    const { error } = await supabase.from('profiles').update({
       full_name: editUser.full_name,
       role:      editUser.role,
       phone:     editUser.phone,
     }).eq('id', editUser.id)
-    await saveUserStores(editUser.id, editStores)
-    flash('✅ User updated')
-    setShowEdit(false); setEditUser(null)
+    let err = errMsg(error) || await saveUserStores(editUser.id, editStores)
+    if (!err && editUser.role === 'vendor') {
+      const r = await supabase.rpc('link_vendor_user', { p_user: editUser.id, p_vendor: editUser.vendor_id || null })
+      err = errMsg(r.error)
+    }
+    if (err) flash('❌ ' + err, 'error')
+    else { flash('✅ User updated'); setShowEdit(false); setEditUser(null) }
     loadAll(); setSaving(false)
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────────
+  // ── Delete (removes the login too) ────────────────────────────────────────
   async function deleteUser(user) {
     setSaving(true)
-    await supabase.from('user_stores').delete().eq('user_id', user.id).catch(() => {})
-    await supabase.from('profiles').delete().eq('id', user.id)
-    flash(`✅ ${user.full_name} removed`)
+    const { error } = await supabase.rpc('delete_user_account', { p_user: user.id })
+    if (errMsg(error)) flash('❌ ' + errMsg(error), 'error')
+    else flash(`✅ ${user.full_name} removed`)
     setConfirmDel(null); loadAll(); setSaving(false)
   }
 
@@ -393,6 +393,17 @@ export default function Users() {
                   {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
+              {form.role === 'vendor' && (
+                <div>
+                  <div style={{ fontSize:12, color:'var(--text3)', marginBottom:6, fontWeight:600 }}>VENDOR COMPANY *</div>
+                  <select value={form.vendor_id} onChange={e=>setForm({...form,vendor_id:e.target.value})}
+                    style={{ width:'100%', padding:'10px 12px', borderRadius:9, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontSize:14 }}>
+                    <option value="">Select vendor…</option>
+                    {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                  </select>
+                  <div style={{ fontSize:11, color:'var(--text3)', marginTop:4 }}>They will only see jobs sent to this vendor.</div>
+                </div>
+              )}
               <div>
                 <div style={{ fontSize:12, color:'var(--text3)', marginBottom:6, fontWeight:600 }}>STORE ACCESS (select one or more)</div>
                 <StorePicker stores={stores} selected={inviteStores} onChange={setInviteStores}/>
@@ -431,6 +442,16 @@ export default function Users() {
                   {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
+              {editUser.role === 'vendor' && (
+                <div>
+                  <div style={{ fontSize:12, color:'var(--text3)', marginBottom:6, fontWeight:600 }}>VENDOR COMPANY</div>
+                  <select value={editUser.vendor_id || ''} onChange={e=>setEditUser({...editUser,vendor_id:e.target.value})}
+                    style={{ width:'100%', padding:'10px 12px', borderRadius:9, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontSize:14 }}>
+                    <option value="">Select vendor…</option>
+                    {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <div style={{ fontSize:12, color:'var(--text3)', marginBottom:6, fontWeight:600 }}>STORE ACCESS</div>
                 <StorePicker stores={stores} selected={editStores} onChange={setEditStores}/>

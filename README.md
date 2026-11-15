@@ -66,3 +66,14 @@ Facility & Maintenance Management System for F&B operations.
 - Mobile app (React Native)
 - Email/SMS notifications for SLA breaches
 - PDF report export
+
+## November 2026 update
+
+**Roles:** admin · operations · technician · vendor (vendor portal — sees only jobs sent to their company).
+
+**New:** row-level security on every table, audit trail (`/audit`), in-app notifications + SLA breach escalation (every 10 min),
+PPM plans that create work orders automatically (daily 05:00 Dubai), checklists on work orders, vendor quotes & invoices with
+approval, asset QR labels (`/a/<asset-id>`), installable mobile app (PWA), vendors page (`/vendors`).
+
+**Database:** migrations `fx01`–`fx04` are applied in Supabase (see Supabase → Database → Migrations).
+Scheduled jobs (pg_cron): `fixnar_sla_check`, `fixnar_ppm_generate`.

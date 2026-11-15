@@ -156,11 +156,12 @@ export default function Schedule() {
     if (nextStatus==='in_progress') patch.work_started_at  = now
     if (nextStatus==='completed')   patch.completed_at     = now
     if (nextStatus==='closed')      patch.closed_at        = now
-    await supabase.from('work_orders').update(patch).eq('id', wo.id)
+    const upd = await supabase.from('work_orders').update(patch).eq('id', wo.id)
+    if (upd.error && Object.keys(upd.error).length) { alert('Error: ' + upd.error.message); setSaving(false); return }
     await supabase.from('wo_updates').insert({
       work_order_id:wo.id, user_id:profile.id,
       type:'status_change', content:`Status → ${nextStatus}`
-    }).catch(() => {})
+    }).then(() => {}, () => {})
     setActiveWO(null); fetchAll(); setSaving(false)
   }
 
@@ -173,15 +174,16 @@ export default function Schedule() {
     await supabase.from('wo_updates').insert({
       work_order_id:activeWO.id, user_id:profile.id,
       type:'status_change', content:`On Hold: ${holdReason}`
-    }).catch(() => {})
+    }).then(() => {}, () => {})
     setShowHold(false); setHoldReason(''); setActiveWO(null)
     fetchAll(); setSaving(false)
   }
 
   async function saveAssignment() {
     if (!assignStore || !assignTech) return
-    await supabase.from('store_technician_assignments')
+    const { error } = await supabase.from('store_technician_assignments')
       .upsert({ store_id:assignStore, technician_id:assignTech }, { onConflict:'store_id,technician_id' })
+    if (error && Object.keys(error).length) alert('Error: ' + error.message)
     setShowAssign(false); setAssignStore(''); setAssignTech('')
     fetchAll()
   }
@@ -220,10 +222,11 @@ export default function Schedule() {
   async function onDragStart(wo, techId) { setDragging({ wo, techId }) }
   async function onDrop(targetTechId, newTime) {
     if (!dragging) return
-    await supabase.from('work_orders').update({
+    const { error } = await supabase.from('work_orders').update({
       assigned_to: targetTechId === 'unassigned' ? null : targetTechId,
       scheduled_time: newTime,
     }).eq('id', dragging.wo.id)
+    if (error && Object.keys(error).length) alert('Error: ' + error.message)
     setDragging(null); setDragOver(null); fetchAll()
   }
 

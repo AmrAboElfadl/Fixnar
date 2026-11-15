@@ -67,3 +67,19 @@ body {
 
 /* RTL support */
 [dir="rtl"] { direction: rtl; }
+
+/* ── Mobile layout ── */
+@media (max-width: 640px) {
+  .fx-main { padding: 72px 12px 24px !important; }
+  .fx-hide-mobile { display: none !important; }
+}
+
+/* ── QR label printing ── */
+@media print {
+  body * { visibility: hidden; }
+  .qr-print-root, .qr-print-root * { visibility: visible; }
+  .qr-print-root { position: absolute !important; inset: 0 !important; background: #fff !important; padding: 0 !important; display: block !important; }
+  .qr-sheet { max-height: none !important; border: none !important; background: #fff !important; }
+  .qr-noprint { display: none !important; }
+  .qr-grid { overflow: visible !important; grid-template-columns: repeat(3, 1fr) !important; padding: 0 !important; }
+}

@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
 const DEV_EMAIL = import.meta.env.VITE_DEV_EMAIL || 'amrmorsy93@gmail.com'
-const DEV_PIN   = '1234' // ⚠️ Change this to a stronger PIN in production
 
 // ── Shared UI helpers ─────────────────────────────────────────────────────────
 const Btn = ({ children, onClick, color='var(--green)', disabled, small, style={} }) => (
@@ -139,8 +138,8 @@ function UsersTab() {
   const [showNew,setShowNew] = useState(false)
   const [sqlBox, setSqlBox]  = useState('')
 
-  const ROLES = ['admin','technician','operations','viewer']
-  const RC    = { admin:'#E24B4A', technician:'#7F77DD', operations:'#EF9F27', viewer:'#9e9e9e' }
+  const ROLES = ['admin','technician','operations','vendor']
+  const RC    = { admin:'#E24B4A', technician:'#7F77DD', operations:'#EF9F27', vendor:'#378ADD', viewer:'#9e9e9e' }
 
   useEffect(() => { load() }, [])
   async function load() {
@@ -158,14 +157,14 @@ function UsersTab() {
       full_name:editing.full_name, role:editing.role,
       phone:editing.phone, store_id:editing.store_id||null,
     }).eq('id',editing.id)
-    error ? flash('❌ '+error.message) : flash('✅ User updated')
+    error && Object.keys(error).length ? flash('❌ '+error.message) : flash('✅ User updated')
     setEditing(null); load(); setSaving(false)
   }
 
   async function del(u) {
     if (!confirm(`Delete ${u.full_name}?`)) return
-    await supabase.from('profiles').delete().eq('id',u.id)
-    flash('✅ Removed'); load()
+    const { error } = await supabase.rpc('delete_user_account', { p_user: u.id })
+    flash(error && Object.keys(error).length ? '❌ '+error.message : '✅ Removed'); load()
   }
 
   function buildSQL() {
@@ -277,15 +276,15 @@ function WorkOrdersTab() {
   useEffect(() => { load() }, [])
   async function load() {
     const { data } = await supabase.from('work_orders')
-      .select('*,stores(name),profiles(full_name)').order('created_at',{ascending:false}).limit(300)
+      .select('*,stores(name),profiles!work_orders_assigned_to_fkey(full_name)').order('created_at',{ascending:false}).limit(300)
     setWos(data||[])
   }
   function flash(m) { setMsg(m); setTimeout(()=>setMsg(''),3000) }
 
   async function del(id) {
     if (!confirm('Delete this work order?')) return
-    await supabase.from('work_orders').delete().eq('id',id)
-    flash('✅ Deleted'); load()
+    const { error } = await supabase.from('work_orders').delete().eq('id',id)
+    flash(error && Object.keys(error).length ? '❌ '+error.message : '✅ Deleted'); load()
   }
   async function clearAll() {
     if (!confirm('Delete ALL work orders? Cannot be undone!')) return
@@ -461,7 +460,7 @@ function SettingsTab() {
   function flash(m) { setMsg(m); setTimeout(()=>setMsg(''),3000) }
 
   async function loadStats() {
-    const safe = p => p.catch(()=>({count:0}))
+    const safe = p => Promise.resolve(p).catch(()=>({count:0}))
     const [s,u,w,p,t,a] = await Promise.all([
       safe(supabase.from('stores').select('*',{count:'exact',head:true})),
       safe(supabase.from('profiles').select('*',{count:'exact',head:true})),
@@ -556,6 +555,17 @@ export default function DevPanel() {
   const [unlocked, setUnlocked] = useState(false)
   const [pin,      setPin]      = useState('')
   const [pinError, setPinError] = useState(false)
+  const [checking, setChecking] = useState(false)
+
+  // Re-confirm the account password (checked by Supabase, nothing stored in the code)
+  async function verify() {
+    if (!pin || checking) return
+    setChecking(true)
+    const { error } = await supabase.auth.signInWithPassword({ email: profile.email, password: pin })
+    setChecking(false)
+    if (error && Object.keys(error).length) { setPinError(true); setPin('') }
+    else setUnlocked(true)
+  }
 
   if (!profile || profile.email !== DEV_EMAIL) {
     return (
@@ -574,23 +584,17 @@ export default function DevPanel() {
         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:36,textAlign:'center',width:320,boxShadow:'0 8px 32px rgba(0,0,0,.2)'}}>
           <div style={{fontSize:48,marginBottom:8}}>🔐</div>
           <div style={{fontWeight:700,fontSize:20,marginBottom:4}}>Developer Panel</div>
-          <div style={{color:'var(--text3)',fontSize:13,marginBottom:24}}>Enter your PIN to continue</div>
+          <div style={{color:'var(--text3)',fontSize:13,marginBottom:24}}>Re-enter your account password to continue</div>
           <input
-            type="password" placeholder="PIN" value={pin}
+            type="password" placeholder="Password" value={pin}
             onChange={e=>{ setPin(e.target.value); setPinError(false) }}
-            onKeyDown={e=>{
-              if(e.key==='Enter') {
-                if(pin===DEV_PIN) setUnlocked(true)
-                else { setPinError(true); setPin('') }
-              }
-            }}
-            style={{width:'100%',padding:'12px',borderRadius:10,border:`2px solid ${pinError?'#E24B4A':'var(--border)'}`,background:'var(--bg)',color:'var(--text)',fontSize:20,textAlign:'center',letterSpacing:8,marginBottom:14,boxSizing:'border-box'}}
+            onKeyDown={e=>{ if(e.key==='Enter') verify() }}
+            style={{width:'100%',padding:'12px',borderRadius:10,border:`2px solid ${pinError?'#E24B4A':'var(--border)'}`,background:'var(--bg)',color:'var(--text)',fontSize:16,textAlign:'center',marginBottom:14,boxSizing:'border-box'}}
             autoFocus
           />
-          {pinError && <div style={{color:'#E24B4A',fontSize:12,marginBottom:10}}>Incorrect PIN — try again</div>}
-          <Btn onClick={()=>{ if(pin===DEV_PIN) setUnlocked(true); else { setPinError(true); setPin('') } }}
-            style={{width:'100%',padding:'12px'}} disabled={!pin}>
-            Unlock Panel
+          {pinError && <div style={{color:'#E24B4A',fontSize:12,marginBottom:10}}>Wrong password — try again</div>}
+          <Btn onClick={verify} style={{width:'100%',padding:'12px'}} disabled={!pin || checking}>
+            {checking ? 'Checking…' : 'Unlock Panel'}
           </Btn>
         </div>
       </div>

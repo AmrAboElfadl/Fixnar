@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, fetchAllRows } from '../lib/supabase'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend, CartesianGrid, LabelList
@@ -43,7 +43,8 @@ function getSLADeadline(priority, createdAt) {
 
 function isSLABreached(wo) {
   if (!wo.created_at || !wo.priority) return false
-  const closeTime = wo.closed_at ? new Date(wo.closed_at) : new Date()
+  const doneAt = wo.completed_at || wo.closed_at
+  const closeTime = doneAt ? new Date(doneAt) : new Date()
   return closeTime > getSLADeadline(wo.priority, wo.created_at)
 }
 
@@ -131,7 +132,7 @@ export default function Analytics() {
     setLoading(true)
     try {
       const [woRes, techRes, storeRes] = await Promise.all([
-        supabase.from('work_orders').select('*,stores(name)').order('created_at'),
+        fetchAllRows(() => supabase.from('work_orders').select('*,stores(name)').order('created_at')),
         supabase.from('profiles').select('id,full_name').eq('role','technician'),
         supabase.from('stores').select('id,name').order('name'),
       ])

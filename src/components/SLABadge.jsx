@@ -13,13 +13,13 @@ export default function SLABadge({ priority, createdAt, status }) {
 
   if (!sla) return null
   if (sla.status === 'completed') return (
-    <span style={{ background:'#1d2f26', color:'#1D9E75', fontSize:11, padding:'3px 8px', borderRadius:6, fontWeight:500 }}>Done</span>
+    <span style={{ background:'var(--green-bg)', color:'var(--green)', fontSize:11, padding:'3px 8px', borderRadius:6, fontWeight:500 }}>Done</span>
   )
 
   const colors = {
-    ok:       { bg:'#1a2b3c', text:'#378ADD', bar:'#378ADD' },
-    warning:  { bg:'#2d2208', text:'#EF9F27', bar:'#EF9F27' },
-    breached: { bg:'#2d1b1b', text:'#f85149', bar:'#f85149' },
+    ok:       { bg:'var(--blue-bg)',  text:'var(--blue)',  bar:'var(--blue)' },
+    warning:  { bg:'var(--amber-bg)', text:'var(--amber)', bar:'var(--amber)' },
+    breached: { bg:'var(--red-bg)',   text:'var(--red)',   bar:'var(--red)' },
   }
   const c = colors[sla.status] || colors.ok
 
@@ -29,9 +29,9 @@ export default function SLABadge({ priority, createdAt, status }) {
         <span style={{ background: c.bg, color: c.text, fontSize:11, padding:'2px 8px', borderRadius:6, fontWeight:500 }}>
           {sla.status === 'breached' ? '⚠ SLA Breached' : formatRemaining(sla.remainingMin)}
         </span>
-        <span style={{ color:'#6b7280', fontSize:11 }}>{sla.pct}%</span>
+        <span style={{ color:'var(--text3)', fontSize:11 }}>{sla.pct}%</span>
       </div>
-      <div style={{ height:4, background:'#21262d', borderRadius:2, overflow:'hidden' }}>
+      <div style={{ height:4, background:'var(--bg3)', borderRadius:2, overflow:'hidden' }}>
         <div style={{ height:'100%', width:`${sla.pct}%`, background: c.bar, borderRadius:2, transition:'width 0.5s' }}/>
       </div>
     </div>

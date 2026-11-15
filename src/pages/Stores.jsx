@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import QRLabels from '../components/QRLabels'
 import { useNavigate } from 'react-router-dom'
 
 // ── Auto-schedule config ──
@@ -195,6 +196,7 @@ export default function Stores() {
   const [ticketForm,   setTicketForm]   = useState({ category:'', subcategory:'', fault:'', title:'', priority:'P3', description:'' })
   const [ticketSaving, setTicketSaving] = useState(false)
   const [ticketDone,   setTicketDone]   = useState(null)   // created WO id
+  const [qrAssets,     setQrAssets]     = useState(null)   // assets to print QR labels for
 
   useEffect(() => { loadAll() }, [])
 
@@ -439,8 +441,12 @@ export default function Stores() {
             <StatCard label="Total Repair Cost" value={AED(totalRepairCost)} accent="#1D9E75"/>
           </div>
 
+          <button onClick={() => setQrAssets([selectedAsset])}
+            style={{ width:'100%', marginTop:14, padding:'10px', background:'var(--surface)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:9, fontSize:13, fontWeight:600, cursor:'pointer' }}>
+            📱 Print QR label for this asset
+          </button>
           <button onClick={() => openTicketForm(selectedAsset)}
-            style={{ width:'100%', marginTop:14, padding:'10px', background:'var(--green)11', color:'var(--green)', border:'1px solid var(--green)44', borderRadius:9, fontSize:13, fontWeight:600, cursor:'pointer' }}>
+            style={{ width:'100%', marginTop:8, padding:'10px', background:'var(--green)11', color:'var(--green)', border:'1px solid var(--green)44', borderRadius:9, fontSize:13, fontWeight:600, cursor:'pointer' }}>
             + Open New Ticket for this Asset
           </button>
 
@@ -784,12 +790,18 @@ export default function Stores() {
                   style={{ flex:1, padding:'10px', background:'var(--green)', color:'white', border:'none', borderRadius:9, fontSize:14, fontWeight:600, cursor:'pointer' }}>
                   View All Work Orders
                 </button>
+                {detailAssets.length > 0 && (
+                  <button onClick={() => setQrAssets(detailAssets)}
+                    style={{ padding:'10px 14px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:9, fontSize:14, cursor:'pointer', color:'var(--text)' }}>🖨 QR labels</button>
+                )}
                 {isAdmin && (
                   <button onClick={() => { const st = detailStore; closeDetail(); openEdit(st) }}
                     style={{ padding:'10px 18px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:9, fontSize:14, cursor:'pointer', color:'var(--text)' }}>✏️ Edit Store</button>
                 )}
               </div>
             )}
+
+            {qrAssets && <QRLabels assets={qrAssets} storeName={detailStore.name} onClose={() => setQrAssets(null)}/>}
 
             {/* ── INLINE TICKET FORM ── */}
             {ticketAsset && (

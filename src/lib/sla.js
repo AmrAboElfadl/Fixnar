@@ -91,7 +91,7 @@ export function workingMinutesElapsed(startDate) {
 }
 
 export function getSLAStatus(priority, createdAt, status) {
-  if (status === 'closed' || status === 'done') return { status: 'completed', pct: 100, remaining: null }
+  if (status === 'closed' || status === 'completed' || status === 'done') return { status: 'completed', pct: 100, remaining: null }
 
   const config = SLA_CONFIG[priority]
   if (!config) return null

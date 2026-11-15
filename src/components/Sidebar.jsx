@@ -1,27 +1,35 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 
 const DEV_EMAIL = import.meta.env.VITE_DEV_EMAIL || 'amrmorsy93@gmail.com'
 
 const NAV_ITEMS = [
-  { path:'/',            label:'Dashboard',      icon:'⊞', roles:['admin','operations','technician','viewer'] },
+  { path:'/',            label:'Dashboard',      icon:'⊞', roles:['admin','operations','technician'] },
   { path:'/stores',      label:'Stores',         icon:'◈', roles:['admin','operations'] },
   { path:'/work-orders', label:'Work Orders',    icon:'✦', roles:['admin','operations','technician'] },
+  { path:'/work-orders', label:'My Jobs',        icon:'✦', roles:['vendor'] },
   { path:'/ppm',         label:'PPM Schedule',   icon:'◎', roles:['admin','operations'] },
   { path:'/schedule',    label:'Dispatch Board', icon:'◉', roles:['admin','operations'] },
+  { path:'/vendors',     label:'Vendors',        icon:'⚒', roles:['admin','operations'] },
+  { path:'/inventory',   label:'Spare Parts',    icon:'▣', roles:['admin','operations','technician'] },
+  { path:'/budgets',     label:'Budgets',        icon:'◐', roles:['admin','operations'] },
   { path:'/analytics',   label:'Analytics',      icon:'▤', roles:['admin'] },
   { path:'/users',       label:'Users & Access', icon:'◎', roles:['admin'] },
+  { path:'/audit',       label:'Audit Trail',    icon:'☰', roles:['admin'] },
 ]
 
 const ROLE_COLORS = {
   admin:      '#E24B4A',
   technician: '#7F77DD',
   operations: '#EF9F27',
+  vendor:     '#378ADD',
   viewer:     '#9e9e9e',
 }
 
 export default function Sidebar({ open, onClose, pinned, onPin }) {
   const { profile, signOut } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const role     = profile?.role || 'viewer'
   const isDev    = profile?.email === DEV_EMAIL
@@ -94,7 +102,7 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
       <nav style={{ flex:1, padding:'0 8px', display:'flex', flexDirection:'column', gap:2 }}>
         {visibleItems.map(item => (
           <NavLink
-            key={item.path}
+            key={item.path + item.label}
             to={item.path}
             end={item.path === '/'}
             onClick={!pinned ? onClose : undefined}
@@ -162,6 +170,13 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
             <div style={{ color:rc, fontSize:11, textTransform:'capitalize' }}>{role}</div>
           </div>
         </div>
+        <button onClick={toggleTheme} style={{
+          width:'100%', background:'transparent', border:'1px solid var(--border)',
+          borderRadius:8, padding:'8px', marginBottom:8,
+          color:'var(--text2)', fontSize:13, cursor:'pointer',
+        }}>
+          {theme === 'dark' ? '☀️ Light mode' : '🌙 Dark mode'}
+        </button>
         <button onClick={handleSignOut} style={{
           width:'100%', background:'transparent',
           border:'1px solid var(--border)',

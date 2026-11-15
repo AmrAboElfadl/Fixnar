@@ -1,5 +1,6 @@
 import { useTheme } from '../context/ThemeContext'
 import { useState } from 'react'
+import NotificationBell from './NotificationBell'
 
 const LANGS = [
   { code:'en', label:'EN', name:'English', flag:'🇬🇧' },
@@ -50,7 +51,7 @@ export default function TopBar({ onMenuToggle, pinned, onPin }) {
         </div>
 
         {/* Pin sidebar toggle */}
-        <button onClick={onPin}
+        <button onClick={onPin} className="fx-hide-mobile"
           title={pinned ? 'Click to hide sidebar (slide-in mode)' : 'Click to pin sidebar (always visible)'}
           style={{
             display:'flex', alignItems:'center', gap:5,
@@ -66,8 +67,9 @@ export default function TopBar({ onMenuToggle, pinned, onPin }) {
 
       {/* Right: Theme + Language */}
       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <NotificationBell/>
         {/* Theme toggle */}
-        <button onClick={toggleTheme}
+        <button onClick={toggleTheme} className="fx-hide-mobile"
           title={isDark ? 'Switch to Light' : 'Switch to Dark'}
           style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:8, padding:'6px 12px', cursor:'pointer', color:'var(--text2)', fontSize:13, fontWeight:500 }}>
           {isDark ? '☀️ Light' : '🌙 Dark'}

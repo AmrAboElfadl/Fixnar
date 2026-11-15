@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, fetchAllRows } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import SLABadge from '../components/SLABadge'
 import { useSearchParams, useNavigate } from 'react-router-dom'
@@ -176,11 +176,13 @@ const EMPTY = {
   category:'', subcategory:'', fault:'',
   asset_id:'', store_id:'', assigned_to:'',
   priority:'', description:'', status:'open',
-  scheduled_date:'', duration_hours:1
+  scheduled_date:'', duration_hours:1, vendor_id:''
 }
 
 export default function WorkOrders() {
   const { profile, isAdmin, isTechnician } = useAuth()
+  const isVendor = profile?.role === 'vendor'
+  const [vendors,  setVendors]  = useState([])
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
@@ -199,7 +201,7 @@ export default function WorkOrders() {
   const [filterStatus,    setFilterStatus]    = useState('all')
   const [filterPriority,  setFilterPriority]  = useState('all')
   const [filterTech,      setFilterTech]      = useState('all')
-  const [filterStore,     setFilterStore]     = useState('all')
+  const [filterStore,     setFilterStore]     = useState(searchParams.get('store') || 'all')
   const [filterVendor,    setFilterVendor]    = useState('all')   // ← NEW
   const [filterCategory,  setFilterCategory]  = useState('all')   // ← NEW
   const [filterDateFrom,  setFilterDateFrom]  = useState('')
@@ -243,12 +245,15 @@ export default function WorkOrders() {
 
   async function fetchAll() {
     setLoading(true)
-    const [woRes, storeRes, assetRes, techRes] = await Promise.all([
-      supabase.from('work_orders').select('*,stores(name),assets(name)').order('created_at', { ascending:false }),
+    const [woRes, storeRes, assetRes, techRes, vendRes] = await Promise.all([
+      fetchAllRows(() => supabase.from('work_orders').select('*,stores(name),assets(name)').order('created_at', { ascending:false })),
       supabase.from('stores').select('id,name').order('name'),
-      supabase.from('assets').select('id,name,store_id').order('name'),
+      fetchAllRows(() => supabase.from('assets').select('id,name,store_id').order('name')),
       supabase.from('profiles').select('id,full_name').eq('role','technician'),
+      supabase.from('vendors').select('id,name').eq('is_active', true).order('name'),
     ])
+    if (woRes.error) console.error('Work order load error:', woRes.error)
+    setVendors(vendRes.data || [])
     const wosData = woRes.data || []
     const techMap = {}
     ;(techRes.data||[]).forEach(t => { techMap[t.id] = t.full_name })
@@ -277,17 +282,22 @@ export default function WorkOrders() {
     const { data, error } = await supabase.from('work_orders').insert({
       title, description: form.description||null, priority: form.priority,
       status: 'open', store_id: form.store_id, asset_id: form.asset_id||null,
+      category: form.category, vendor_id: form.vendor_id||null,
       assigned_to: form.assigned_to||null, created_by: profile.id,
       scheduled_date: form.scheduled_date||null, duration_hours: form.duration_hours||1,
     }).select().single()
-    if (!error && data) { setShowForm(false); setForm(EMPTY); fetchAll(); navigate('/schedule') }
-    else alert('Error: ' + (error?.message || 'Unknown'))
+    if (!(error && Object.keys(error).length) && data) {
+      setShowForm(false); setForm(EMPTY); fetchAll()
+      navigate(isAdmin || profile?.role === 'operations' ? '/schedule' : `/work-orders/${data.id}`)
+    }
+    else alert('Error: ' + (error?.message || 'Could not create the work order'))
     setSaving(false)
   }
 
   async function updateStatus(id, status, e) {
     if (e) e.stopPropagation()
-    await supabase.from('work_orders').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+    const { error } = await supabase.from('work_orders').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+    if (error && Object.keys(error).length) alert('Error: ' + error.message)
     fetchAll()
   }
 
@@ -354,7 +364,7 @@ export default function WorkOrders() {
       {/* ── HEADER ── */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
         <div>
-          <h1 style={{ color:'var(--text)', fontSize:22, fontWeight:600, margin:0 }}>Work Orders</h1>
+          <h1 style={{ color:'var(--text)', fontSize:22, fontWeight:600, margin:0 }}>{isVendor ? 'My Jobs' : 'Work Orders'}</h1>
           <p style={{ color:'var(--text3)', fontSize:13, margin:'4px 0 0' }}>
             {filtered.length} of {wos.length} shown {activeFilters > 0 && `· ${activeFilters} filter${activeFilters>1?'s':''} active`}
           </p>
@@ -364,15 +374,17 @@ export default function WorkOrders() {
             style={{ background:'var(--green-bg)', color:'var(--green)', border:'1px solid var(--green)', borderRadius:8, padding:'9px 16px', fontSize:13, fontWeight:500, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
             📥 Export Excel
           </button>
+          {!isVendor && (
           <button onClick={() => setShowForm(true)}
             style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:500, cursor:'pointer' }}>
             + New Work Order
           </button>
+          )}
         </div>
       </div>
 
       {/* ── SUMMARY CARDS ── */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:8, marginBottom:20 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(100px, 1fr))', gap:8, marginBottom:20 }}>
         {[
           { label:'Total',       value: counts.total,      color:'var(--text)',  bg:'var(--card-bg)',  filter:'all',         filterKey:'status' },
           { label:'Open',        value: counts.open,       color:'var(--amber)', bg:'var(--amber-bg)', filter:'open',        filterKey:'status' },
@@ -492,7 +504,7 @@ export default function WorkOrders() {
             <button onClick={() => { setShowForm(false); setForm(EMPTY) }} style={{ background:'transparent', border:'none', color:'var(--text3)', cursor:'pointer', fontSize:20 }}>✕</button>
           </div>
 
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:16 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:12, marginBottom:16 }}>
             <div>
               <label style={{ color:'var(--text3)', fontSize:12, display:'block', marginBottom:5 }}>1. Category *</label>
               <select style={sel} value={form.category} onChange={e => handleCategoryChange(e.target.value)}>
@@ -529,7 +541,7 @@ export default function WorkOrders() {
             </div>
           )}
 
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap:12, marginBottom:14 }}>
             <div>
               <label style={{ color:'var(--text3)', fontSize:12, display:'block', marginBottom:5 }}>Store *</label>
               <select style={sel} value={form.store_id} onChange={e => setForm({...form, store_id:e.target.value, asset_id:''})}>
@@ -549,6 +561,13 @@ export default function WorkOrders() {
               <select style={sel} value={form.assigned_to} onChange={e => setForm({...form, assigned_to:e.target.value})}>
                 <option value="">Unassigned</option>
                 {techs.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ color:'var(--text3)', fontSize:12, display:'block', marginBottom:5 }}>Or send to Vendor</label>
+              <select style={sel} value={form.vendor_id} onChange={e => setForm({...form, vendor_id:e.target.value})}>
+                <option value="">In-house (no vendor)</option>
+                {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select>
             </div>
             <div>
@@ -583,7 +602,7 @@ export default function WorkOrders() {
       )}
 
       {/* ── TABLE ── */}
-      <div style={{ background:'var(--card-bg)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden' }}>
+      <div style={{ background:'var(--card-bg)', border:'1px solid var(--border)', borderRadius:12, overflowX:'auto' }}>
         {loading ? (
           <div style={{ padding:48, textAlign:'center', color:'var(--text3)' }}>Loading work orders...</div>
         ) : filtered.length === 0 ? (

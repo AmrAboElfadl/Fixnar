@@ -159,7 +159,7 @@ export default function LiveMap() {
   }, [])
 
   async function loadData() {
-    const safe = p => p.catch(() => ({ data:[] }))
+    const safe = p => Promise.resolve(p).catch(() => ({ data:[] }))
     const [woRes, techRes] = await Promise.all([
       safe(supabase.from('work_orders').select('id,store_id,assigned_to,status,title,priority').neq('status','closed')),
       safe(supabase.from('profiles').select('id,full_name,phone').eq('role','technician')),
@@ -188,7 +188,7 @@ export default function LiveMap() {
       longitude:  pos.coords.longitude,
       accuracy:   pos.coords.accuracy,
       updated_at: new Date().toISOString(),
-    }, { onConflict:'technician_id' }).catch(() => {})
+    }, { onConflict:'technician_id' }).then(() => {}, () => {})
     navigator.geolocation.getCurrentPosition(push, ()=>{}, { enableHighAccuracy:true })
     watchRef.current = navigator.geolocation.watchPosition(push, e => setGpsError(e.message), { enableHighAccuracy:true })
     timerRef.current = setInterval(() => navigator.geolocation.getCurrentPosition(push, ()=>{}, { enableHighAccuracy:true }), 60000)
