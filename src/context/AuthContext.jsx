@@ -43,10 +43,14 @@ export function AuthProvider({ children }) {
         setLoading(false)
       })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        fetchProfile(session.user.id)
+        // Token refreshes don't change the profile — skip the extra request.
+        // Supabase advises not to call the client inside this callback, so defer it.
+        if (event !== 'TOKEN_REFRESHED' && event !== 'INITIAL_SESSION') {
+          setTimeout(() => fetchProfile(session.user.id), 0)
+        }
       } else {
         setProfile(null)
         done = true
@@ -59,7 +63,7 @@ export function AuthProvider({ children }) {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, email, role, store_id, phone')
+          .select('id, full_name, email, role, store_id, phone, vendor_id')
           .eq('id', userId)
           .single()
 

@@ -1,7 +1,8 @@
 // Fixnar service worker — makes the app installable and loads fast on weak signal.
 // App files: cache-first after first load. Data (Supabase): always network, never cached.
-const CACHE = 'fixnar-v2'
+const CACHE = 'fixnar-v3'
 const SHELL = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png']
+const STATIC_ASSETS = ['/manifest.json', '/icon-192.png', '/icon-512.png']
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()))
@@ -31,7 +32,7 @@ self.addEventListener('fetch', (e) => {
   }
 
   // Hashed build files (/static/...) never change → cache first
-  if (url.pathname.startsWith('/static/') || SHELL.includes(url.pathname)) {
+  if (url.pathname.startsWith('/static/') || STATIC_ASSETS.includes(url.pathname)) {
     e.respondWith(
       caches.match(req).then((hit) => hit || fetch(req).then((res) => {
         if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)) }

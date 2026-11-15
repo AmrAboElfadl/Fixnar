@@ -57,9 +57,19 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault()
     setLoading(true); setError('')
-    const { error } = await signIn(email, password)
-    if (error) setError('Invalid email or password. Please try again.')
-    setLoading(false)
+    try {
+      const { error } = await signIn(email.trim(), password)
+      if (error) {
+        const m = (error.message || '').toLowerCase()
+        setError(m.includes('invalid') || m.includes('credentials') ? 'Invalid email or password. Please try again.'
+               : m.includes('confirm') ? 'Please confirm your email address first.'
+               : (error.message || 'Could not sign in. Please try again.'))
+      }
+    } catch (e) {
+      setError('Could not reach the server. Check your connection and try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleForgotPassword(e) {

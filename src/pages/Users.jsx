@@ -184,59 +184,69 @@ export default function Users() {
     loadAll()
   }
 
+  // Runs a save action and ALWAYS clears the busy state, even if something fails
+  async function busy(fn) {
+    setSaving(true)
+    try { await fn() }
+    catch (e) { flash('❌ ' + (e?.message || 'Something went wrong — please try again'), 'error') }
+    finally { setSaving(false) }
+  }
+
   // ── Invite ────────────────────────────────────────────────────────────────
-  async function inviteUser() {
+  function inviteUser() {
     if (!form.email || !form.name) return flash('Name and email are required', 'error')
     if ((form.password || '').length < 8) return flash('Password must be at least 8 characters', 'error')
     if (form.role === 'vendor' && !form.vendor_id) return flash('Choose which vendor company this login belongs to', 'error')
-    setSaving(true)
-    setSqlFallback('')
-    const { data: newId, error } = await supabase.rpc('create_user_with_role', {
-      p_email: form.email.trim().toLowerCase(),
-      p_password: form.password,
-      p_name: form.name.trim(),
-      p_role: form.role,
-      p_store_id: inviteStores[0] || null,
-    })
-    if (errMsg(error)) {
-      flash('❌ ' + errMsg(error), 'error')
-    } else {
-      if (newId && form.role === 'vendor') await supabase.rpc('link_vendor_user', { p_user: newId, p_vendor: form.vendor_id })
-      if (newId && inviteStores.length > 0 && form.role !== 'vendor') await saveUserStores(newId, inviteStores)
-      flash(`✅ ${form.name} created! Login: ${form.email.trim().toLowerCase()} / ${form.password}`)
+    return busy(async () => {
+      setSqlFallback('')
+      const email = form.email.trim().toLowerCase()
+      const { data: newId, error } = await supabase.rpc('create_user_with_role', {
+        p_email: email, p_password: form.password, p_name: form.name.trim(),
+        p_role: form.role, p_store_id: form.role === 'vendor' ? null : (inviteStores[0] || null),
+      })
+      if (errMsg(error)) return flash('❌ ' + errMsg(error), 'error')
+      if (newId && form.role === 'vendor') {
+        const r = await supabase.rpc('link_vendor_user', { p_user: newId, p_vendor: form.vendor_id })
+        if (errMsg(r.error)) flash('⚠️ User created, but linking to the vendor failed: ' + errMsg(r.error), 'error')
+      }
+      if (newId && inviteStores.length > 0 && form.role !== 'vendor') {
+        const e2 = await saveUserStores(newId, inviteStores)
+        if (e2) flash('⚠️ User created, but store access failed: ' + e2, 'error')
+      }
+      flash(`✅ ${form.name} created! Login: ${email} / ${form.password}`)
       setShowInvite(false)
       setForm({ email:'', name:'', role:'technician', password:'Fixnar2024!', vendor_id:'' })
       setInviteStores([])
       loadAll()
-    }
-    setSaving(false)
+    })
   }
 
   // ── Edit save ─────────────────────────────────────────────────────────────
-  async function saveEdit() {
-    setSaving(true)
-    const { error } = await supabase.from('profiles').update({
-      full_name: editUser.full_name,
-      role:      editUser.role,
-      phone:     editUser.phone,
-    }).eq('id', editUser.id)
-    let err = errMsg(error) || await saveUserStores(editUser.id, editStores)
-    if (!err && editUser.role === 'vendor') {
-      const r = await supabase.rpc('link_vendor_user', { p_user: editUser.id, p_vendor: editUser.vendor_id || null })
-      err = errMsg(r.error)
-    }
-    if (err) flash('❌ ' + err, 'error')
-    else { flash('✅ User updated'); setShowEdit(false); setEditUser(null) }
-    loadAll(); setSaving(false)
+  function saveEdit() {
+    return busy(async () => {
+      const { error } = await supabase.from('profiles').update({
+        full_name: editUser.full_name, role: editUser.role, phone: editUser.phone,
+      }).eq('id', editUser.id)
+      let err = errMsg(error) || await saveUserStores(editUser.id, editUser.role === 'vendor' ? [] : editStores)
+      if (!err && editUser.role === 'vendor') {
+        const r = await supabase.rpc('link_vendor_user', { p_user: editUser.id, p_vendor: editUser.vendor_id || null })
+        err = errMsg(r.error)
+      }
+      if (err) flash('❌ ' + err, 'error')
+      else { flash('✅ User updated'); setShowEdit(false); setEditUser(null) }
+      loadAll()
+    })
   }
 
   // ── Delete (removes the login too) ────────────────────────────────────────
-  async function deleteUser(user) {
-    setSaving(true)
-    const { error } = await supabase.rpc('delete_user_account', { p_user: user.id })
-    if (errMsg(error)) flash('❌ ' + errMsg(error), 'error')
-    else flash(`✅ ${user.full_name} removed`)
-    setConfirmDel(null); loadAll(); setSaving(false)
+  function deleteUser(user) {
+    return busy(async () => {
+      const { error } = await supabase.rpc('delete_user_account', { p_user: user.id })
+      if (errMsg(error)) flash('❌ ' + errMsg(error), 'error')
+      else flash(`✅ ${user.full_name} removed`)
+      setConfirmDel(null)
+      loadAll()
+    })
   }
 
   const getStoreNames = (userId) => {

@@ -18,6 +18,7 @@ import DevPanel from './pages/DevPanel'
 import AuditLog from './pages/AuditLog'
 import AssetScan from './pages/AssetScan'
 import Vendors from './pages/Vendors'
+import UpdateBanner from './components/UpdateBanner'
 import Inventory from './pages/Inventory'
 import Budgets from './pages/Budgets'
 import WorkOrderReport from './pages/WorkOrderReport'
@@ -151,6 +152,7 @@ export default function App() {
       <AuthProvider>
         <ThemeProvider>
           <AppRoutes/>
+          <UpdateBanner/>
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>

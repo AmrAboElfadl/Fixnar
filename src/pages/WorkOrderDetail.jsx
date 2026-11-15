@@ -162,7 +162,13 @@ export default function WorkOrderDetail() {
     const c = sigCanvas.current; const ctx = c.getContext('2d')
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height); setHasSig(false)
   }
-  useEffect(() => { if (action === 'signature' && sigCanvas.current) clearSig() }, [action])
+  useEffect(() => {
+    if (action !== 'signature') return
+    if (sigCanvas.current) clearSig()
+    // Pre-fill the store manager's name (it was only shown as a grey hint before,
+    // so the Close button stayed disabled until a name was typed)
+    setSignedBy(prev => prev || wo?.stores?.manager_name || '')
+  }, [action])
 
   async function submitSignature() {
     if (!hasSig || !signedBy.trim()) return
@@ -482,6 +488,11 @@ export default function WorkOrderDetail() {
             <span style={{ color:'var(--text3)', fontSize:12 }}>Sign with finger or mouse</span>
             <button onClick={clearSig} style={{ background:'transparent', border:'none', color:'var(--text3)', fontSize:12, cursor:'pointer', textDecoration:'underline' }}>Clear</button>
           </div>
+          {(!hasSig || !signedBy.trim()) && (
+            <div style={{ fontSize:12, color:'var(--amber)', marginBottom:8 }}>
+              {!signedBy.trim() && !hasSig ? 'Type the manager name and draw the signature to close.' : !signedBy.trim() ? 'Type the manager name to close.' : 'Draw the signature to close.'}
+            </div>
+          )}
           <div style={{ display:'flex', gap:10 }}>
             <button onClick={submitSignature} disabled={saving || !hasSig || !signedBy.trim()} style={{ ...btn('var(--purple)'), opacity: saving || !hasSig || !signedBy.trim() ? 0.5 : 1 }}>{saving ? 'Closing…' : '🔒 Close Work Order'}</button>
             <button onClick={() => setAction(null)} style={ghost}>Cancel</button>
