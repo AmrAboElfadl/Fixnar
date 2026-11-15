@@ -10,15 +10,15 @@ const SCHED_PUSH_DAYS = { P1: 0, P2: 0, P3: 1, P4: 3 }
 const SCHED_DURATION  = { P1: 1, P2: 1, P3: 1, P4: 1 } // hours blocked on board (default 1h, adjustable later)
 const WORK_START = 9, WORK_END = 18
 
-// Move a date into the next valid working slot (Mon–Fri, 9am–6pm)
+// Move a date into the next valid working slot (Mon–Sat, 9am–6pm, Sunday off)
+// (the server's auto-plan then places the job properly on the dispatch board)
 function nextWorkingSlot(date) {
   const d = new Date(date)
-  if (d.getDay() === 6) { d.setDate(d.getDate() + 2); d.setHours(WORK_START, 0, 0, 0) }
-  else if (d.getDay() === 0) { d.setDate(d.getDate() + 1); d.setHours(WORK_START, 0, 0, 0) }
+  if (d.getDay() === 0) { d.setDate(d.getDate() + 1); d.setHours(WORK_START, 0, 0, 0) }
   if (d.getHours() < WORK_START) d.setHours(WORK_START, 0, 0, 0)
   if (d.getHours() >= WORK_END) {
     d.setDate(d.getDate() + 1); d.setHours(WORK_START, 0, 0, 0)
-    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1)
+    while (d.getDay() === 0) d.setDate(d.getDate() + 1)
   }
   return d
 }

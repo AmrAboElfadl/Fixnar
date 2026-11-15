@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import SLABadge from '../components/SLABadge'
 import { compressImage, uploadWoFile, openWoFile } from '../lib/files'
 import { CHECKLIST_TEMPLATES } from '../lib/checklists'
+import { useLive } from '../lib/useLive'
 
 const hasErr = (e) => e && Object.keys(e).length
 const P_COLORS = { P1:'#E24B4A', P2:'#EF9F27', P3:'#378ADD', P4:'#1D9E75' }
@@ -61,11 +62,13 @@ export default function WorkOrderDetail() {
   const [partForm, setPartForm] = useState(null)   // { part_id, qty, from }
 
   useEffect(() => { fetchWO() }, [id])
+  // Status / time / technician changed elsewhere (dispatch board, another phone) → refresh quietly
+  useLive('work_orders', () => fetchWO(true), `id=eq.${id}`)
 
   function flash(text, type = 'ok') { setMsg({ text, type }); setTimeout(() => setMsg(null), 5000) }
 
-  async function fetchWO() {
-    setLoading(true)
+  async function fetchWO(silent = false) {
+    if (!silent) setLoading(true)
     const [woRes, updRes, chkRes, qRes] = await Promise.all([
       supabase.from('work_orders').select('*,stores(*),assets(id,name)').eq('id', id).maybeSingle(),
       supabase.from('wo_updates').select('*,profiles(full_name)').eq('work_order_id', id).order('created_at'),
@@ -187,7 +190,8 @@ export default function WorkOrderDetail() {
   function openAssign() {
     setAssign({
       assigned_to: wo.assigned_to || '', vendor_id: wo.vendor_id || '', priority: wo.priority || 'P3',
-      scheduled_date: wo.scheduled_date || '', cost: wo.cost ?? '',
+      scheduled_date: wo.scheduled_date || '', scheduled_time: (wo.scheduled_time || '').slice(0,5),
+      duration_hours: Number(wo.duration_hours) || 1, cost: wo.cost ?? '',
     })
     setAction('assign')
   }
@@ -195,7 +199,11 @@ export default function WorkOrderDetail() {
     setSaving(true)
     const patch = {
       assigned_to: assign.assigned_to || null, vendor_id: assign.vendor_id || null, priority: assign.priority,
-      scheduled_date: assign.scheduled_date || null, cost: assign.cost === '' ? null : Number(assign.cost),
+      scheduled_date: assign.scheduled_date || null, scheduled_time: assign.scheduled_time || null,
+      duration_hours: Number(assign.duration_hours) || 1, cost: assign.cost === '' ? null : Number(assign.cost),
+    }
+    if (patch.scheduled_date && new Date(patch.scheduled_date + 'T00:00:00').getDay() === 0) {
+      setSaving(false); return flash('Sunday is a day off — choose another day', 'error')
     }
     if (!assign.vendor_id && wo.vendor_id) patch.vendor_name = null
     const { error } = await supabase.from('work_orders').update(patch).eq('id', id)
@@ -354,7 +362,7 @@ export default function WorkOrderDetail() {
             <div style={{ display:'flex', gap:14, flexWrap:'wrap', fontSize:12, color:'var(--text3)', marginTop:8 }}>
               <span>👷 {wo.assigned_to === profile?.id ? 'You' : techs.find(t => t.id === wo.assigned_to)?.full_name || (wo.assigned_to ? 'Technician assigned' : 'No technician')}</span>
               {wo.vendor_name && <span>🧰 {wo.vendor_name}</span>}
-              {wo.scheduled_date && <span>📅 {new Date(wo.scheduled_date).toLocaleDateString('en-GB')}</span>}
+              {wo.scheduled_date && <span>📅 {new Date(wo.scheduled_date + 'T00:00:00').toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' })}{wo.scheduled_time ? ' · ' + wo.scheduled_time.slice(0,5) : ''}{wo.duration_hours ? ` (${Number(wo.duration_hours)}h)` : ''}{wo.schedule_locked ? ' 🔒' : ''}</span>}
               {wo.cost != null && !isVendor && <span>💰 {AED(wo.cost)}</span>}
             </div>
           </div>
@@ -384,6 +392,8 @@ export default function WorkOrderDetail() {
                 {['P1','P2','P3','P4'].map(p => <option key={p}>{p}</option>)}
               </select></div>
             <div><label style={lbl}>Scheduled date</label><input type="date" value={assign.scheduled_date || ''} onChange={e => setAssign({ ...assign, scheduled_date:e.target.value })} style={inp}/></div>
+            <div><label style={lbl}>Start time</label><input type="time" step="900" value={assign.scheduled_time || ''} onChange={e => setAssign({ ...assign, scheduled_time:e.target.value })} style={inp}/></div>
+            <div><label style={lbl}>Duration (hours)</label><input type="number" min="0.5" max="9" step="0.5" value={assign.duration_hours} onChange={e => setAssign({ ...assign, duration_hours:e.target.value })} style={inp}/></div>
             <div><label style={lbl}>Cost (AED)</label><input type="number" min="0" step="0.01" value={assign.cost} onChange={e => setAssign({ ...assign, cost:e.target.value })} style={inp}/></div>
           </div>
           <div style={{ display:'flex', gap:10, marginTop:14 }}>

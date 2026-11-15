@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase, fetchAllRows } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import SLABadge from '../components/SLABadge'
+import { useLive } from '../lib/useLive'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 
 const STATUSES = ['open','travelling','arrived','in_progress','on_hold','completed','closed']
@@ -243,8 +244,11 @@ export default function WorkOrders() {
     setFilteredAssets(storeAssets)
   }, [form.store_id, form.subcategory, assets])
 
-  async function fetchAll() {
-    setLoading(true)
+  // Any change to a work order anywhere (board, detail page, phone) refreshes this list
+  useLive('work_orders', () => fetchAll(true))
+
+  async function fetchAll(silent = false) {
+    if (!silent) setLoading(true)
     const [woRes, storeRes, assetRes, techRes, vendRes] = await Promise.all([
       fetchAllRows(() => supabase.from('work_orders').select('*,stores(name),assets(name)').order('created_at', { ascending:false })),
       supabase.from('stores').select('id,name').order('name'),
@@ -285,6 +289,7 @@ export default function WorkOrders() {
       category: form.category, vendor_id: form.vendor_id||null,
       assigned_to: form.assigned_to||null, created_by: profile.id,
       scheduled_date: form.scheduled_date||null, duration_hours: form.duration_hours||1,
+      schedule_locked: !!form.scheduled_date,   // a date picked by hand is kept; otherwise auto-plan places it
     }).select().single()
     if (!(error && Object.keys(error).length) && data) {
       setShowForm(false); setForm(EMPTY); fetchAll()
@@ -614,7 +619,7 @@ export default function WorkOrders() {
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead>
               <tr style={{ borderBottom:'1px solid var(--border)', background:'var(--bg3)' }}>
-                {['#','Priority','Category','Title / Description','Store','Vendor / Tech','Assigned To','Status','Created','SLA'].map(h => (
+                {['#','Priority','Category','Title / Description','Store','Vendor / Tech','Assigned To','Status','Scheduled','Created','SLA'].map(h => (
                   <th key={h} style={{ padding:'10px 14px', color:'var(--text3)', fontSize:12, fontWeight:500, textAlign:'left', whiteSpace:'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -682,6 +687,13 @@ export default function WorkOrders() {
                       style={{ background:'var(--input-bg)', border:'1px solid var(--border)', borderRadius:6, padding:'4px 8px', color:'var(--text)', fontSize:12, cursor:'pointer' }}>
                       {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
                     </select>
+                  </td>
+
+                  {/* Scheduled */}
+                  <td style={{ padding:'11px 14px', fontSize:11, whiteSpace:'nowrap', color: wo.scheduled_date ? 'var(--text)' : 'var(--text3)' }}>
+                    {wo.scheduled_date
+                      ? <>{new Date(wo.scheduled_date + 'T00:00:00').toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' })}{wo.scheduled_time ? ' · ' + wo.scheduled_time.slice(0,5) : ''}</>
+                      : '—'}
                   </td>
 
                   {/* Created */}

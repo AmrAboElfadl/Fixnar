@@ -3,10 +3,11 @@ import { supabase, fetchAllRows } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { getSLADeadline } from '../lib/sla'
+import { useLive } from '../lib/useLive'
 
 const P_COLORS = { P1:'#E24B4A', P2:'#EF9F27', P3:'#378ADD', P4:'#1D9E75' }
 const SLA_HOURS = { P1:4, P2:8, P3:12, P4:63 }  // working hours
-// SLA counts working hours only (09:00–18:00, Mon–Fri) — same rule as the server
+// SLA counts working hours only (09:00–18:00, Mon–Sat, Sunday off) — same rule as the server
 function slaBreached(wo) {
   if (!wo.created_at) return false
   if (['closed','completed'].includes(wo.status)) return false
@@ -173,8 +174,10 @@ export default function Dashboard() {
 
   useEffect(() => { load() }, [])
 
-  async function load() {
-    setLoading(true)
+  useLive('work_orders', () => load(true))
+
+  async function load(silent = false) {
+    if (!silent) setLoading(true)
     try {
       // Fetch each query individually so one failure doesn't block others
       const woRes = await fetchAllRows(() => supabase.from('work_orders').select('*,stores(name)').order('created_at',{ascending:false}))

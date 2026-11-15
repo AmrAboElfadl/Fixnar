@@ -1,10 +1,13 @@
-// SLA working hours: 9:00 AM to 6:00 PM (9 working hours/day)
+// SLA working hours: 9:00 AM to 6:00 PM (9 working hours/day), Monday–Saturday
 // P1: 4h, P2: 8h, P3: 12h, P4: 7 days (in working hours)
 // PPM: 3 months (calendar)
 
 const WORK_START = 9  // 9 AM
 const WORK_END = 18   // 6 PM
 const WORK_HOURS_PER_DAY = WORK_END - WORK_START // 9 hours
+// Working week: Monday–Saturday. Sunday (0) is the only day off. Keep in sync with the database.
+export const OFF_DAYS = [0]
+const isOff = (d) => OFF_DAYS.includes(d.getDay())
 
 export const SLA_CONFIG = {
   P1: { hours: 4,                    label: 'P1 — Critical',  color: '#E24B4A' },
@@ -36,7 +39,7 @@ export function addWorkingMinutes(startDate, minutes) {
       current.setDate(current.getDate() + 1)
       current.setHours(WORK_START, 0, 0, 0)
       // Skip weekends
-      while (current.getDay() === 0 || current.getDay() === 6) {
+      while (isOff(current)) {
         current.setDate(current.getDate() + 1)
       }
     }
@@ -46,18 +49,19 @@ export function addWorkingMinutes(startDate, minutes) {
 
 function moveToWorkingTime(date) {
   const d = new Date(date)
-  const day = d.getDay()
   const hour = d.getHours()
 
-  // Skip weekend
-  if (day === 6) { d.setDate(d.getDate() + 2); d.setHours(WORK_START, 0, 0, 0); return d }
-  if (day === 0) { d.setDate(d.getDate() + 1); d.setHours(WORK_START, 0, 0, 0); return d }
+  // Skip days off
+  if (isOff(d)) {
+    while (isOff(d)) d.setDate(d.getDate() + 1)
+    d.setHours(WORK_START, 0, 0, 0); return d
+  }
 
   if (hour < WORK_START) { d.setHours(WORK_START, 0, 0, 0); return d }
   if (hour >= WORK_END) {
     d.setDate(d.getDate() + 1)
     d.setHours(WORK_START, 0, 0, 0)
-    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1)
+    while (isOff(d)) d.setDate(d.getDate() + 1)
     return d
   }
   return d
@@ -74,8 +78,7 @@ export function workingMinutesElapsed(startDate) {
 
   let cursor = new Date(current)
   while (cursor < now) {
-    const day = cursor.getDay()
-    if (day === 0 || day === 6) { cursor.setDate(cursor.getDate() + 1); cursor.setHours(WORK_START, 0, 0, 0); continue }
+    if (isOff(cursor)) { cursor.setDate(cursor.getDate() + 1); cursor.setHours(WORK_START, 0, 0, 0); continue }
 
     const dayStart = new Date(cursor); dayStart.setHours(WORK_START, 0, 0, 0)
     const dayEnd   = new Date(cursor); dayEnd.setHours(WORK_END,   0, 0, 0)
