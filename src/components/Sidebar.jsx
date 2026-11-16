@@ -11,6 +11,8 @@ const NAV_ITEMS = [
   { path:'/work-orders', label:'My Jobs',        icon:'✦', roles:['vendor'] },
   { path:'/ppm',         label:'PPM Schedule',   icon:'◎', roles:['admin','operations'] },
   { path:'/schedule',    label:'Dispatch Board', icon:'◉', roles:['admin','operations'] },
+  { path:'/my-schedule', label:'My Schedule',    icon:'▤', roles:['technician'] },
+  { path:'/my-schedule', label:'30-Day Schedule', icon:'▤', roles:['admin','operations'] },
   { path:'/vendors',     label:'Vendors',        icon:'⚒', roles:['admin','operations'] },
   { path:'/inventory',   label:'Spare Parts',    icon:'▣', roles:['admin','operations','technician'] },
   { path:'/budgets',     label:'Budgets',        icon:'◐', roles:['admin','operations'] },
@@ -54,7 +56,7 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
   )
 
   return (
-    <aside style={{
+    <aside className="fx-sidebar" style={{
       width: 200,
       height: '100vh',
       background: 'var(--surface)',

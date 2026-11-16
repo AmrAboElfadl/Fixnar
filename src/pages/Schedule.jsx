@@ -474,6 +474,9 @@ export default function Schedule() {
           <button onClick={fetchAll} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 14px',fontSize:13,cursor:'pointer',color:'var(--text)'}}>
             ↻ Refresh
           </button>
+          <button onClick={()=>navigate('/my-schedule')} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 14px',fontSize:13,cursor:'pointer',color:'var(--text)'}}>
+            📆 30-day list
+          </button>
           {['day','week','month','map'].map(v => (
             <button key={v} onClick={()=>setView(v)} style={{
               background:view===v?'var(--green)':'var(--surface)',

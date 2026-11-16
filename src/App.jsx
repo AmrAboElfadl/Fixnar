@@ -20,6 +20,7 @@ import AssetScan from './pages/AssetScan'
 import Vendors from './pages/Vendors'
 import UpdateBanner from './components/UpdateBanner'
 import Inventory from './pages/Inventory'
+import TechSchedule from './pages/TechSchedule'
 import Budgets from './pages/Budgets'
 import WorkOrderReport from './pages/WorkOrderReport'
 
@@ -131,6 +132,7 @@ function AppRoutes() {
       <Route path="/assets"          element={<Navigate to="/stores" replace/>}/>
       <Route path="/ppm"             element={page(<PPM/>, INTERNAL)}/>
       <Route path="/schedule"        element={page(<Schedule/>, INTERNAL)}/>
+      <Route path="/my-schedule"     element={page(<TechSchedule/>, INTERNAL)}/>
       <Route path="/vendors"         element={page(<Vendors/>, STAFF)}/>
       <Route path="/inventory"       element={page(<Inventory/>, INTERNAL)}/>
       <Route path="/budgets"         element={page(<Budgets/>, STAFF)}/>
