@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { WORKSPACES, sessionKey } from '../lib/workspaces'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
@@ -102,10 +103,13 @@ export function AuthProvider({ children }) {
     return supabase.auth.signInWithPassword({ email, password })
   }
 
+  // Signing out leaves every workspace (Fixnar, Wahat, …) on this device
   async function signOut() {
     setProfile(null)
     setProfileError(null)
-    return supabase.auth.signOut()
+    const r = await supabase.auth.signOut()
+    WORKSPACES.forEach(ws => { try { localStorage.removeItem(sessionKey(ws)) } catch { /* ignore */ } })
+    return r
   }
 
   const isAdmin      = profile?.role === 'admin'
