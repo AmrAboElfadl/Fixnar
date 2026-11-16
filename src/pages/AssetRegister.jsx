@@ -14,7 +14,7 @@ const LBL = { fontSize:11, fontWeight:600, color:'var(--text3)', marginBottom:5,
 const BTN = { background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 14px', fontSize:13, cursor:'pointer', color:'var(--text)' }
 const PRIMARY = { ...BTN, background:'var(--green)', color:'white', border:'none', fontWeight:600 }
 const CARD = { background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12 }
-const EMPTY = {
+export const EMPTY_ASSET = {
   name:'', category:'Kitchen Equipment', subcategory:'', store_id:'', location:'', brand:'', model:'', serial_number:'',
   purchase_date:'', status:'operational', notes:'', specs:{}, specs_source:null, ai_identified:null,
   market_price_low:'', market_price_mid:'', market_price_high:'', market_sources:null,
@@ -27,7 +27,7 @@ async function signedPhoto(path) {
 }
 
 // ── Add / edit asset (module level so inputs keep focus) ─────────────────────
-function AssetForm({ initial, stores, canPrice, onClose, onSaved }) {
+export function AssetForm({ initial, stores, canPrice, onClose, onSaved }) {
   const [f, setF]           = useState(initial)
   const [photo, setPhoto]   = useState(null)          // new photo (data URL)
   const [photoUrl, setPhotoUrl] = useState(null)      // existing photo
@@ -153,7 +153,7 @@ function AssetForm({ initial, stores, canPrice, onClose, onSaved }) {
 
   return (
     <div onClick={e => { if (e.target === e.currentTarget && !busy) onClose() }}
-      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:1000, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'24px 12px', overflowY:'auto' }}>
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:1400, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'24px 12px', overflowY:'auto' }}>
       <div style={{ background:'var(--bg)', borderRadius:16, padding:18, width:'100%', maxWidth:760, border:'1px solid var(--border)', color:'var(--text)' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
           <h3 style={{ margin:0 }}>{f.id ? `Edit asset ${initial.asset_code || ''}` : 'Add asset'}</h3>
@@ -427,7 +427,7 @@ export default function AssetRegister() {
         </div>
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           {selected.size > 0 && <button onClick={() => setLabels(assets.filter(a => selected.has(a.id)))} style={BTN}>🏷 Print {selected.size} label{selected.size > 1 ? 's' : ''}</button>}
-          {canPrice && <button onClick={() => setForm({ ...EMPTY, store_id: store !== 'all' ? store : '' })} style={PRIMARY}>+ Add asset</button>}
+          {canPrice && <button onClick={() => setForm({ ...EMPTY_ASSET, store_id: store !== 'all' ? store : '' })} style={PRIMARY}>+ Add asset</button>}
         </div>
       </div>
 
@@ -516,7 +516,7 @@ export default function AssetRegister() {
       {detail && !form && (
         <AssetDetail asset={detail} stats={stats[detail.id]} canEdit={canEdit} canPrice={canPrice}
           onClose={() => { setDetail(null); params.delete('asset'); setParams(params) }}
-          onEdit={a => setForm({ ...EMPTY, ...a, purchase_date: a.purchase_date || '', specs: a.specs || {},
+          onEdit={a => setForm({ ...EMPTY_ASSET, ...a, purchase_date: a.purchase_date || '', specs: a.specs || {},
             market_price_low: a.market_price_low ?? '', market_price_mid: a.market_price_mid ?? '', market_price_high: a.market_price_high ?? '' })}
           onPrint={setLabels}/>
       )}
