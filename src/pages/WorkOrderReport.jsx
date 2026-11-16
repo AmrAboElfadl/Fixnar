@@ -100,7 +100,7 @@ export default function WorkOrderReport() {
       </div>
 
       <div ref={sheet} className="rp-sheet" translate="no" dir="ltr"
-        style={{ width: 794, minHeight: 1120, margin: '0 auto', background: '#fff', color: '#111', position: 'relative', overflow: 'hidden',
+        style={{ width: 794, minHeight: 1110, margin: '0 auto', background: '#fff', color: '#111', position: 'relative', overflow: 'hidden',
           boxShadow: '0 2px 12px rgba(0,0,0,.15)', fontFamily: serif, display: 'flex', flexDirection: 'column', padding: '24px 44px 0' }}>
 
         {/* corner accents */}
@@ -115,7 +115,7 @@ export default function WorkOrderReport() {
         {/* logo */}
         <div style={{ position: 'relative', height: 84, display: 'flex', alignItems: 'center', marginBottom: 8 }}>
           {logo
-            ? <img src={logo} alt="" crossOrigin="anonymous" style={{ maxHeight: 92, maxWidth: 360, objectFit: 'contain' }}/>
+            ? <img src={logo} alt="" crossOrigin="anonymous" style={{ maxHeight: 84, maxWidth: 560, objectFit: 'contain' }}/>
             : <div><div style={{ fontFamily: 'Arial, sans-serif', fontSize: 38, fontWeight: 900, letterSpacing: '.02em', color: '#222' }}>{company.toUpperCase()}</div>
                 {head.legal_name && head.legal_name !== company && <div style={{ fontFamily: 'Arial, sans-serif', fontSize: 13, letterSpacing: '.35em', color: '#333' }}>{head.legal_name.toUpperCase()}</div>}</div>}
         </div>
@@ -168,7 +168,7 @@ export default function WorkOrderReport() {
           {/* photos */}
           {photos.length > 0 && (
             <div className="rp-avoid" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(4, photos.length)}, 1fr)`, gap: 6, padding: '6px 0', borderLeft: '1px solid #222', borderRight: '1px solid #222' }}>
-              {photos.map((p, i) => <img key={i} src={p} alt="" style={{ width: '100%', height: photos.length > 4 ? 125 : 165, objectFit: 'cover' }}/>)}
+              {photos.map((p, i) => <img key={i} src={p} alt="" style={{ width: '100%', height: photos.length > 4 ? 118 : 148, objectFit: 'cover' }}/>)}
             </div>
           )}
 
@@ -209,15 +209,13 @@ export default function WorkOrderReport() {
         </div>
 
         {/* footer */}
-        <div style={{ marginTop: 'auto', position: 'relative', padding: '12px 0 14px 110px', fontFamily: 'Arial, sans-serif', fontSize: 14, color: '#222', textAlign: 'center' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
-            {head.phone && <span><Dot c={C}>☎</Dot> {head.phone}</span>}
-            {address && <span><Dot c={C}>⌖</Dot> {address}</span>}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 18, flexWrap: 'wrap', marginTop: 4 }}>
-            {head.email && <span><Dot c={C}>@</Dot> {head.email}</span>}
-            {head.website && <span><Dot c={C}>◍</Dot> {head.website}</span>}
-            {head.trn && <span>TRN {head.trn}</span>}
+        <div style={{ marginTop: 'auto', position: 'relative', padding: '10px 0 12px 100px', fontFamily: 'Arial, sans-serif', fontSize: 12, lineHeight: 1.6, color: '#222', textAlign: 'center' }}>
+          {head.phone && <div><Dot c={C}>☎</Dot> {head.phone}</div>}
+          <div>
+            {[address && <span key="a" style={{ whiteSpace: 'nowrap' }}><Dot c={C}>⌖</Dot> {address}</span>,
+              head.email && <span key="e" style={{ whiteSpace: 'nowrap' }}><Dot c={C}>@</Dot> {head.email}</span>,
+              head.website && <span key="w" style={{ whiteSpace: 'nowrap' }}><Dot c={C}>◍</Dot> {head.website}</span>,
+              head.trn && <span key="t" style={{ whiteSpace: 'nowrap' }}>TRN {head.trn}</span>].filter(Boolean).reduce((acc, x, i) => i ? [...acc, <span key={'s' + i}>&nbsp;&nbsp;&nbsp;</span>, x] : [x], [])}
           </div>
         </div>
       </div>
@@ -226,5 +224,5 @@ export default function WorkOrderReport() {
 }
 
 function Dot({ c, children }) {
-  return <span style={{ display: 'inline-flex', width: 18, height: 18, borderRadius: 9, background: c, color: '#fff', fontSize: 11, alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle' }}>{children}</span>
+  return <span style={{ display: 'inline-flex', width: 16, height: 16, borderRadius: 8, background: c, color: '#fff', fontSize: 11, alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle' }}>{children}</span>
 }
