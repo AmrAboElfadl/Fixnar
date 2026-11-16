@@ -314,7 +314,7 @@ export default function Users() {
 
                 {/* Avatar */}
                 <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:rc.bg, border:`2px solid ${rc.border}`, color:rc.text, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700 }}>
-                  {(u.full_name||u.email||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
+                  {(u.full_name||u.email||'?').split(/[^\p{L}\p{N}]+/u).filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase()}
                 </div>
 
                 {/* Info */}

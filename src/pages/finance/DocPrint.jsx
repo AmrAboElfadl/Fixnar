@@ -56,7 +56,7 @@ export default function DocPrint() {
         <button onClick={() => window.print()} style={{ background: BRAND.color, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 600, cursor: 'pointer' }}>🖨 Print / Save as PDF</button>
         <button onClick={() => window.close()} style={{ marginLeft: 8, background: '#fff', border: '1px solid #ccc', borderRadius: 8, padding: '9px 14px', cursor: 'pointer' }}>Close</button>
       </div>
-      <div className="fin-sheet" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', background: '#fff', padding: '14mm', boxSizing: 'border-box', boxShadow: '0 2px 12px rgba(0,0,0,.15)', position: 'relative' }}>
+      <div className="fin-sheet" translate="no" dir="ltr" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', background: '#fff', padding: '14mm', boxSizing: 'border-box', boxShadow: '0 2px 12px rgba(0,0,0,.15)', position: 'relative' }}>
         {(draft || doc.status === 'void') && (
           <div style={{ position: 'absolute', top: '40%', left: 0, right: 0, textAlign: 'center', fontSize: 110, fontWeight: 900, color: 'rgba(220,0,0,.10)', transform: 'rotate(-25deg)', pointerEvents: 'none' }}>{doc.status === 'void' ? 'VOID' : 'DRAFT'}</div>
         )}

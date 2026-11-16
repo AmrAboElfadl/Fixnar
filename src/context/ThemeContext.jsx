@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { startTranslating } from '../lib/i18n/translator'
 
 const ThemeContext = createContext({})
 
@@ -19,10 +20,14 @@ export function ThemeProvider({ children }) {
     if (meta) meta.setAttribute('content', theme === 'dark' ? '#0d1117' : theme === 'retro' ? '#000080' : '#1D9E75')
   }, [theme])
 
+  const firstLang = useRef(lang)
   useEffect(() => {
     localStorage.setItem('fixnar_lang', lang)
     document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr')
     document.documentElement.setAttribute('lang', lang)
+    if (lang === 'ar') startTranslating()
+    // leaving Arabic: reload so every screen redraws in the original language
+    else if (firstLang.current === 'ar') window.location.reload()
   }, [lang])
 
   // Cycles Light → Dark → Retro → Light

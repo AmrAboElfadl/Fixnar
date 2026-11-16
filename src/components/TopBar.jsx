@@ -5,9 +5,9 @@ import ThemePicker from './ThemePicker'
 import { BRAND } from '../lib/brand'
 
 const LANGS = [
-  { code:'en', label:'EN', name:'English', flag:'🇬🇧' },
-  { code:'ar', label:'AR', name:'العربية', flag:'🇦🇪' },
-  { code:'ur', label:'UR', name:'اردو',    flag:'🇵🇰' },
+  { code:'en', label:'EN', name:'English', flag:'' },
+  { code:'ar', label:'ع', name:'العربية', flag:'' },
+  { code:'ur', label:'UR', name:'اردو',    flag:'' },
 ]
 
 export default function TopBar({ onMenuToggle, pinned, onPin }) {
@@ -78,7 +78,7 @@ export default function TopBar({ onMenuToggle, pinned, onPin }) {
         <div style={{ position:'relative' }}>
           <button onClick={() => setLangOpen(o => !o)}
             style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:8, padding:'6px 12px', cursor:'pointer', color:'var(--text2)', fontSize:13, fontWeight:500 }}>
-            {current.flag} {current.label} ▾
+            🌐 {current.label} ▾
           </button>
 
           {langOpen && (
@@ -87,7 +87,7 @@ export default function TopBar({ onMenuToggle, pinned, onPin }) {
                 <button key={l.code}
                   onClick={() => { setLang(l.code); setLangOpen(false) }}
                   style={{ display:'flex', alignItems:'center', gap:10, width:'100%', background: lang===l.code ? 'var(--green-bg)' : 'transparent', border:'none', borderRadius:7, padding:'9px 12px', cursor:'pointer', color: lang===l.code ? 'var(--green)' : 'var(--text)', fontSize:13, fontWeight: lang===l.code ? 500 : 400, textAlign:'left' }}>
-                  <span style={{ fontSize:18 }}>{l.flag}</span>
+                  
                   <div>
                     <div style={{ fontSize:13 }}>{l.name}</div>
                     <div style={{ fontSize:11, color:'var(--text3)' }}>{l.label}</div>

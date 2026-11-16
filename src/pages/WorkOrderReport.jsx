@@ -61,7 +61,7 @@ export default function WorkOrderReport() {
         <span style={{ fontSize:12, color:'#666', alignSelf:'center' }}>In the print window choose “Save as PDF”.</span>
       </div>
 
-      <div className="sheet" style={{ width:794, maxWidth:'100%', margin:'0 auto', background:'#fff', color:'#111', padding:28, boxShadow:'0 2px 12px rgba(0,0,0,.12)', fontFamily:"'DM Sans', Arial, sans-serif" }}>
+      <div className="sheet" translate="no" dir="ltr" style={{ width:794, maxWidth:'100%', margin:'0 auto', background:'#fff', color:'#111', padding:28, boxShadow:'0 2px 12px rgba(0,0,0,.12)', fontFamily:"'DM Sans', Arial, sans-serif" }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', borderBottom:'2px solid #1D9E75', paddingBottom:12, marginBottom:14 }}>
           <div>
             <div style={{ fontSize:20, fontWeight:800, color:'#1D9E75' }}>Fixnar</div>
