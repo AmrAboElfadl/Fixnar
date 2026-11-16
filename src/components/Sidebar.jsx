@@ -7,6 +7,7 @@ const DEV_EMAIL = import.meta.env.VITE_DEV_EMAIL || 'amrmorsy93@gmail.com'
 const NAV_ITEMS = [
   { path:'/',            label:'Dashboard',      icon:'⊞', roles:['admin','operations','technician'] },
   { path:'/stores',      label:'Stores',         icon:'◈', roles:['admin','operations'] },
+  { path:'/assets',      label:'Assets',         icon:'▥', roles:['admin','operations','technician'] },
   { path:'/work-orders', label:'Work Orders',    icon:'✦', roles:['admin','operations','technician'] },
   { path:'/work-orders', label:'My Jobs',        icon:'✦', roles:['vendor'] },
   { path:'/ppm',         label:'PPM Schedule',   icon:'◎', roles:['admin','operations'] },
