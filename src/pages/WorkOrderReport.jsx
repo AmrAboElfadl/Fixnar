@@ -1,170 +1,230 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { BRAND } from '../lib/brand'
 
-const STATUS = { open:'Open', travelling:'On the way', arrived:'Arrived', in_progress:'In progress', on_hold:'On hold', completed:'Completed', closed:'Closed' }
-const fmt = (d) => d ? new Date(d).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'
-const AED = (n) => `AED ${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 })}`
-const mins = (a, b) => (a && b) ? Math.max(0, Math.round((new Date(b) - new Date(a)) / 60000)) : null
-const dur = (m) => m == null ? '—' : m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${m % 60}m`
+// Service report (A4) in the classic contractor layout: boxed header table, subject + work done,
+// photo strip, parts table, "For <company>" block, signatures, contact footer.
+// "Download PDF" saves a real PDF file; "Print" opens the print window.
+const d2 = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''
+const dt = (d) => d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
+const RESULT = { ok: 'OK', issue: 'Issue found', na: 'N/A', done: 'Done' }
 
-// Printable one-page job report. "Save as PDF" in the print dialog creates the PDF.
 export default function WorkOrderReport() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { profile } = useAuth()
   const [d, setD] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const sheet = useRef(null)
 
   useEffect(() => {
     let alive = true
     ;(async () => {
       const isVendor = profile?.role === 'vendor'
-      const [w, u, c, q, p] = await Promise.all([
-        supabase.from('work_orders').select('*,stores(*),assets(name,brand,model,serial_number)').eq('id', id).maybeSingle(),
-        supabase.from('wo_updates').select('*,profiles(full_name)').eq('work_order_id', id).order('created_at'),
+      const w = await supabase.from('work_orders').select('*,stores(*),assets(name,brand,model,serial_number,location)').eq('id', id).maybeSingle()
+      if (!w.data) { if (alive) setD({ wo: null }); return }
+      const wo = w.data
+      const [u, c, p, h, t, ppm] = await Promise.all([
+        supabase.from('wo_updates').select('photos,created_at').eq('work_order_id', id).order('created_at'),
         supabase.from('wo_checklist_items').select('*').eq('work_order_id', id).order('position'),
-        supabase.from('vendor_quotes').select('*').eq('work_order_id', id).order('created_at'),
-        isVendor ? Promise.resolve({ data:[] }) :
-          supabase.from('stock_movements').select('qty_change,unit_cost,parts(name,unit)').eq('work_order_id', id).eq('kind', 'use'),
+        isVendor ? Promise.resolve({ data: [] }) :
+          supabase.from('stock_movements').select('qty_change,parts(name,unit,part_no)').eq('work_order_id', id).eq('kind', 'use'),
+        supabase.rpc('report_header', { p_store: wo.store_id }),
+        wo.assigned_to ? supabase.from('profiles').select('full_name,phone').eq('id', wo.assigned_to).maybeSingle() : Promise.resolve({ data: null }),
+        wo.ppm_task_id ? supabase.from('ppm_tasks').select('next_due').eq('id', wo.ppm_task_id).maybeSingle() : Promise.resolve({ data: null }),
       ])
-      let tech = null
-      if (w.data?.assigned_to) {
-        const t = await supabase.from('profiles').select('full_name,phone').eq('id', w.data.assigned_to).maybeSingle()
-        tech = t.data
+      const head = h.data || {}
+      let logo = BRAND.banner || BRAND.logo || null
+      if (head.logo_path) {
+        const s = await supabase.storage.from('attachments').createSignedUrl(head.logo_path, 3600)
+        if (s.data?.signedUrl) logo = s.data.signedUrl
       }
-      if (alive) setD({ wo: w.data, updates: u.data || [], checklist: c.data || [], quotes: q.data || [], parts: p.data || [], tech })
+      if (alive) setD({ wo, updates: u.data || [], checklist: c.data || [], parts: p.data || [], head, tech: t.data, nextDue: ppm.data?.next_due, logo })
     })()
     return () => { alive = false }
   }, [id, profile?.role])
 
-  if (!d) return <div style={{ padding:40, textAlign:'center', color:'#777' }}>Preparing report…</div>
-  if (!d.wo) return <div style={{ padding:40, textAlign:'center', color:'#E24B4A' }}>Work order not found.</div>
+  useEffect(() => {
+    if (d?.wo) document.title = `Service report ${d.wo.report_no || ''} – ${d.wo.stores?.name || ''}`
+  }, [d])
 
-  const { wo, updates, checklist, quotes, parts, tech } = d
-  const photos = updates.flatMap(u => Array.isArray(u.photos) ? u.photos : []).concat(Array.isArray(wo.photos) ? wo.photos : []).slice(0, 8)
-  const partsTotal = parts.reduce((a, m) => a + Math.abs(m.qty_change) * Number(m.unit_cost || 0), 0)
-  const approved = quotes.filter(q => ['approved', 'paid'].includes(q.status))
-  const slaMet = wo.sla_due_at ? (new Date(wo.completed_at || wo.closed_at || Date.now()) <= new Date(wo.sla_due_at)) : null
-  const showMoney = profile?.role !== 'technician'
+  async function downloadPdf() {
+    if (!sheet.current) return
+    setBusy(true)
+    try {
+      const html2pdf = (await import('html2pdf.js')).default
+      await html2pdf().set({
+        margin: 0,
+        filename: `Service report ${d.wo.report_no || ''} - ${d.wo.stores?.name || ''}.pdf`.replace(/[\\/:*?"<>|]/g, '-'),
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['.rp-avoid'] },
+      }).from(sheet.current).save()
+    } finally { setBusy(false) }
+  }
 
-  const box = { border:'1px solid #e3e3e3', borderRadius:8, padding:'10px 12px', breakInside:'avoid' }
-  const h = { fontSize:11, fontWeight:700, color:'#1D9E75', letterSpacing:'.06em', margin:'0 0 6px' }
-  const row = { display:'flex', justifyContent:'space-between', gap:10, fontSize:12, padding:'3px 0' }
+  if (!d) return <div style={{ padding: 40, textAlign: 'center', color: '#777' }}>Preparing report…</div>
+  if (!d.wo) return <div style={{ padding: 40, textAlign: 'center', color: '#E24B4A' }}>Work order not found.</div>
+
+  const { wo, updates, checklist, parts, head, tech, nextDue, logo } = d
+  const C = BRAND.color || '#1D9E75'
+  const company = head.company_name || BRAND.name || 'Fixnar'
+  const photos = (Array.isArray(wo.photos) ? wo.photos : []).concat(updates.flatMap(u => Array.isArray(u.photos) ? u.photos : []))
+    .filter(p => typeof p === 'string' && (p.startsWith('data:image') || /\.(jpe?g|png|webp|gif)(\?|$)/i.test(p))).slice(0, 8)
+  const jobType = wo.wo_type === 'ppm' ? 'Preventive maintenance (PPM)' : (wo.category ? `Breakdown / repair — ${wo.category}` : 'Breakdown / repair')
+  const done = wo.completed_at || wo.closed_at
+  const signed = !!wo.signature_url
+  const engineer = tech?.full_name || (wo.vendor_name ? '—' : '—')
+  const customer = head.client_name || wo.stores?.name || '—'
+  const asset = wo.assets ? [wo.assets.name, [wo.assets.brand, wo.assets.model].filter(Boolean).join(' '), wo.assets.serial_number && `S/N ${wo.assets.serial_number}`].filter(Boolean).join(' · ') : null
+  const partRows = parts.length ? parts.map(m => ({ name: [m.parts?.name, m.parts?.part_no && `(${m.parts.part_no})`].filter(Boolean).join(' '), qty: `${Math.abs(m.qty_change)} ${m.parts?.unit || ''}`.trim() })) : [{ name: '', qty: '' }]
+  const address = [head.address, head.emirate].filter(Boolean).join(', ')
+
+  const T = { width: '100%', borderCollapse: 'collapse', fontSize: 15 }
+  const td = { border: '1px solid #222', padding: '3px 8px', verticalAlign: 'top' }
+  const label = { ...td, width: 200, whiteSpace: 'nowrap' }
+  const serif = "'Times New Roman', Times, Georgia, serif"
 
   return (
-    <div style={{ background:'#eee', minHeight:'100vh', padding:'16px 0' }}>
-      <style>{`@media print { .no-print { display:none !important } body { background:#fff } .sheet { box-shadow:none !important; margin:0 !important; width:auto !important } @page { size:A4; margin:12mm } }`}</style>
-      <div className="no-print" style={{ maxWidth:794, margin:'0 auto 12px', display:'flex', gap:8, padding:'0 12px' }}>
-        <button onClick={() => navigate(-1)} style={{ padding:'8px 14px', borderRadius:8, border:'1px solid #ccc', background:'#fff', cursor:'pointer' }}>← Back</button>
-        <button onClick={() => window.print()} style={{ padding:'8px 16px', borderRadius:8, border:'none', background:'#1D9E75', color:'#fff', fontWeight:600, cursor:'pointer' }}>🖨 Print / Save as PDF</button>
-        <span style={{ fontSize:12, color:'#666', alignSelf:'center' }}>In the print window choose “Save as PDF”.</span>
+    <div style={{ background: '#e9ecef', minHeight: '100vh', padding: '16px 0' }}>
+      <style>{`@media print { .no-print { display:none !important } body { background:#fff !important } .rp-sheet { box-shadow:none !important; margin:0 !important } @page { size:A4; margin:0 } }
+        .rp-sheet * { box-sizing:border-box }`}</style>
+      <div className="no-print" style={{ maxWidth: 794, margin: '0 auto 12px', display: 'flex', gap: 8, padding: '0 12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <button onClick={() => navigate(-1)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}>← Back</button>
+        <button onClick={downloadPdf} disabled={busy} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: C, color: '#fff', fontWeight: 600, cursor: 'pointer' }}>{busy ? 'Creating PDF…' : '⬇ Download PDF'}</button>
+        <button onClick={() => window.print()} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}>🖨 Print</button>
+        {!signed && <span style={{ fontSize: 12, color: '#a15c00' }}>Not signed by the store manager yet.</span>}
       </div>
 
-      <div className="sheet" style={{ width:794, maxWidth:'100%', margin:'0 auto', background:'#fff', color:'#111', padding:28, boxShadow:'0 2px 12px rgba(0,0,0,.12)', fontFamily:"'DM Sans', Arial, sans-serif" }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', borderBottom:'2px solid #1D9E75', paddingBottom:12, marginBottom:14 }}>
-          <div>
-            <div style={{ fontSize:20, fontWeight:800, color:'#1D9E75' }}>Fixnar</div>
-            <div style={{ fontSize:11, color:'#666' }}>Maintenance job report</div>
-          </div>
-          <div style={{ textAlign:'right', fontSize:12 }}>
-            <div style={{ fontWeight:700, fontSize:14 }}>WO #{id.slice(0, 8).toUpperCase()}</div>
-            <div>Status: <b>{STATUS[wo.status] || wo.status}</b></div>
-            <div style={{ color:'#666' }}>Printed {fmt(new Date())}</div>
-          </div>
+      <div ref={sheet} className="rp-sheet" translate="no" dir="ltr"
+        style={{ width: 794, minHeight: 1120, margin: '0 auto', background: '#fff', color: '#111', position: 'relative', overflow: 'hidden',
+          boxShadow: '0 2px 12px rgba(0,0,0,.15)', fontFamily: serif, display: 'flex', flexDirection: 'column', padding: '24px 44px 0' }}>
+
+        {/* corner accents */}
+        {/* (border triangles — they render in the downloaded PDF too) */}
+        <div aria-hidden style={{ position: 'absolute', top: 0, right: 0, width: 0, height: 0, borderTop: '190px solid #4a4f55', borderLeft: '300px solid transparent' }}/>
+        <div aria-hidden style={{ position: 'absolute', top: 0, right: 0, width: 0, height: 0, borderTop: `240px solid ${C}`, borderLeft: '190px solid transparent' }}/>
+        <div aria-hidden style={{ position: 'absolute', bottom: 0, left: 0, width: 0, height: 0, borderBottom: `105px solid ${C}`, borderRight: '100px solid transparent' }}/>
+        <div aria-hidden style={{ position: 'absolute', bottom: 0, left: 0, width: 0, height: 0, borderBottom: '68px solid #4a4f55', borderRight: '85px solid transparent' }}/>
+        {/* watermark */}
+        {logo && <img src={logo} alt="" crossOrigin="anonymous" style={{ position: 'absolute', top: '36%', left: '50%', transform: 'translate(-50%,-50%)', width: 420, opacity: .06, pointerEvents: 'none' }}/>}
+
+        {/* logo */}
+        <div style={{ position: 'relative', height: 84, display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+          {logo
+            ? <img src={logo} alt="" crossOrigin="anonymous" style={{ maxHeight: 92, maxWidth: 360, objectFit: 'contain' }}/>
+            : <div><div style={{ fontFamily: 'Arial, sans-serif', fontSize: 38, fontWeight: 900, letterSpacing: '.02em', color: '#222' }}>{company.toUpperCase()}</div>
+                {head.legal_name && head.legal_name !== company && <div style={{ fontFamily: 'Arial, sans-serif', fontSize: 13, letterSpacing: '.35em', color: '#333' }}>{head.legal_name.toUpperCase()}</div>}</div>}
         </div>
 
-        <div style={{ fontSize:17, fontWeight:700, marginBottom:4 }}>{wo.title}</div>
-        <div style={{ fontSize:12, color:'#444', marginBottom:14 }}>
-          {wo.priority} · {wo.category || '—'}{wo.wo_type === 'ppm' ? ' · Planned maintenance (PPM)' : ''}
-        </div>
+        <div style={{ position: 'relative' }}>
+          {/* header table */}
+          <table style={{ ...T, borderBottom: '4px solid #111' }}><tbody>
+            <tr>
+              <td style={{ ...td, width: 90, fontSize: 18 }}>No.</td>
+              <td style={{ ...td, width: 115, color: '#c00', fontSize: 15 }}>{wo.report_no || ''}</td>
+              <td style={{ ...td, textAlign: 'center', fontSize: 34, verticalAlign: 'middle' }}>Service report</td>
+              <td style={{ ...td, width: 62, fontSize: 18, lineHeight: 1.25 }}>Date{nextDue ? <><br/>To</> : null}</td>
+              <td style={{ ...td, width: 162, fontSize: 18, lineHeight: 1.25 }}>{d2(done || wo.created_at)}{nextDue ? <><br/>{d2(nextDue)}</> : null}</td>
+            </tr>
+          </tbody></table>
+          <table style={{ ...T, fontSize: 18 }}><tbody>
+            <tr><td style={{ ...td, borderTop: 'none' }} colSpan={1}>Job Type</td><td style={{ ...td, borderTop: 'none', width: 224 }}>{wo.wo_type === 'ppm' ? 'Service (PPM)' : 'Repair'}</td></tr>
+          </tbody></table>
+          <table style={{ ...T, fontSize: 17 }}><tbody>
+            <tr><td style={{ ...label, borderTop: 'none' }}>Customer name :</td><td style={{ ...td, borderTop: 'none', fontFamily: 'Arial, sans-serif', fontWeight: 700, fontSize: 15 }}>{customer}</td></tr>
+            <tr><td style={label}>Location:</td><td style={{ ...td, fontFamily: 'Arial, sans-serif', fontSize: 15 }}>{[wo.stores?.name, wo.stores?.address].filter(Boolean).join(' — ')}</td></tr>
+            {asset && <tr><td style={label}>Equipment:</td><td style={{ ...td, fontFamily: 'Arial, sans-serif', fontSize: 15 }}>{asset}{wo.assets?.location ? ` — ${wo.assets.location}` : ''}</td></tr>}
+            <tr><td style={label}>Engineer:</td><td style={td}>{engineer.toUpperCase()}{wo.vendor_name ? <span style={{ fontSize: 14 }}> ({wo.vendor_name})</span> : null}</td></tr>
+          </tbody></table>
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10 }}>
-          <div style={box}>
-            <div style={h}>LOCATION</div>
-            <div style={{ fontSize:13, fontWeight:600 }}>{wo.stores?.name || '—'}</div>
-            <div style={{ fontSize:12, color:'#555' }}>{wo.stores?.address}</div>
-            <div style={{ fontSize:12, color:'#555' }}>{[wo.stores?.manager_name, wo.stores?.phone].filter(Boolean).join(' · ')}</div>
-            {wo.assets && <div style={{ fontSize:12, marginTop:6 }}>Asset: <b>{wo.assets.name}</b>{[wo.assets.brand, wo.assets.model, wo.assets.serial_number && 'S/N ' + wo.assets.serial_number].filter(Boolean).length ? ' — ' + [wo.assets.brand, wo.assets.model, wo.assets.serial_number && 'S/N ' + wo.assets.serial_number].filter(Boolean).join(' · ') : ''}</div>}
-          </div>
-          <div style={box}>
-            <div style={h}>TIMELINE</div>
-            <div style={row}><span>Reported</span><b>{fmt(wo.created_at)}</b></div>
-            <div style={row}><span>Arrived on site</span><span>{fmt(wo.arrived_at)}</span></div>
-            <div style={row}><span>Completed</span><span>{fmt(wo.completed_at)}</span></div>
-            <div style={row}><span>Response time</span><span>{dur(mins(wo.created_at, wo.arrived_at || wo.work_started_at))}</span></div>
-            <div style={row}><span>SLA</span><b style={{ color: slaMet == null ? '#111' : slaMet ? '#1D9E75' : '#E24B4A' }}>{slaMet == null ? '—' : slaMet ? 'Met' : 'Breached'}</b></div>
-          </div>
-        </div>
-
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10 }}>
-          <div style={box}>
-            <div style={h}>DONE BY</div>
-            <div style={{ fontSize:12 }}>Technician: <b>{tech?.full_name || '—'}</b></div>
-            <div style={{ fontSize:12 }}>Vendor: <b>{wo.vendor_name || 'In-house'}</b></div>
-          </div>
-          <div style={box}>
-            <div style={h}>PROBLEM</div>
-            <div style={{ fontSize:12, whiteSpace:'pre-wrap' }}>{wo.description || '—'}</div>
-          </div>
-        </div>
-
-        <div style={{ ...box, marginBottom:10 }}>
-          <div style={h}>WORK DONE</div>
-          <div style={{ fontSize:12, whiteSpace:'pre-wrap' }}>{wo.work_update || '—'}</div>
-          {wo.hold_reason && <div style={{ fontSize:12, color:'#a66', marginTop:4 }}>Hold reason: {wo.hold_reason}</div>}
-        </div>
-
-        {checklist.length > 0 && (
-          <div style={{ ...box, marginBottom:10 }}>
-            <div style={h}>CHECKLIST ({checklist.filter(c => c.is_done).length}/{checklist.length})</div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2px 16px' }}>
-              {checklist.map(c => (
-                <div key={c.id} style={{ fontSize:12, display:'flex', gap:6 }}>
-                  <span style={{ width:14 }}>{c.is_done ? '☑' : '☐'}</span>
-                  <span style={{ flex:1 }}>{c.label}</span>
-                  {c.result && <b style={{ color: c.result === 'issue' ? '#E24B4A' : '#555' }}>{c.result.toUpperCase()}</b>}
-                </div>
-              ))}
+          {/* body */}
+          <div style={{ border: '1px solid #222', borderTop: 'none', padding: '5px 10px 8px', fontSize: 15, lineHeight: 1.45 }}>
+            <div><b>Subject: {wo.title}</b></div>
+            <div style={{ fontSize: 13.5, color: '#333' }}>{jobType} · Priority {wo.priority}</div>
+            {wo.description && <div style={{ marginTop: 4 }}><b>Reported problem:</b> <span style={{ whiteSpace: 'pre-wrap' }}>{wo.description}</span></div>}
+            {wo.work_update && <div style={{ marginTop: 4 }}><b>Work carried out:</b><div style={{ whiteSpace: 'pre-wrap' }}>{wo.work_update}</div></div>}
+            {checklist.length > 0 && (
+              <div style={{ marginTop: 4 }}>
+                <div>The following checks were carried out:</div>
+                <ol style={{ margin: '2px 0 0', paddingLeft: 40 }}>
+                  {checklist.map(c => (
+                    <li key={c.id}><b>{c.label}:</b> {c.is_done ? (RESULT[c.result] || 'Checked') : 'Not checked'}{c.note ? ` — ${c.note}` : ''}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+            <div style={{ marginTop: 4 }}><b>Conclusion:</b></div>
+            <div>
+              {done ? `Job completed on ${dt(done)}.` : `Job status: ${String(wo.status || '').replace('_', ' ')}.`}
+              {wo.hold_reason && !done ? ` On hold: ${wo.hold_reason}.` : ''}
+              {signed ? ` Work accepted and signed by the store manager${wo.signed_by ? ` (${wo.signed_by})` : ''}${wo.signed_at ? ` on ${dt(wo.signed_at)}` : ''}.` : ''}
             </div>
           </div>
-        )}
 
-        {showMoney && (parts.length > 0 || approved.length > 0 || wo.cost != null) && (
-          <div style={{ ...box, marginBottom:10 }}>
-            <div style={h}>COST</div>
-            {parts.map((m, i) => <div key={i} style={row}><span>{Math.abs(m.qty_change)} {m.parts?.unit} × {m.parts?.name}</span><span>{AED(Math.abs(m.qty_change) * Number(m.unit_cost || 0))}</span></div>)}
-            {approved.map(q => <div key={q.id} style={row}><span>Vendor {q.kind}{q.description ? ` — ${q.description}` : ''}</span><span>{AED(q.amount)}</span></div>)}
-            {approved.length === 0 && wo.cost != null && <div style={row}><span>Job cost</span><span>{AED(wo.cost)}</span></div>}
-            <div style={{ ...row, borderTop:'1px solid #ddd', marginTop:4, paddingTop:6, fontWeight:700 }}><span>Total</span><span>{AED(Number(wo.cost || 0) + partsTotal)}</span></div>
-          </div>
-        )}
-
-        {photos.length > 0 && (
-          <div style={{ ...box, marginBottom:10 }}>
-            <div style={h}>PHOTOS</div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:6 }}>
-              {photos.map((p, i) => <img key={i} src={p} alt="" style={{ width:'100%', height:110, objectFit:'cover', borderRadius:4 }}/>)}
+          {/* photos */}
+          {photos.length > 0 && (
+            <div className="rp-avoid" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(4, photos.length)}, 1fr)`, gap: 6, padding: '6px 0', borderLeft: '1px solid #222', borderRight: '1px solid #222' }}>
+              {photos.map((p, i) => <img key={i} src={p} alt="" style={{ width: '100%', height: photos.length > 4 ? 125 : 165, objectFit: 'cover' }}/>)}
             </div>
-          </div>
-        )}
+          )}
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-          <div style={box}>
-            <div style={h}>STORE MANAGER SIGN-OFF</div>
-            {wo.signature_url ? <img src={wo.signature_url} alt="Signature" style={{ height:70, maxWidth:'100%' }}/> : <div style={{ height:70, borderBottom:'1px solid #999' }}/>}
-            <div style={{ fontSize:12, marginTop:4 }}>{wo.signed_by || 'Name: ____________________'}</div>
-            <div style={{ fontSize:11, color:'#666' }}>{wo.signed_at ? fmt(wo.signed_at) : 'Date: ____________'}</div>
-          </div>
-          <div style={box}>
-            <div style={h}>ACTIVITY</div>
-            {updates.slice(-6).map(u => (
-              <div key={u.id} style={{ fontSize:11, color:'#444', padding:'1px 0' }}>{fmt(u.created_at)} — {u.content}</div>
+          {/* parts */}
+          <table className="rp-avoid" style={{ ...T, fontSize: 18 }}><tbody>
+            <tr>
+              <td style={{ ...td, width: 50, fontWeight: 700 }}>S.<br/>N</td>
+              <td style={{ ...td, textAlign: 'center', fontWeight: 700 }}>Parts required / Used</td>
+              <td style={{ ...td, width: 160, textAlign: 'center', fontWeight: 700 }}>Quantity</td>
+            </tr>
+            {partRows.map((r, i) => (
+              <tr key={i}><td style={td}>{i + 1}.</td><td style={{ ...td, fontSize: 16 }}>{r.name}</td><td style={{ ...td, fontSize: 16, textAlign: 'center' }}>{r.qty}</td></tr>
             ))}
-            {updates.length === 0 && <div style={{ fontSize:11, color:'#777' }}>—</div>}
+          </tbody></table>
+
+          {/* for company */}
+          <table className="rp-avoid" style={{ ...T, fontSize: 18 }}><tbody>
+            <tr><td style={{ ...td, borderTop: 'none', textAlign: 'center' }} colSpan={2}>For <b>{company.toUpperCase()}</b></td></tr>
+            <tr><td style={{ ...td, width: 165 }}>Name</td><td style={td}>{tech?.full_name ? `Eng. ${tech.full_name}` : (wo.vendor_name || '')}</td></tr>
+            <tr><td style={td}>Contact no.</td><td style={td}>{tech?.phone || head.phone || ''}</td></tr>
+          </tbody></table>
+
+          {/* signatures */}
+          <div className="rp-avoid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginTop: 10, fontSize: 16, paddingLeft: 0 }}>
+            <div>
+              <div>Signature</div>
+              <div style={{ height: 66, borderBottom: '1px dotted #888', marginTop: 4 }}/>
+              <div style={{ fontSize: 13, color: '#444', marginTop: 3 }}>Technician / for {company}</div>
+            </div>
+            <div>
+              <div>Store manager — accepted by</div>
+              <div style={{ height: 66, borderBottom: '1px dotted #888', marginTop: 4, display: 'flex', alignItems: 'flex-end' }}>
+                {signed && <img src={wo.signature_url} alt="Signature" style={{ maxHeight: 64, maxWidth: '100%' }}/>}
+              </div>
+              <div style={{ fontSize: 13, color: '#444', marginTop: 3 }}>{wo.signed_by || 'Name:'}{wo.signed_at ? ` · ${dt(wo.signed_at)}` : ''}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* footer */}
+        <div style={{ marginTop: 'auto', position: 'relative', padding: '12px 0 14px 110px', fontFamily: 'Arial, sans-serif', fontSize: 14, color: '#222', textAlign: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
+            {head.phone && <span><Dot c={C}>☎</Dot> {head.phone}</span>}
+            {address && <span><Dot c={C}>⌖</Dot> {address}</span>}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 18, flexWrap: 'wrap', marginTop: 4 }}>
+            {head.email && <span><Dot c={C}>@</Dot> {head.email}</span>}
+            {head.website && <span><Dot c={C}>◍</Dot> {head.website}</span>}
+            {head.trn && <span>TRN {head.trn}</span>}
           </div>
         </div>
       </div>
     </div>
   )
+}
+
+function Dot({ c, children }) {
+  return <span style={{ display: 'inline-flex', width: 18, height: 18, borderRadius: 9, background: c, color: '#fff', fontSize: 11, alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle' }}>{children}</span>
 }
