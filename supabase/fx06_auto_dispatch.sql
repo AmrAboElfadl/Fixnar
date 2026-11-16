@@ -1,5 +1,5 @@
 -- FIXNAR fx06 — Automatic daily dispatch plan per technician
--- Rules: working hours 09:00–18:00 (Mon–Fri, Dubai), max 8 work orders per technician per day,
+-- Rules: working hours 09:00–18:00 Dubai, Mon–Sat since fx07 (this file first had Mon–Fri), max 8 work orders per technician per day,
 -- jobs whose SLA is still valid go first (earliest deadline first), then already-breached jobs
 -- (P1→P4, oldest first). Jobs already started stay on today. Manually placed jobs are kept (schedule_locked).
 

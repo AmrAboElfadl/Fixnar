@@ -367,7 +367,7 @@ export default function WorkOrderDetail() {
             </div>
           </div>
           <div style={{ minWidth:160 }}>
-            <SLABadge priority={wo.priority} createdAt={wo.created_at} status={wo.status}/>
+            <SLABadge priority={wo.priority} createdAt={wo.created_at} status={wo.status} dueAt={wo.sla_due_at}/>
             {isStaff && !isClosed && <button onClick={openAssign} style={{ ...ghost, marginTop:10, width:'100%', padding:'7px 10px' }}>✏️ Assign / edit</button>}
           </div>
         </div>

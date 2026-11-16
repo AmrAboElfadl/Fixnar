@@ -196,6 +196,9 @@ export default function WorkOrders() {
   const [showForm, setShowForm] = useState(!!searchParams.get('new'))
   const [form,     setForm]     = useState(EMPTY)
   const [saving,   setSaving]   = useState(false)
+  // Draft autosave (from FBOS): a half-written work order survives a closed tab or lost signal
+  const draftKey = profile?.id ? `fixnar_wo_draft_${profile.id}` : null
+  const [draftOffer, setDraftOffer] = useState(null)
 
   // Filters
   const [search,          setSearch]          = useState('')
@@ -244,6 +247,25 @@ export default function WorkOrders() {
     setFilteredAssets(storeAssets)
   }, [form.store_id, form.subcategory, assets])
 
+  // Offer a saved draft when the form opens empty
+  useEffect(() => {
+    if (!showForm || !draftKey) return
+    if (JSON.stringify(form) !== JSON.stringify(EMPTY)) return
+    try {
+      const d = JSON.parse(localStorage.getItem(draftKey) || 'null')
+      if (d && d.form && (d.form.category || d.form.description || d.form.store_id)) setDraftOffer(d)
+    } catch (e) {}
+  }, [showForm, draftKey])
+
+  // Save the draft while typing
+  useEffect(() => {
+    if (!showForm || !draftKey || draftOffer) return
+    if (JSON.stringify(form) === JSON.stringify(EMPTY)) return
+    try { localStorage.setItem(draftKey, JSON.stringify({ form, at: Date.now() })) } catch (e) {}
+  }, [form, showForm, draftKey, draftOffer])
+
+  function clearDraft() { try { if (draftKey) localStorage.removeItem(draftKey) } catch (e) {} setDraftOffer(null) }
+
   // Any change to a work order anywhere (board, detail page, phone) refreshes this list
   useLive('work_orders', () => fetchAll(true))
 
@@ -281,6 +303,10 @@ export default function WorkOrders() {
 
   async function handleSave() {
     if (!form.category || !form.fault || !form.priority || !form.store_id) return
+    if (duplicates.length && !window.confirm(
+      `${duplicates.length === 1 ? 'A similar job is' : duplicates.length + ' similar jobs are'} already open for this store:\n\n` +
+      duplicates.slice(0, 3).map(w => `• ${w.title} (${STATUS_LABELS[w.status] || w.status})`).join('\n') +
+      '\n\nCreate a new work order anyway?')) return
     setSaving(true)
     const title = `${form.category} — ${form.subcategory} — ${form.fault}`
     const { data, error } = await supabase.from('work_orders').insert({
@@ -292,7 +318,7 @@ export default function WorkOrders() {
       schedule_locked: !!form.scheduled_date,   // a date picked by hand is kept; otherwise auto-plan places it
     }).select().single()
     if (!(error && Object.keys(error).length) && data) {
-      setShowForm(false); setForm(EMPTY); fetchAll()
+      clearDraft(); setShowForm(false); setForm(EMPTY); fetchAll()
       navigate(isAdmin || profile?.role === 'operations' ? '/schedule' : `/work-orders/${data.id}`)
     }
     else alert('Error: ' + (error?.message || 'Could not create the work order'))
@@ -384,6 +410,14 @@ export default function WorkOrders() {
   const subcategories = form.category ? Object.keys(CATEGORIES[form.category]?.subcategories || {}) : []
   const faults = form.subcategory ? CATEGORIES[form.category]?.subcategories[form.subcategory]?.faults || [] : []
   const suggestedPriority = form.fault ? faults.find(f => f.name === form.fault)?.priority : null
+  // Priority comes from the fault; only an admin may change it (from FBOS R490)
+  const canSetPriority = isAdmin
+  // Open jobs at the same store for the same asset, or the same fault (from FBOS duplicate guard)
+  const draftTitle = form.fault ? `${form.category} — ${form.subcategory} — ${form.fault}` : ''
+  const duplicates = form.store_id ? wos.filter(w =>
+    w.store_id === form.store_id && !['completed','closed'].includes(w.status) &&
+    ((form.asset_id && w.asset_id === form.asset_id) || (draftTitle && w.title === draftTitle))
+  ) : []
   const canSave = form.category && form.subcategory && form.fault && form.priority && form.store_id
 
   const inp = { background:'var(--input-bg)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--text)', fontSize:13, width:'100%', boxSizing:'border-box', outline:'none' }
@@ -535,6 +569,14 @@ export default function WorkOrders() {
             <button onClick={() => { setShowForm(false); setForm(EMPTY) }} style={{ background:'transparent', border:'none', color:'var(--text3)', cursor:'pointer', fontSize:20 }}>✕</button>
           </div>
 
+          {draftOffer && (
+            <div style={{ background:'var(--amber-bg)', border:'1px solid var(--amber)', borderRadius:8, padding:'8px 14px', marginBottom:14, fontSize:12, color:'var(--amber)', display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+              <span>📝 You have an unsent work order from {new Date(draftOffer.at).toLocaleString()}.</span>
+              <button onClick={() => { setForm({ ...EMPTY, ...draftOffer.form }); setDraftOffer(null) }} style={{ background:'var(--amber)', color:'white', border:'none', borderRadius:6, padding:'4px 12px', fontSize:12, cursor:'pointer' }}>Restore</button>
+              <button onClick={clearDraft} style={{ background:'transparent', color:'var(--amber)', border:'1px solid var(--amber)', borderRadius:6, padding:'4px 12px', fontSize:12, cursor:'pointer' }}>Discard</button>
+            </div>
+          )}
+
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:12, marginBottom:16 }}>
             <div>
               <label style={{ color:'var(--text3)', fontSize:12, display:'block', marginBottom:5 }}>1. Category *</label>
@@ -563,12 +605,13 @@ export default function WorkOrders() {
             <div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', marginBottom:14, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
               <span style={{ color:'var(--text3)', fontSize:12 }}>Priority:</span>
               {['P1','P2','P3','P4'].map(p => (
-                <button key={p} onClick={() => setForm({...form, priority:p})}
+                <button key={p} onClick={() => { if (canSetPriority || p === suggestedPriority) setForm({...form, priority:p}) }}
+                  disabled={!canSetPriority && p !== suggestedPriority} title={!canSetPriority && p !== suggestedPriority ? 'Only an admin can change the priority' : ''}
                   style={{ background: form.priority===p ? PRIORITY_COLORS[p].bg : 'transparent', color: form.priority===p ? PRIORITY_COLORS[p].text : 'var(--text3)', border:`1px solid ${form.priority===p ? PRIORITY_COLORS[p].text : 'var(--border)'}`, borderRadius:6, padding:'4px 14px', fontSize:12, fontWeight:600, cursor:'pointer', outline: suggestedPriority===p&&form.priority!==p ? `2px dashed ${PRIORITY_COLORS[p].text}` : 'none' }}>
                   {p} {suggestedPriority===p?'⭐':''}
                 </button>
               ))}
-              <span style={{ color:'var(--text3)', fontSize:11 }}>⭐ auto-suggested</span>
+              <span style={{ color:'var(--text3)', fontSize:11 }}>{canSetPriority ? '⭐ auto-suggested' : '⭐ set from the fault — only an admin can change it'}</span>
             </div>
           )}
 
@@ -612,6 +655,15 @@ export default function WorkOrders() {
               <input style={inp} value={form.description} onChange={e => setForm({...form, description:e.target.value})} placeholder="Additional details..."/>
             </div>
           </div>
+
+          {duplicates.length > 0 && (
+            <div style={{ background:'var(--amber-bg)', border:'1px solid var(--amber)', borderRadius:8, padding:'8px 14px', marginBottom:14, fontSize:12, color:'var(--amber)' }}>
+              ⚠ {duplicates.length === 1 ? 'A similar job is' : `${duplicates.length} similar jobs are`} already open for this store:
+              {duplicates.slice(0, 3).map(w => (
+                <div key={w.id}><a href={`/work-orders/${w.id}`} onClick={e => { e.preventDefault(); navigate(`/work-orders/${w.id}`) }} style={{ color:'var(--amber)' }}>{w.title}</a> · {STATUS_LABELS[w.status] || w.status}</div>
+              ))}
+            </div>
+          )}
 
           {form.fault && (
             <div style={{ background:'var(--blue-bg)', border:'1px solid var(--blue)', borderRadius:8, padding:'8px 14px', marginBottom:14, fontSize:12, color:'var(--blue)' }}>
@@ -729,7 +781,7 @@ export default function WorkOrders() {
 
                   {/* SLA */}
                   <td style={{ padding:'11px 14px', minWidth:150 }}>
-                    <SLABadge priority={wo.priority} createdAt={wo.created_at} status={wo.status}/>
+                    <SLABadge priority={wo.priority} createdAt={wo.created_at} status={wo.status} dueAt={wo.sla_due_at}/>
                   </td>
                 </tr>
               ))}

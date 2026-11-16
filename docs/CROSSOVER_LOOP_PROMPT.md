@@ -1,4 +1,4 @@
-# Maintenance crossover run — every 20 days
+# Maintenance crossover run: 1st, 10th and 20th of every month, 02:00 Dubai
 
 This is the stored prompt of the scheduled task "FBOS ⇄ Fixnar maintenance
 crossover". The same file is in `Fixnar/docs/CROSSOVER_LOOP_PROMPT.md`.
@@ -29,7 +29,8 @@ it with `add_repo` (push access) and clone it.
    `PENDING.md`, ranked.
 5. **Build.** Take the top `todo` item in each repo's PENDING.md, at most
    **one per repo**. Port the idea, not the code.
-   - FBOS: the release pipeline, one release number, tests, shadow plus kill
+   - FBOS: every Fixnar feature goes into the **Maintenance module only**,
+     never into Inventory, Finance, HR or other modules. Use the release pipeline, one release number, tests, shadow plus kill
      switch for any new restriction, `[HIGH-RISK]` title for proxy/auth/DDL.
      Update the ledger, `PENDING_JAD.md` (human steps), `PENDING.md` and the
      crossover file in the same commit.
@@ -40,8 +41,5 @@ it with `add_repo` (push access) and clone it.
      GitHub MCP. **Never merge, never push to `main`, never deploy, never
      apply DDL/DML, never touch secrets.** After 3 failures on an item, mark it
      `blocked: <why>` and stop that item.
-6. **Re-arm.** Set this scheduled task's next run to 20 days after today (same
-   time, Asia/Dubai) with `update_trigger` `run_once_at`. If that fails, say
-   so clearly in the report.
-7. **Report** in a few lines: health, PENDING changes, PR links (one per repo
+6. **Report** in a few lines: health, PENDING changes, PR links (one per repo
    at most), what needs a human, and the next run date.
