@@ -198,10 +198,13 @@ export default function WorkOrderDetail() {
   async function saveAssign() {
     setSaving(true)
     const patch = {
-      assigned_to: assign.assigned_to || null, vendor_id: assign.vendor_id || null, priority: assign.priority,
+      assigned_to: assign.assigned_to || null, vendor_id: assign.vendor_id || null,
       scheduled_date: assign.scheduled_date || null, scheduled_time: assign.scheduled_time || null,
       duration_hours: Number(assign.duration_hours) || 1, cost: assign.cost === '' ? null : Number(assign.cost),
     }
+    // Only an admin may change the priority (database guard, fx10); others never send it
+    patch.priority = role === 'admin' ? assign.priority : wo.priority
+    if (role === 'admin' && patch.priority === wo.priority) delete patch.priority
     if (patch.scheduled_date && new Date(patch.scheduled_date + 'T00:00:00').getDay() === 0) {
       setSaving(false); return flash('Sunday is a day off — choose another day', 'error')
     }
@@ -387,8 +390,8 @@ export default function WorkOrderDetail() {
               <select value={assign.vendor_id} onChange={e => setAssign({ ...assign, vendor_id:e.target.value })} style={inp}>
                 <option value="">— in-house —</option>{vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select></div>
-            <div><label style={lbl}>Priority</label>
-              <select value={assign.priority} onChange={e => setAssign({ ...assign, priority:e.target.value })} style={inp}>
+            <div><label style={lbl}>Priority{role !== 'admin' && <span style={{ color:'var(--text3)', fontWeight:400 }}> · only an admin can change it</span>}</label>
+              <select value={assign.priority} onChange={e => setAssign({ ...assign, priority:e.target.value })} style={{ ...inp, opacity: role === 'admin' ? 1 : 0.6 }} disabled={role !== 'admin'}>
                 {['P1','P2','P3','P4'].map(p => <option key={p}>{p}</option>)}
               </select></div>
             <div><label style={lbl}>Scheduled date</label><input type="date" value={assign.scheduled_date || ''} onChange={e => setAssign({ ...assign, scheduled_date:e.target.value })} style={inp}/></div>
