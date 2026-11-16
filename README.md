@@ -77,3 +77,6 @@ approval, asset QR labels (`/a/<asset-id>`), installable mobile app (PWA), vendo
 
 **Database:** migrations `fx01`–`fx04` are applied in Supabase (see Supabase → Database → Migrations).
 Scheduled jobs (pg_cron): `fixnar_sla_check`, `fixnar_ppm_generate`.
+
+## How changes are delivered
+Claude opens pull requests on `claude/…` branches. Review the PR (Vercel adds a preview link), then click **Merge** — Vercel deploys `main` automatically.
