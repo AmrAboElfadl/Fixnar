@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { hasModule } from '../lib/brand'
 import { supabase, fetchAllRows } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -264,10 +265,10 @@ export default function Dashboard() {
           color="#1565C0" bg="#E3F2FD" border="#378ADD66"
           sub="Currently being worked"
           onClick={()=>setModal('progress')}/>
-        <StatCard label="Assets" value={assets.length} icon="🔧"
+        {hasModule('assets') && <StatCard label="Assets" value={assets.length} icon="🔧"
           color="#1B5E20" bg="#E8F5E9" border="#1D9E7566"
           sub={`${catData.length} categories`}
-          onClick={()=>setModal('assets')}/>
+          onClick={()=>setModal('assets')}/>}
         <StatCard label="PPM Due (7 days)" value={ppmDue.length} icon="📅"
           color="#BF360C" bg="#FBE9E7" border="#E24B4A66"
           sub={ppmOverdue.length>0?`⚠️ ${ppmOverdue.length} overdue`:'All on schedule'}
