@@ -13,6 +13,7 @@ It is never mixed into another FBOS module: no Inventory, Finance or HR coupling
 | Cycle | Date | FBOS live | Fixnar HEAD | Built this cycle |
 |---|---|---|---|---|
 | 0 (baseline) | 2026-11-16 | R513 (`322687f`) | `b0bdbeb` | nothing (comparison only) |
+| 1b | 2026-11-16 | R515 PR | — | FBOS: drag in Day / Week / Month (owner request) |
 | 1 | 2026-11-16 | R513 → **R514** PR | `56d8a94` PR | FBOS: Fixnar checklist templates + picker, outsource Score. Fixnar: Dubai SLA badge, duplicate warning, admin-only priority, draft autosave, fx10 written (SLA pause, second tech, priority guard) |
 
 ---
@@ -44,6 +45,7 @@ It is never mixed into another FBOS module: no Inventory, Finance or HR coupling
 | Auto-planner (slots per technician) | ✅ `_planRun`, last start 18:00, keeps today's manual moves | ✅ `plan_dispatch()` (EDF, then breached P1→P4) | |
 | Max jobs per technician per day | — | ✅ `dispatch_settings.max_per_day` | **→ FBOS** |
 | Auto-assign by store link + lowest open load | ◐ routing rules | ✅ | |
+| Drag to reschedule in Day / Week / Month | ✅ **R515**: all three views (Month added), :00/:30 in Day, drop highlight, finished tickets fixed | ✅ dispatch board (Day strip = 30-min from mouse, Week day × tech, Month day) | Fixnar Week has technician rows (drop = day + technician); FBOS Week is day columns only → candidate |
 | Manual move pins the job (`schedule_locked`) | ◐ today only (R507) | ✅ any day, trigger-enforced | **→ FBOS** |
 | Second technician on a visit | ✅ `helper_ids` R508 | ◐ fx10 written (not applied); UI after it is applied | **→ Fixnar** |
 | Travel statuses (travelling → arrived → in progress) | ◐ visit record + live board | ✅ status flow | |
@@ -70,6 +72,15 @@ It is never mixed into another FBOS module: no Inventory, Finance or HR coupling
 | Tests and release gate | ✅ unit + Playwright per release | ◐ first unit test (`sla.test.js`) in cycle 1 | **→ Fixnar** |
 | AI asset identification + market value | ◐ AI equipment detect, nameplate OCR | ✅ `ai_identified`, `market_price_*`, `asset_market_value()` | **→ FBOS** (found in cycle 1, live DB only) |
 | Budget overspend flag on the job | — | ✅ `budget_check()` trigger + `spend_at` | **→ FBOS** (with budgets) |
+
+## Deep analysis 2026-11-16 (verified in code and Fixnar's live database)
+Method: FBOS help guide (17 maintenance/equipment/inspection features) + server actions in `api/db.js`; Fixnar routes, every page's buttons, live tables/functions. Items are queued in each repo's `PENDING.md`.
+
+**In FBOS, missing from Fixnar:** multi-stage SLA (pause/handover/company SLA); second technician; Ask AI about maintenance; AI ticket draft from a photo; nameplate OCR; bulk ticket import from a spreadsheet; department on tickets; store-manager booking confirmation (`manager_review`); inspections (failed items → tickets, repeat failures per outlet; Fixnar has no inspection module); Team Performance (score, first-visit fix, custom range, departments, routes with km); Google Maps route per technician day; live technician board with location consent; email on new ticket + web push; PPM tracker + PPM counted only when due; after-work photo required to close; equipment drill-down, status (needs repair), warranty, transfers with high-value approval, image from ticket photos, service history, quick-add catalogue; Today summary; weekly brand digest; export page with charts; dashboard Daily ops / PPM switch; priority kept when hand-set; drafts and duplicate warning (now also in Fixnar).
+
+**In Fixnar, missing from FBOS:** spare parts per job (catalogue, stock per store, receive/transfer, min-qty low stock, parts cost on the job); company quotes & invoices with approve/reject; company portal (one login per company); monthly budget per store with 80 %/100 % alerts and spend in the completion month; configurable PPM plans (every N days/months, lead days, checklist, technician/company, duration, pause); daily cap per technician (8); manual moves pinned on any day; SLA-breach alerts to watchers every 10 min + in-app bell; on-hold reason; trip steps (Start trip → Arrived → Start work, time-stamped); printable job report and technician 30-day schedule; live updates without refresh; AI asset identify from photo with specs and UAE market value; company emailed when a job is sent to it; checklist on any job (not only PPM); Week view with technician rows; Arabic UI (app-wide, not maintenance).
+
+**Both have (parity):** category → fault → suggested priority; working-hours SLA (Dubai); auto-planner; calendar drag in Day/Week/Month (FBOS R515); manager signature to close; QR label → unit page; PPM auto-generation; company scorecard; technician performance; audit trail; live technician location; checklists with ✗ note.
 
 ## Cross-improvement backlog (ranked)
 
