@@ -1,7 +1,7 @@
 // Fixnar — asset-ai edge function
 // Uses Claude (Anthropic API) to: identify equipment from a photo, look up technical specs,
 // and estimate the current market price in AED.
-// Secret required in Supabase → Edge Functions → Secrets: ANTHROPIC_API_KEY
+// Secret in Supabase → Edge Functions → Secrets: OPENROUTER_API_KEY (free models) or ANTHROPIC_API_KEY
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -23,41 +23,82 @@ const SYSTEM = `You are a senior facilities/maintenance engineer for restaurant 
 You know commercial kitchen, refrigeration, HVAC, electrical and plumbing equipment, their brands and models.
 Always answer with ONE JSON object only — no prose, no markdown fences. Use null for anything unknown; never invent serial numbers.`;
 
-async function askClaude(content: unknown[], useSearch: boolean) {
+// Provider: OpenRouter (free models) when OPENROUTER_API_KEY is set, otherwise Claude (ANTHROPIC_API_KEY)
+async function askClaude(content: any[], useSearch: boolean) {
+  if (Deno.env.get("OPENROUTER_API_KEY")) return askOpenRouter(content, useSearch);
+  return askAnthropic(content, useSearch);
+}
+
+function parseJson(text: string) {
+  const start = text.indexOf("{"), end = text.lastIndexOf("}");
+  if (start < 0 || end < start) throw new Error("The AI did not return a usable answer. Try again.");
+  return JSON.parse(text.slice(start, end + 1));
+}
+
+async function askOpenRouter(content: any[], useSearch: boolean) {
+  const key = Deno.env.get("OPENROUTER_API_KEY")!;
+  // Free Models Router picks an available free model that supports what the request needs (e.g. images)
+  const model = Deno.env.get("OPENROUTER_MODEL") ?? "openrouter/free";
+  const webOn = useSearch && Deno.env.get("OPENROUTER_WEB") === "on";   // web search costs credits (or Firecrawl credits)
+  const msg = content.map((c) => c.type === "image"
+    ? { type: "image_url", image_url: { url: `data:${c.source.media_type};base64,${c.source.data}` } }
+    : { type: "text", text: c.text });
+  const body: Record<string, unknown> = {
+    model, max_tokens: 2000,
+    messages: [{ role: "system", content: SYSTEM }, { role: "user", content: msg }],
+  };
+  if (webOn) body.plugins = [{ id: "web", max_results: 5 }];
+  let lastErr = "";
+  for (let attempt = 0; attempt < 3; attempt++) {         // free models get busy: retry
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json",
+        "HTTP-Referer": "https://fixnar.vercel.app", "X-Title": "Fixnar" },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 429) {
+      lastErr = "Free AI limit reached for today (50 requests/day). Try tomorrow, or add $10 credit on OpenRouter for 1,000/day.";
+      const t = await res.text();
+      if (/per-day|daily|free-models-per-day/i.test(t)) break;
+      await new Promise((r) => setTimeout(r, 2500)); continue;
+    }
+    if (!res.ok) { lastErr = `AI service error ${res.status}: ${(await res.text()).slice(0, 300)}`; if (res.status < 500) break; continue; }
+    const data = await res.json();
+    const m = data.choices?.[0]?.message;
+    const text = typeof m?.content === "string" ? m.content : (m?.content ?? []).map((x: any) => x.text ?? "").join("\n");
+    const urls = (m?.annotations ?? []).map((a: any) => a?.url_citation?.url).filter(Boolean);
+    try {
+      return { result: parseJson(text), searched: webOn, urls: [...new Set(urls)].slice(0, 8) as string[] };
+    } catch (e) { lastErr = (e as Error).message; }
+  }
+  throw new Error(lastErr || "AI request failed");
+}
+
+async function askAnthropic(content: unknown[], useSearch: boolean) {
   const key = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!key) throw new Error("ANTHROPIC_API_KEY is not set in Supabase Edge Function secrets");
+  if (!key) throw new Error("No AI key set. Add OPENROUTER_API_KEY (free) or ANTHROPIC_API_KEY in Supabase Edge Function secrets.");
   const body: Record<string, unknown> = {
     model: MODEL, max_tokens: 2000, system: SYSTEM,
     messages: [{ role: "user", content }],
   };
   if (useSearch) body.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }];
-  let res = await fetch("https://api.anthropic.com/v1/messages", {
+  const call = () => fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify(body),
   });
+  let res = await call();
   let searched = useSearch;
-  if (!res.ok && useSearch && res.status === 400) {       // search tool not available → answer from knowledge
-    delete body.tools; searched = false;
-    res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify(body),
-    });
-  }
+  if (!res.ok && useSearch && res.status === 400) { delete body.tools; searched = false; res = await call(); }
   if (!res.ok) throw new Error(`AI service error ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const data = await res.json();
   const text = (data.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n");
   const urls: string[] = [];
   for (const b of data.content ?? []) {
-    if (b.type === "web_search_tool_result" && Array.isArray(b.content)) {
-      for (const r of b.content) if (r?.url) urls.push(r.url);
-    }
+    if (b.type === "web_search_tool_result" && Array.isArray(b.content)) for (const r of b.content) if (r?.url) urls.push(r.url);
     for (const c of b.citations ?? []) if (c?.url) urls.push(c.url);
   }
-  const start = text.indexOf("{"), end = text.lastIndexOf("}");
-  if (start < 0 || end < start) throw new Error("The AI did not return a usable answer. Try again.");
-  return { result: JSON.parse(text.slice(start, end + 1)), searched, urls: [...new Set(urls)].slice(0, 8) };
+  return { result: parseJson(text), searched, urls: [...new Set(urls)].slice(0, 8) };
 }
 
 const num = (v: unknown) => {
