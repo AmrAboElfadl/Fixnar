@@ -32,6 +32,15 @@ Last updated: 2026-11-16 (cycle 1)
 | 10 | Equipment image from work-order photos (FBOS R468) | FBOS | todo |
 | 11 | PPM tracker on the dashboard + PPM counted only when due (FBOS R451/R506) | FBOS | todo |
 | 12 | Equipment service history tab per asset | FBOS | todo |
+| 13 | Require at least one after-work photo to complete a job (FBOS R448); today only the summary is required | FBOS (deep analysis 11-16) | todo |
+| 14 | Department on work orders (FBOS) and a store-manager booking confirmation step (`manager_review`) | FBOS | todo |
+| 15 | Bulk import of work orders / PPM plan from a spreadsheet template | FBOS | todo |
+| 16 | Email on a new work order + web push to phones (today: in-app bell + browser notification only) | FBOS | todo |
+| 17 | Technician performance: score, first-visit fix, custom date range; Google Maps route for a technician's day with km | FBOS | todo |
+| 18 | Equipment: status (needs repair / under maintenance) set from open jobs, warranty date, nameplate OCR | FBOS | todo |
+| 19 | AI: draft a work order from a photo; Ask AI about maintenance ("what is overdue at Mirdif?") | FBOS | todo |
+| 20 | Inspections module: checklist visits, failed equipment items → work orders, repeat failures per store (large) | FBOS | todo |
+| 21 | Dashboard: Today summary; Daily ops / PPM switch; PPM counted only when due | FBOS | todo |
 
 ## Log
 _(done items move here)_
