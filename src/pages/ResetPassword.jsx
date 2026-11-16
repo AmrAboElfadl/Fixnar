@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { BRAND } from '../lib/brand'
 import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
 
@@ -52,7 +53,7 @@ export default function ResetPassword() {
               <circle cx="14" cy="14" r="3" fill="white"/>
             </svg>
           </div>
-          <h1 style={{ color:'#ffffff', fontSize:28, fontWeight:600, margin:0 }}>Fixnar</h1>
+          <h1 style={{ color:'#ffffff', fontSize:28, fontWeight:600, margin:0 }}>{BRAND.name}</h1>
           <p style={{ color:'#6b7280', fontSize:14, margin:'6px 0 0' }}>Maintenance Management System</p>
         </div>
 

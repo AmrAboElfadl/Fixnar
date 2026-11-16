@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import ThemePicker from './ThemePicker'
+import { hasModule, moduleOfPath, BRAND } from '../lib/brand'
 
 const DEV_EMAIL = import.meta.env.VITE_DEV_EMAIL || 'amrmorsy93@gmail.com'
 
@@ -35,7 +36,7 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
   const role     = profile?.role || 'viewer'
-  const isDev    = profile?.email === DEV_EMAIL
+  const isDev    = profile?.email === DEV_EMAIL && hasModule('dev')
 
   const initials = (profile?.full_name || profile?.email || 'U')
     .split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
@@ -52,8 +53,8 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
     }
   }
 
-  const visibleItems = NAV_ITEMS.filter(item =>
-    !item.roles || item.roles.includes(role)
+  const visibleItems = NAV_ITEMS.filter(item => hasModule(moduleOfPath(item.path)) &&
+    (!item.roles || item.roles.includes(role))
   )
 
   return (
@@ -75,10 +76,12 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
         borderBottom: '1px solid var(--border)',
       }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ width:28, height:28, borderRadius:8, background:'var(--green)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          {BRAND.logo
+            ? <img src={BRAND.logo} alt="" style={{ width:28, height:28, borderRadius:8, objectFit:'contain', background:'#fff' }}/>
+            : (<div style={{ width:28, height:28, borderRadius:8, background:'var(--green)', display:'flex', alignItems:'center', justifyContent:'center' }}>
             <span style={{ color:'white', fontSize:14, fontWeight:700 }}>+</span>
-          </div>
-          <span style={{ fontWeight:700, fontSize:15, color:'var(--text)' }}>Fixnar</span>
+          </div>)}
+          <span style={{ fontWeight:700, fontSize:15, color:'var(--text)' }}>{BRAND.name}</span>
         </div>
         <button
           onClick={onPin}

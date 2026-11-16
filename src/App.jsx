@@ -25,6 +25,7 @@ import TechSchedule from './pages/TechSchedule'
 import Budgets from './pages/Budgets'
 import WorkOrderReport from './pages/WorkOrderReport'
 import Finance from './pages/finance/Finance'
+import { BRAND, hasModule, moduleOfPath } from './lib/brand'
 import DocPrint from './pages/finance/DocPrint'
 
 function ProtectedRoute({ children, roles }) {
@@ -32,16 +33,17 @@ function ProtectedRoute({ children, roles }) {
   const location = useLocation()
   if (loading || (user && !profile && !profileError)) return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ color:'var(--green)', fontSize:14, fontFamily:"'DM Sans', sans-serif" }}>Loading Fixnar...</div>
+      <div style={{ color:'var(--green)', fontSize:14, fontFamily:"'DM Sans', sans-serif" }}>Loading {BRAND.name}...</div>
     </div>
   )
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }}/>
+  if (!hasModule(moduleOfPath(location.pathname))) return <Navigate to="/" replace/>
   if (!profile) return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, fontFamily:"'DM Sans', sans-serif" }}>
       <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:14, padding:28, maxWidth:420, textAlign:'center', color:'var(--text)' }}>
         <div style={{ fontSize:40, marginBottom:10 }}>🔒</div>
         <h3 style={{ margin:'0 0 8px' }}>No access yet</h3>
-        <p style={{ color:'var(--text3)', fontSize:14, margin:'0 0 18px' }}>{profileError || 'Your account is not set up in Fixnar.'}</p>
+        <p style={{ color:'var(--text3)', fontSize:14, margin:'0 0 18px' }}>{profileError || `Your account is not set up in ${BRAND.name}.`}</p>
         <button onClick={() => signOut()} style={{ background:'var(--green)', color:'white', border:'none', borderRadius:9, padding:'10px 22px', fontSize:14, cursor:'pointer', fontWeight:600 }}>Sign out</button>
       </div>
     </div>
@@ -154,6 +156,8 @@ function AppRoutes() {
     </Routes>
   )
 }
+
+if (typeof document !== 'undefined') document.title = BRAND.isClient ? `${BRAND.name} · Maintenance` : document.title
 
 export default function App() {
   return (

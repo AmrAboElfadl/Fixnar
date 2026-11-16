@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { BRAND } from '../lib/brand'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 
@@ -150,14 +151,18 @@ export default function Login() {
 
         {/* Logo */}
         <div style={{ textAlign:'center', marginBottom:40 }}>
-          <div style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:56, height:56, background:'#1D9E75', borderRadius:16, marginBottom:16 }}>
+          {BRAND.banner
+            ? <img src={BRAND.banner} alt={BRAND.name} style={{ width:'100%', maxWidth:360, background:'#fff', borderRadius:12, padding:8, marginBottom:16 }}/>
+            : BRAND.logo
+            ? <img src={BRAND.logo} alt="" style={{ width:56, height:56, borderRadius:16, objectFit:'contain', background:'#fff' }}/>
+            : (<div style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:56, height:56, background:'#1D9E75', borderRadius:16, marginBottom:16 }}>
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
               <path d="M4 14h8M16 14h8M14 4v8M14 16v8" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
               <circle cx="14" cy="14" r="3" fill="white"/>
             </svg>
-          </div>
-          <h1 style={{ color:'#ffffff', fontSize:28, fontWeight:600, margin:0, letterSpacing:'-0.5px' }}>Fixnar</h1>
-          <p style={{ color:'#6b7280', fontSize:14, margin:'6px 0 0' }}>Maintenance Management System</p>
+          </div>)}
+          <h1 style={{ color:'#ffffff', fontSize:28, fontWeight:600, margin:0, letterSpacing:'-0.5px' }}>{BRAND.name}</h1>
+          <p style={{ color:'#6b7280', fontSize:14, margin:'6px 0 0' }}>{BRAND.tag}</p>
         </div>
 
         <div style={s.box}>
@@ -271,7 +276,7 @@ export default function Login() {
         </div>
 
         <p style={{ textAlign:'center', color:'#6b7280', fontSize:12, marginTop:24 }}>
-          Fixnar v1.0 · Facility Management Platform
+          {BRAND.isClient ? `${BRAND.name} portal · powered by Fixnar` : 'Fixnar v1.0 · Facility Management Platform'}
         </p>
       </div>
     </div>
