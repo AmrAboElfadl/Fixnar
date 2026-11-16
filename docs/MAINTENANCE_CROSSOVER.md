@@ -13,7 +13,7 @@ It is never mixed into another FBOS module: no Inventory, Finance or HR coupling
 | Cycle | Date | FBOS live | Fixnar HEAD | Built this cycle |
 |---|---|---|---|---|
 | 0 (baseline) | 2026-11-16 | R513 (`322687f`) | `b0bdbeb` | nothing (comparison only) |
-| 1 | 2026-11-16 | R513 → **R514** PR | `56d8a94` PR | FBOS: Fixnar checklist templates + picker, outsource Score. Fixnar: Dubai SLA badge, duplicate warning, admin-only priority, draft autosave, fx08 written (SLA pause, second tech, priority guard) |
+| 1 | 2026-11-16 | R513 → **R514** PR | `56d8a94` PR | FBOS: Fixnar checklist templates + picker, outsource Score. Fixnar: Dubai SLA badge, duplicate warning, admin-only priority, draft autosave, fx10 written (SLA pause, second tech, priority guard) |
 
 ---
 
@@ -34,9 +34,9 @@ It is never mixed into another FBOS module: no Inventory, Finance or HR coupling
 |---|---|---|---|
 | Ticket / work order with photos | ✅ | ✅ | |
 | Category → fault → suggested priority | ✅ `ntFaultsFor`, `maintTriage` | ✅ `workOrderCategories.js` | |
-| Priority set automatically, only manager may override | ✅ R490 (enforced), hand-set priority kept R493 | ◐ cycle 1: app locks it for non-admins; server guard in fx08 (not applied) | |
+| Priority set automatically, only manager may override | ✅ R490 (enforced), hand-set priority kept R493 | ◐ cycle 1: app locks it for non-admins; server guard in fx10 (not applied) | |
 | Working-hours SLA clock | ✅ `maintWorkingMinutesBetween` | ✅ server `sla_deadline()` in Dubai; app badge fixed to Dubai in cycle 1 | |
-| Multi-stage SLA (pause / resume / handover / vendor SLA) | ✅ `maintenance_sla_stages` | ◐ pause on hold written in fx08 (not applied) | |
+| Multi-stage SLA (pause / resume / handover / vendor SLA) | ✅ `maintenance_sla_stages` | ◐ pause on hold written in fx10 (not applied) | |
 | SLA breach escalation + in-app notifications | ◐ push notifications, planner escalates priority | ✅ every 10 min, notification bell | |
 | Duplicate-ticket warning on create | ✅ `_ntShowDuplicate` | ✅ cycle 1 | |
 | Draft autosave of a half-written ticket | ✅ `_tkDraft*` | ✅ cycle 1 | |
@@ -45,7 +45,7 @@ It is never mixed into another FBOS module: no Inventory, Finance or HR coupling
 | Max jobs per technician per day | — | ✅ `dispatch_settings.max_per_day` | **→ FBOS** |
 | Auto-assign by store link + lowest open load | ◐ routing rules | ✅ | |
 | Manual move pins the job (`schedule_locked`) | ◐ today only (R507) | ✅ any day, trigger-enforced | **→ FBOS** |
-| Second technician on a visit | ✅ `helper_ids` R508 | ◐ fx08 written (not applied); UI after it is applied | **→ Fixnar** |
+| Second technician on a visit | ✅ `helper_ids` R508 | ◐ fx10 written (not applied); UI after it is applied | **→ Fixnar** |
 | Travel statuses (travelling → arrived → in progress) | ◐ visit record + live board | ✅ status flow | |
 | Live technician map | ✅ `getTechLiveBoard` (with consent) | ✅ `LiveMap.jsx`, `technician_locations` | FBOS asks consent, Fixnar: check |
 | Manager signature to close | ✅ sign-off | ✅ signature canvas | |
@@ -87,13 +87,13 @@ It is never mixed into another FBOS module: no Inventory, Finance or HR coupling
 ### FBOS → Fixnar
 1. ~~Fix the SLA clock to Asia/Dubai~~: **done** (cycle 1 PR); the badge also uses the server's `sla_due_at`.
 2. **SLA pause on `on_hold`** with a stage history, like FBOS `maintenance_sla_stages`.
-3. **Priority set from the fault, only admin may override**: app part done (cycle 1); server guard in fx08.
+3. **Priority set from the fault, only admin may override**: app part done (cycle 1); server guard in fx10.
 4. ~~Duplicate warning~~: **done** (cycle 1). Also done: draft autosave.
 5. **Second technician** on a work order (`helper_ids uuid[]`, RLS: helper may read and update).
 6. ~~Vendor scorecard~~: already existed (correction).
 7. **Equipment quick-add catalogue / copy another store's assets.**
 8. Repo hygiene: ~~stray duplicates~~, ~~fx06 header~~, ~~first unit test~~ done (cycle 1); still to do: commit `fx01`–`fx04`.
-9. **Planner keeps helper time** (once fx08 is applied): `plan_dispatch()` must not book a helper twice.
+9. **Planner keeps helper time** (once fx10 is applied): `plan_dispatch()` must not book a helper twice.
 
 ## Rules for the crossover run
 - Port the **idea**, not the code. The architectures differ: FBOS rules go on the server, Fixnar rules go in Postgres functions and RLS.

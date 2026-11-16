@@ -1,5 +1,5 @@
--- FIXNAR fx08 — ported from FBOS (crossover cycle 1, 2026-11-16)
--- NOT APPLIED. The owner reviews and applies it (Supabase → SQL editor, or tells the agent "apply fx08").
+-- FIXNAR fx10 — ported from FBOS (crossover cycle 1, 2026-11-16)
+-- NOT APPLIED. The owner reviews and applies it (Supabase → SQL editor, or tells the agent "apply fx10").
 -- Additive: new columns have defaults, existing rows keep working; the app runs the same before and after.
 --
 --  1. SLA pauses while a job is On hold (FBOS maintenance_sla_stages idea): the paused working time is
