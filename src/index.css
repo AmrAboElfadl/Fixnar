@@ -54,6 +54,157 @@
   --shadow:    none;
 }
 
+/* ── RETRO 80s/90s MODE ──
+   90s: Windows 95 silver panels, bevelled buttons, navy title bar, chunky scrollbars.
+   80s: neon pink / cyan / yellow stripe, pixel font headings, faint CRT scanlines. */
+[data-theme="retro"] {
+  --bg:        #d4d0c8;
+  --bg2:       #c0c0c0;
+  --bg3:       #b5b5b5;
+  --border:    #808080;
+  --border2:   #404040;
+  --text:      #000000;
+  --text2:     #1a1a1a;
+  --text3:     #4a4a4a;
+  --sidebar-bg:#c0c0c0;
+  --card-bg:   #c0c0c0;
+  --surface:   #c0c0c0;
+  --input-bg:  #ffffff;
+  --hover-bg:  #d8d8ff;
+  --green:     #007a4d;
+  --green-bg:  #b9f0d6;
+  --blue:      #0000a8;
+  --blue-bg:   #c6ceff;
+  --amber:     #a35200;
+  --amber-bg:  #ffe58f;
+  --red:       #c00000;
+  --red-bg:    #ffc4c4;
+  --purple:    #8a00b8;
+  --shadow:    inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+  --neon:      linear-gradient(90deg, #ff2e88 0 33%, #ffe600 33% 66%, #00e5ff 66% 100%);
+}
+[data-theme="retro"] body {
+  font-family: Tahoma, Verdana, 'MS Sans Serif', 'Segoe UI', sans-serif;
+  background: #008080;
+}
+/* square everything */
+[data-theme="retro"] *, [data-theme="retro"] *::before, [data-theme="retro"] *::after { border-radius: 0 !important; }
+
+/* teal desktop behind every page */
+[data-theme="retro"] .fx-shell { background: #008080 !important; }
+
+/* each page is a Win95 program window: grey face, bevel, navy title bar */
+[data-theme="retro"] .fx-main > * {
+  position: relative;
+  background: var(--bg);
+  padding: 38px 18px 18px !important;
+  min-height: calc(100vh - 120px);
+  box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #ffffff, 6px 6px 0 rgba(0,0,0,0.35);
+}
+[data-theme="retro"] .fx-main > *::before {
+  content: 'FIXNAR.EXE  —  Maintenance Management';
+  position: absolute; top: 4px; left: 4px; right: 4px; height: 24px;
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: #fff; font-family: 'VT323', monospace; font-size: 20px; line-height: 24px;
+  padding-left: 8px; white-space: nowrap; overflow: hidden; pointer-events: none;
+}
+[data-theme="retro"] .fx-main > *::after {
+  content: '_  \25A1  \00D7';
+  position: absolute; top: 4px; right: 8px; height: 24px;
+  color: #fff; font-family: 'VT323', monospace; font-size: 20px; line-height: 24px; pointer-events: none;
+}
+@media (max-width: 640px) {
+  [data-theme="retro"] .fx-main > * { padding: 34px 10px 12px !important; min-height: calc(100vh - 96px); }
+  [data-theme="retro"] .fx-main > *::before { content: 'FIXNAR.EXE'; }
+}
+
+/* headings: navy pixel font with a hot-pink 80s offset */
+[data-theme="retro"] h1, [data-theme="retro"] h2, [data-theme="retro"] h3 {
+  font-family: 'VT323', 'Courier New', monospace !important;
+  font-weight: 400 !important; letter-spacing: 0.5px;
+  color: #000080 !important; text-shadow: 2px 2px 0 #ff2e88;
+}
+[data-theme="retro"] h1 { font-size: 36px !important; }
+[data-theme="retro"] h2 { font-size: 32px !important; }
+[data-theme="retro"] h3 { font-size: 26px !important; }
+
+/* Win95 bevelled buttons */
+[data-theme="retro"] button {
+  box-shadow: var(--shadow) !important;
+  border-color: transparent !important;
+  font-family: inherit;
+}
+[data-theme="retro"] button:active:not(:disabled) {
+  box-shadow: inset 1px 1px #0a0a0a, inset -1px -1px #ffffff, inset 2px 2px #808080, inset -2px -2px #dfdfdf !important;
+}
+[data-theme="retro"] button:focus-visible { outline: 1px dotted #000 !important; outline-offset: -5px; }
+
+/* sunken inputs */
+[data-theme="retro"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="retro"] select, [data-theme="retro"] textarea {
+  background: #ffffff !important; color: #000 !important;
+  border: none !important;
+  box-shadow: inset -1px -1px #ffffff, inset 1px 1px #808080, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a !important;
+}
+[data-theme="retro"] input[type="checkbox"], [data-theme="retro"] input[type="radio"] { accent-color: #000080 !important; }
+
+/* tables: navy header like a 90s list view */
+[data-theme="retro"] thead tr { background: #000080 !important; }
+[data-theme="retro"] thead th { color: #ffffff !important; }
+[data-theme="retro"] tbody tr:hover { background: #d8d8ff; }
+
+/* title bar: navy → blue gradient with neon stripe underneath */
+[data-theme="retro"] .fx-topbar {
+  background: linear-gradient(90deg, #000080, #1084d0) !important;
+  border-bottom: 4px solid transparent !important;
+  border-image: var(--neon) 1 !important;
+  box-shadow: none !important;
+}
+[data-theme="retro"] .fx-topbar .fx-brand {
+  color: #ffffff !important; font-family: 'VT323', monospace !important;
+  font-size: 28px !important; font-weight: 400 !important; text-shadow: 2px 2px 0 #ff2e88;
+}
+[data-theme="retro"] .fx-topbar button { background: #c0c0c0 !important; color: #000 !important; }
+
+/* sidebar: Start-menu look, navy highlight on the active item */
+[data-theme="retro"] .fx-sidebar {
+  background: #c0c0c0 !important;
+  border-right: none !important;
+  box-shadow: inset -1px 0 #0a0a0a, inset -2px 0 #808080, inset 1px 0 #ffffff !important;
+}
+[data-theme="retro"] .fx-sidebar a[aria-current="page"] {
+  background: #000080 !important; color: #ffffff !important;
+}
+[data-theme="retro"] .fx-sidebar a:hover:not([aria-current="page"]) { background: #d8d8ff !important; }
+
+/* theme picker: pressed-in look for the chosen one */
+[data-theme="retro"] .fx-theme-picker { background: #c0c0c0 !important; border: none !important; }
+[data-theme="retro"] .fx-theme-picker button[aria-checked="true"] {
+  background: #ffffff !important;
+  box-shadow: inset 1px 1px #0a0a0a, inset -1px -1px #ffffff, inset 2px 2px #808080 !important;
+}
+
+/* chunky 90s scrollbars */
+[data-theme="retro"] ::-webkit-scrollbar { width: 16px; height: 16px; }
+[data-theme="retro"] ::-webkit-scrollbar-track {
+  background-color: #dfdfdf;
+  background-image: repeating-conic-gradient(#c0c0c0 0% 25%, #ffffff 0% 50%);
+  background-size: 2px 2px;
+}
+[data-theme="retro"] ::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+}
+[data-theme="retro"] ::selection { background: #000080; color: #ffffff; }
+
+/* faint CRT scanlines (purely visual, never blocks clicks) */
+[data-theme="retro"] body::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 99999;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.035) 0 1px, transparent 1px 3px);
+}
+@media print { [data-theme="retro"] body::after { display: none; } }
+@media (prefers-reduced-motion: reduce) { [data-theme="retro"] body::after { display: none; } }
+
 body {
   font-family: 'DM Sans', sans-serif;
   background: var(--bg);

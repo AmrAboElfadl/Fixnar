@@ -63,7 +63,7 @@ function AppLayout({ children }) {
   const sidebarVisible = pinned || open
 
   return (
-    <div style={{ display:'flex', minHeight:'100vh', background:'var(--bg)', position:'relative' }}>
+    <div className="fx-shell" style={{ display:'flex', minHeight:'100vh', background:'var(--bg)', position:'relative' }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
       <TopBar onMenuToggle={() => setOpen(o => !o)} pinned={pinned} onPin={togglePin}/>
 
