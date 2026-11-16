@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react'
 import { getSLAStatus, formatRemaining } from '../lib/sla'
 
-export default function SLABadge({ priority, createdAt, status }) {
+export default function SLABadge({ priority, createdAt, status, dueAt }) {
   const [sla, setSla] = useState(null)
 
   useEffect(() => {
-    function update() { setSla(getSLAStatus(priority, createdAt, status)) }
+    function update() { setSla(getSLAStatus(priority, createdAt, status, dueAt)) }
     update()
     const t = setInterval(update, 60000)
     return () => clearInterval(t)
-  }, [priority, createdAt, status])
+  }, [priority, createdAt, status, dueAt])
 
   if (!sla) return null
   if (sla.status === 'completed') return (

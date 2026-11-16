@@ -7,7 +7,6 @@ const WORK_END = 18   // 6 PM
 const WORK_HOURS_PER_DAY = WORK_END - WORK_START // 9 hours
 // Working week: Monday–Saturday. Sunday (0) is the only day off. Keep in sync with the database.
 export const OFF_DAYS = [0]
-const isOff = (d) => OFF_DAYS.includes(d.getDay())
 
 export const SLA_CONFIG = {
   P1: { hours: 4,                    label: 'P1 — Critical',  color: '#E24B4A' },
@@ -16,93 +15,82 @@ export const SLA_CONFIG = {
   P4: { hours: 7 * WORK_HOURS_PER_DAY, label: 'P4 — Low',    color: '#1D9E75' },
 }
 
-// Add working minutes to a date, respecting 9am-6pm window
+// All working-hours maths runs on Dubai wall-clock time, whatever time zone the
+// phone or laptop is set to. Dubai has no daylight saving, so a fixed +4h shift is
+// exact: we move the instant into a "Dubai-shaped" Date and use only UTC getters/
+// setters on it. (Before: getHours()/setHours() used the device's own clock, so a
+// device outside UAE time showed a different deadline from the server's sla_due_at.)
+const DUBAI_OFFSET_MS = 4 * 60 * 60 * 1000
+const toDubai   = (d) => new Date(new Date(d).getTime() + DUBAI_OFFSET_MS)
+const fromDubai = (d) => new Date(d.getTime() - DUBAI_OFFSET_MS)
+const isOffD = (d) => OFF_DAYS.includes(d.getUTCDay())
+const atHour = (d, h) => { const x = new Date(d); x.setUTCHours(h, 0, 0, 0); return x }
+const nextDayAt = (d, h) => { const x = new Date(d); x.setUTCDate(x.getUTCDate() + 1); x.setUTCHours(h, 0, 0, 0); return x }
+
+// Next working moment at or after d (Dubai-shaped in and out)
+function moveToWorkingTimeD(d) {
+  let x = new Date(d)
+  for (let guard = 0; guard < 14; guard++) {
+    if (isOffD(x)) { x = nextDayAt(x, WORK_START); continue }
+    const h = x.getUTCHours()
+    if (h < WORK_START) return atHour(x, WORK_START)
+    if (h >= WORK_END) { x = nextDayAt(x, WORK_START); continue }
+    return x
+  }
+  return x
+}
+
+// Add working minutes to a date, respecting the 9am-6pm Dubai window
 export function addWorkingMinutes(startDate, minutes) {
-  let current = new Date(startDate)
+  let current = moveToWorkingTimeD(toDubai(startDate))
   let remaining = minutes
-
-  // Move to next working time if outside hours
-  current = moveToWorkingTime(current)
-
   while (remaining > 0) {
-    const endOfDay = new Date(current)
-    endOfDay.setHours(WORK_END, 0, 0, 0)
-
-    const minutesUntilEndOfDay = Math.max(0, (endOfDay - current) / 60000)
-
+    const minutesUntilEndOfDay = Math.max(0, (atHour(current, WORK_END) - current) / 60000)
     if (remaining <= minutesUntilEndOfDay) {
       current = new Date(current.getTime() + remaining * 60000)
       remaining = 0
     } else {
       remaining -= minutesUntilEndOfDay
-      // Jump to next working day 9am
-      current.setDate(current.getDate() + 1)
-      current.setHours(WORK_START, 0, 0, 0)
-      // Skip weekends
-      while (isOff(current)) {
-        current.setDate(current.getDate() + 1)
-      }
+      current = moveToWorkingTimeD(nextDayAt(current, WORK_START))
     }
   }
-  return current
+  return fromDubai(current)
 }
 
-function moveToWorkingTime(date) {
-  const d = new Date(date)
-  const hour = d.getHours()
-
-  // Skip days off
-  if (isOff(d)) {
-    while (isOff(d)) d.setDate(d.getDate() + 1)
-    d.setHours(WORK_START, 0, 0, 0); return d
-  }
-
-  if (hour < WORK_START) { d.setHours(WORK_START, 0, 0, 0); return d }
-  if (hour >= WORK_END) {
-    d.setDate(d.getDate() + 1)
-    d.setHours(WORK_START, 0, 0, 0)
-    while (isOff(d)) d.setDate(d.getDate() + 1)
-    return d
-  }
-  return d
-}
-
-// Calculate working minutes elapsed since a date
-export function workingMinutesElapsed(startDate) {
-  let current = new Date(startDate)
-  const now = new Date()
+// Calculate working minutes elapsed since a date (until `now`, default: the current time)
+export function workingMinutesElapsed(startDate, now = new Date()) {
+  const end = toDubai(now)
+  let cursor = moveToWorkingTimeD(toDubai(startDate))
   let elapsed = 0
-
-  current = moveToWorkingTime(current)
-  if (current >= now) return 0
-
-  let cursor = new Date(current)
-  while (cursor < now) {
-    if (isOff(cursor)) { cursor.setDate(cursor.getDate() + 1); cursor.setHours(WORK_START, 0, 0, 0); continue }
-
-    const dayStart = new Date(cursor); dayStart.setHours(WORK_START, 0, 0, 0)
-    const dayEnd   = new Date(cursor); dayEnd.setHours(WORK_END,   0, 0, 0)
-
+  for (let guard = 0; cursor < end && guard < 4000; guard++) {
+    if (isOffD(cursor)) { cursor = nextDayAt(cursor, WORK_START); continue }
+    const dayStart = atHour(cursor, WORK_START)
+    const dayEnd   = atHour(cursor, WORK_END)
     const from = cursor < dayStart ? dayStart : cursor
-    const to   = now   < dayEnd   ? now      : dayEnd
-
+    const to   = end < dayEnd ? end : dayEnd
     if (from < to) elapsed += (to - from) / 60000
-    cursor.setDate(cursor.getDate() + 1)
-    cursor.setHours(WORK_START, 0, 0, 0)
+    cursor = nextDayAt(cursor, WORK_START)
   }
   return elapsed
 }
 
-export function getSLAStatus(priority, createdAt, status) {
+// dueAt (optional): the server's sla_due_at. When given it is the deadline, so the
+// badge always agrees with the database and with the "SLA breached" notifications.
+export function getSLAStatus(priority, createdAt, status, dueAt = null, now = new Date()) {
   if (status === 'closed' || status === 'completed' || status === 'done') return { status: 'completed', pct: 100, remaining: null }
 
   const config = SLA_CONFIG[priority]
   if (!config) return null
 
-  const slaMinutes = config.hours * 60
-  const elapsed = workingMinutesElapsed(createdAt)
-  const pct = Math.min(100, Math.round((elapsed / slaMinutes) * 100))
-  const remainingMin = Math.max(0, slaMinutes - elapsed)
+  let slaMinutes = config.hours * 60
+  if (dueAt) {
+    const fromServer = workingMinutesElapsed(createdAt, new Date(dueAt))
+    if (fromServer > 0) slaMinutes = fromServer
+  }
+  const elapsed = workingMinutesElapsed(createdAt, now)
+  let pct = Math.min(100, Math.round((elapsed / slaMinutes) * 100))
+  let remainingMin = Math.max(0, slaMinutes - elapsed)
+  if (dueAt && new Date(now) >= new Date(dueAt)) { pct = 100; remainingMin = 0 }
 
   let slaStatus = 'ok'
   if (pct >= 100) slaStatus = 'breached'
