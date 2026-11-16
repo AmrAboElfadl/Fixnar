@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import ThemePicker from './ThemePicker'
+import WorkspaceSwitcher from './WorkspaceSwitcher'
 import { hasModule, moduleOfPath, BRAND } from '../lib/brand'
 
 const DEV_EMAIL = import.meta.env.VITE_DEV_EMAIL || 'amrmorsy93@gmail.com'
@@ -176,6 +177,7 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
             <div style={{ color:rc, fontSize:11, textTransform:'capitalize' }}>{role}</div>
           </div>
         </div>
+        <WorkspaceSwitcher/>
         <div style={{ marginBottom:8 }}><ThemePicker full/></div>
         <button onClick={handleSignOut} style={{
           width:'100%', background:'transparent',

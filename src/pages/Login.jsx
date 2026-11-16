@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { BRAND } from '../lib/brand'
+import { createClient } from '@supabase/supabase-js'
+import { useLocation } from 'react-router-dom'
+import { WORKSPACES, CURRENT, switchWorkspace, sessionKey } from '../lib/workspaces'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 
@@ -18,7 +21,9 @@ function saveAttemptData(data) {
 }
 
 export default function Login() {
-  const { signIn } = useAuth()
+  useAuth()
+  const location = useLocation()
+  const [choices, setChoices]           = useState(null)   // workspaces this email+password opened
   const [email, setEmail]               = useState('')
   const [password, setPassword]         = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -55,17 +60,33 @@ export default function Login() {
     }
   }
 
+  // One login for every company: try the email + password on each workspace's database at the same time.
+  // One match -> go straight in. Several (e.g. the developer) -> choose which company to open.
   async function handleSubmit(e) {
     e.preventDefault()
-    setLoading(true); setError('')
+    setLoading(true); setError(''); setChoices(null)
+    const dest = location.state?.from && location.state.from !== '/login' ? location.state.from : '/'
     try {
-      const { error } = await signIn(email.trim(), password)
-      if (error) {
-        const m = (error.message || '').toLowerCase()
-        setError(m.includes('invalid') || m.includes('credentials') ? 'Invalid email or password. Please try again.'
-               : m.includes('confirm') ? 'Please confirm your email address first.'
-               : (error.message || 'Could not sign in. Please try again.'))
-      }
+      const results = await Promise.all(WORKSPACES.map(async ws => {
+        try {
+          // in-memory probe client: it must not announce the sign-in to the running app before the user chooses
+          const c = createClient(ws.url, ws.key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: `fx-probe-${ws.id}` } })
+          const { data, error } = await c.auth.signInWithPassword({ email: email.trim(), password })
+          const ok = !error && !!data?.session
+          // save it where that workspace's own client reads it (same format supabase-js uses)
+          if (ok) { try { localStorage.setItem(sessionKey(ws), JSON.stringify(data.session)) } catch { /* private mode */ } }
+          return { ws, ok, error }
+        } catch (err) { return { ws, ok: false, error: err } }
+      }))
+      const ok = results.filter(r => r.ok)
+      if (ok.length === 1) return switchWorkspace(ok[0].ws.id, dest)
+      if (ok.length > 1) { setChoices({ list: ok.map(r => r.ws), dest }); return }
+      const err = (results.find(r => r.ws.id === CURRENT.id) || results[0]).error
+      const m = (err?.message || '').toLowerCase()
+      setError(m.includes('invalid') || m.includes('credentials') ? 'Invalid email or password. Please try again.'
+             : m.includes('confirm') ? 'Please confirm your email address first.'
+             : m.includes('fetch') || m.includes('network') ? 'Could not reach the server. Check your connection and try again.'
+             : (err?.message || 'Could not sign in. Please try again.'))
     } catch (e) {
       setError('Could not reach the server. Check your connection and try again.')
     } finally {
@@ -95,9 +116,11 @@ export default function Login() {
     }
     if (!resetEmail) { setError('Please enter your email address'); return }
     setResetLoading(true)
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
+    const sent = await Promise.all(WORKSPACES.map(ws =>
+      createClient(ws.url, ws.key, { auth: { persistSession: false, storageKey: `fx-probe-${ws.id}` } }).auth
+        .resetPasswordForEmail(resetEmail, { redirectTo: `${window.location.origin}/reset-password?ws=${ws.id}` })
+        .then(r => r, err => ({ error: err }))))
+    const error = sent.every(r => r.error) ? sent[0].error : null
     if (error) {
       const newCount = data.count + 1
       saveAttemptData(newCount >= MAX_ATTEMPTS
@@ -167,6 +190,26 @@ export default function Login() {
 
         <div style={s.box}>
 
+          {/* ── CHOOSE COMPANY (email exists in more than one workspace) ── */}
+          {choices && (
+            <>
+              <h2 style={{ color:'#e6edf3', fontSize:18, fontWeight:500, margin:'0 0 6px' }}>Choose a company</h2>
+              <p style={{ color:'#6b7280', fontSize:13, margin:'0 0 18px' }}>Your account has access to more than one workspace.</p>
+              <div style={{ display:'grid', gap:10 }}>
+                {choices.list.map(ws => (
+                  <button key={ws.id} onClick={() => switchWorkspace(ws.id, choices.dest)}
+                    style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'12px 14px', borderRadius:10, cursor:'pointer',
+                      background:'#0d1117', border:`1px solid ${ws.color}`, color:'#e6edf3', fontSize:15, fontWeight:600, textAlign:'left' }}>
+                    {ws.logo
+                      ? <img src={ws.logo} alt="" style={{ width:36, height:36, borderRadius:8, background:'#fff', objectFit:'contain' }}/>
+                      : <span style={{ width:36, height:36, borderRadius:8, background:ws.color, display:'inline-flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:800 }}>{ws.name[0]}</span>}
+                    <span>{ws.name}<span style={{ display:'block', fontSize:12, color:'#6b7280', fontWeight:400 }}>{ws.tag}</span></span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
           {/* ── FORGOT PASSWORD ── */}
           {mode === 'forgot' && (
             <>
@@ -223,7 +266,7 @@ export default function Login() {
           )}
 
           {/* ── LOGIN ── */}
-          {mode === 'login' && (
+          {mode === 'login' && !choices && (
             <>
               <h2 style={{ color:'#e6edf3', fontSize:18, fontWeight:500, margin:'0 0 24px' }}>Sign in to your account</h2>
               {error && <div style={s.err}>{error}</div>}

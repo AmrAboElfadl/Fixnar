@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || 'https://haielakcqbsvtpkcszud.supabase.co'
-const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhaWVsYWtjcWJzdnRwa2NzenVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMTQyMDMsImV4cCI6MjA5Mzg5MDIwM30.3-6aSZsEpHLjCEtB1i-HE5F-il6P8A2audE4lnaG6QY'
+import { CURRENT } from './workspaces'
+
+// The database of the workspace this tab is using (Fixnar, Wahat Al Hayah, …)
+const SUPABASE_URL = CURRENT.url
+const SUPABASE_ANON_KEY = CURRENT.key
 
 // Never let a request hang forever (bad signal, sleeping laptop): abort after a time limit
 // so buttons like "Saving…" / "Removing…" always come back with an error instead.
