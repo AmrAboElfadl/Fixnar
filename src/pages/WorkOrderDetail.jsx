@@ -341,6 +341,8 @@ export default function WorkOrderDetail() {
         <span style={{ color:'var(--border2)' }}>/</span>
         <span style={{ fontSize:13, fontWeight:500 }}>{wo.title}</span>
         <Link to={`/work-orders/${id}/report`} style={{ marginLeft:'auto', fontSize:12, color:'var(--blue)', fontWeight:600 }}>📄 PDF report</Link>
+        {role === 'admin' && <Link to={`/finance/quotes/new?wo=${id}`} style={{ fontSize:12, color:'var(--purple)', fontWeight:600 }}>📝 Quote</Link>}
+        {role === 'admin' && <Link to={`/finance/invoices/new?wo=${id}`} style={{ fontSize:12, color:'var(--purple)', fontWeight:600 }}>🧾 Invoice this job</Link>}
         {role === 'admin' && <Link to={`/audit?record=${id}`} style={{ fontSize:12, color:'var(--green)' }}>Full change history ↗</Link>}
       </div>
 
