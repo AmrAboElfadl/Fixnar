@@ -13,7 +13,7 @@ PR as the work, then adds new items found during the cycle.
 Last updated: 2026-11-16 (cycle 1)
 
 ## Needs the owner (agent cannot do)
-- **Apply `supabase/fx10_sla_pause_helpers_priority.sql`** (or tell the agent "apply fx10"). It adds the SLA pause on hold, the second technician and the server-side priority guard. The app works the same before and after; the second-technician screen is built after it is applied.
+- ~~Apply fx10~~ **done 2026-11-16** (owner: "apply fx10"). Verified: 3 columns, 2 triggers, policies; 15 role checks in a rolled-back transaction all passed; existing 15 jobs unchanged.
 - Commit the applied migrations `fx01`–`fx04` to `supabase/` (they exist only in the Supabase project). The agent can do it if given read access to that project.
 
 ## Queue (in order)
@@ -21,10 +21,10 @@ Last updated: 2026-11-16 (cycle 1)
 | # | Item | From | Status |
 |---|---|---|---|
 | 1 | Bug: SLA badge used the device clock → Dubai time + server `sla_due_at`, 9 unit tests | audit | in PR (cycle 1) |
-| 2 | Pause the SLA while a work order is `on_hold` | FBOS | fx10 written; blocked: owner applies fx10 |
-| 3 | Priority set from the fault; only admin may override | FBOS | app part in PR (cycle 1); server guard in fx10 |
+| 2 | Pause the SLA while a work order is `on_hold` | FBOS | done (fx10 applied 11-16); next: show paused time on the job |
+| 3 | Priority set from the fault; only admin may override | FBOS | done: database guard (fx10) + all three screens (new job, Assign & edit, store page) |
 | 4 | Duplicate warning + draft autosave on a new work order | FBOS | in PR (cycle 1) |
-| 5 | Second technician on a work order: DB in fx10; then the picker, list/schedule display and `plan_dispatch` helper time | FBOS | blocked: owner applies fx10 |
+| 5 | Second technician on a work order: DB done (fx10); next the picker on Assign & edit, list/schedule display, `plan_dispatch` helper time | FBOS | todo (unblocked) |
 | 6 | ~~Vendor scorecard~~: already existed (cycle 0 was wrong) | — | done |
 | 7 | Equipment quick-add catalogue / copy another store's assets | FBOS | todo |
 | 8 | Repo hygiene: stray duplicates removed, fx06 header fixed, `.gitignore` | audit | in PR (cycle 1) |

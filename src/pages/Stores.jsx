@@ -287,6 +287,10 @@ export default function Stores() {
   function selectSubcategory(sub) {
     setTicketForm(f => ({ ...f, subcategory:sub, fault:'' }))
   }
+  // Priority comes from the fault; only an admin may pick another (same rule as Work Orders + fx10 guard)
+  const faultPri = CATEGORIES[ticketForm.category]?.subcategories[ticketForm.subcategory]?.faults
+    .find(x => x.name === ticketForm.fault)?.priority || 'P3'
+
   // When fault changes: auto-set priority + build title
   function selectFault(faultName) {
     setTicketForm(f => {
@@ -306,12 +310,13 @@ export default function Stores() {
     setTicketSaving(true)
 
     const techId = technicians[0]?.id || null   // auto-assign to first technician
-    const sched  = autoSchedule(ticketForm.priority)
+    const priority = isAdmin ? ticketForm.priority : faultPri
+    const sched  = autoSchedule(priority)
 
     const payload = {
       title: ticketForm.title.trim(),
       description: ticketForm.description.trim() || null,
-      priority: ticketForm.priority,
+      priority,
       status: 'open',
       store_id: detailStore.id,
       asset_id: ticketAsset.id,
@@ -878,7 +883,8 @@ export default function Stores() {
                       <Field label="Priority">
                         <div style={{ display:'flex', gap:8 }}>
                           {['P1','P2','P3','P4'].map(p => (
-                            <button key={p} onClick={() => setTicketForm(f => ({ ...f, priority:p }))}
+                            <button key={p} onClick={() => { if (isAdmin || p === faultPri) setTicketForm(f => ({ ...f, priority:p })) }}
+                              disabled={!isAdmin && p !== faultPri} title={!isAdmin && p !== faultPri ? 'Only an admin can change the priority' : ''}
                               style={{ flex:1, padding:'8px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer',
                                 border: `1px solid ${ticketForm.priority===p ? PRIORITY_COLOR[p] : 'var(--border)'}`,
                                 background: ticketForm.priority===p ? PRIORITY_COLOR[p] : 'var(--surface)',
