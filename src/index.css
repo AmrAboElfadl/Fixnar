@@ -76,10 +76,17 @@ body {
 
 /* ── QR label printing ── */
 @media print {
-  body * { visibility: hidden; }
-  .qr-print-root, .qr-print-root * { visibility: visible; }
+  body:has(.qr-print-root) * { visibility: hidden; }
+  body:has(.qr-print-root) .qr-print-root, body:has(.qr-print-root) .qr-print-root * { visibility: visible; }
   .qr-print-root { position: absolute !important; inset: 0 !important; background: #fff !important; padding: 0 !important; display: block !important; }
   .qr-sheet { max-height: none !important; border: none !important; background: #fff !important; }
   .qr-noprint { display: none !important; }
   .qr-grid { overflow: visible !important; grid-template-columns: repeat(3, 1fr) !important; padding: 0 !important; }
+}
+
+/* ── Printing normal pages (e.g. technician schedule) ── */
+@media print {
+  .fx-topbar, .fx-sidebar, .fx-no-print { display: none !important; }
+  .fx-main { padding: 0 !important; margin: 0 !important; }
+  .fx-print-block { break-inside: avoid; }
 }

@@ -39,7 +39,7 @@ export default function Budgets() {
       supabase.from('stores').select('id,name').order('name'),
       supabase.from('budgets').select('*').eq('month', month),
       fetchAllRows(() => supabase.from('work_orders').select('id,store_id,cost,parts_cost')
-        .gte('created_at', dubaiStart(month)).lt('created_at', dubaiStart(next)).order('id')),
+        .gte('spend_at', dubaiStart(month)).lt('spend_at', dubaiStart(next)).order('id')),
     ])
     if (hasErr(b.error)) flash(b.error.message, 'error')
     const bm = {}; (b.data || []).forEach(r => { bm[r.store_id] = r })
@@ -104,7 +104,7 @@ export default function Budgets() {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:12, marginBottom:18 }}>
         <div>
           <h2 style={{ margin:0, fontSize:22, fontWeight:700 }}>Budget vs Actual</h2>
-          <p style={{ margin:'4px 0 0', fontSize:13, color:'var(--text3)' }}>Maintenance spend per store = approved job/vendor cost + spare parts used. Admins get an alert at 80% and 100%.</p>
+          <p style={{ margin:'4px 0 0', fontSize:13, color:'var(--text3)' }}>Maintenance spend per store = approved job/vendor cost + spare parts used, counted in the month the job was completed. Admins get an alert at 80% and 100%.</p>
         </div>
         <div style={{ display:'flex', gap:6, alignItems:'center' }}>
           <button onClick={() => setMonth(shiftMonth(month, -1))} style={btn}>←</button>

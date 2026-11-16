@@ -19,11 +19,14 @@ export default function AssetScan() {
   useEffect(() => {
     let alive = true
     ;(async () => {
-      const [a, w] = await Promise.all([
-        supabase.from('assets').select('*, stores(id,name,phone,manager_name)').eq('id', id).maybeSingle(),
-        supabase.from('work_orders').select('id,title,priority,status,created_at,closed_at,cost,vendor_name')
-          .eq('asset_id', id).order('created_at', { ascending:false }).limit(20),
-      ])
+      // /a/<uuid> from the QR code, or /a/FX-00012 from the barcode
+      const byCode = /^FX-\d+$/i.test(id)
+      const a = await supabase.from('assets').select('*, stores(id,name,phone,manager_name)')
+        .eq(byCode ? 'asset_code' : 'id', byCode ? id.toUpperCase() : id).maybeSingle()
+      const w = a.data
+        ? await supabase.from('work_orders').select('id,title,priority,status,created_at,closed_at,cost,parts_cost,vendor_name')
+            .eq('asset_id', a.data.id).order('created_at', { ascending:false }).limit(20)
+        : { data: [] }
       if (!alive) return
       if (hasErr(a.error) || !a.data) setError('This QR code does not match any asset you can access.')
       setAsset(a.data || null); setWos(w.data || []); setLoading(false)
@@ -35,7 +38,7 @@ export default function AssetScan() {
   if (error) return <div style={{ padding:40, textAlign:'center', color:'var(--red)' }}>{error}</div>
 
   const openWOs  = wos.filter(w => !['completed','closed'].includes(w.status))
-  const totalCost = wos.reduce((s, w) => s + Number(w.cost || 0), 0)
+  const totalCost = wos.reduce((s, w) => s + Number(w.cost || 0) + Number(w.parts_cost || 0), 0)
   const canReport = profile?.role && profile.role !== 'vendor'
   const card = { background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:16 }
 

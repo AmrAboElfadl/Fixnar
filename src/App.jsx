@@ -17,9 +17,11 @@ import Stores from './pages/Stores'
 import DevPanel from './pages/DevPanel'
 import AuditLog from './pages/AuditLog'
 import AssetScan from './pages/AssetScan'
+import AssetRegister from './pages/AssetRegister'
 import Vendors from './pages/Vendors'
 import UpdateBanner from './components/UpdateBanner'
 import Inventory from './pages/Inventory'
+import TechSchedule from './pages/TechSchedule'
 import Budgets from './pages/Budgets'
 import WorkOrderReport from './pages/WorkOrderReport'
 
@@ -128,9 +130,10 @@ function AppRoutes() {
       <Route path="/work-orders/:id" element={page(<WorkOrderDetail/>)}/>
       <Route path="/work-orders/:id/report" element={<ProtectedRoute><WorkOrderReport/></ProtectedRoute>}/>
       <Route path="/a/:id"           element={page(<AssetScan/>, INTERNAL)}/>
-      <Route path="/assets"          element={<Navigate to="/stores" replace/>}/>
+      <Route path="/assets"          element={page(<AssetRegister/>, INTERNAL)}/>
       <Route path="/ppm"             element={page(<PPM/>, INTERNAL)}/>
       <Route path="/schedule"        element={page(<Schedule/>, INTERNAL)}/>
+      <Route path="/my-schedule"     element={page(<TechSchedule/>, INTERNAL)}/>
       <Route path="/vendors"         element={page(<Vendors/>, STAFF)}/>
       <Route path="/inventory"       element={page(<Inventory/>, INTERNAL)}/>
       <Route path="/budgets"         element={page(<Budgets/>, STAFF)}/>

@@ -325,11 +325,37 @@ export default function WorkOrders() {
     setSaving(false)
   }
 
+  // Status change from the list: same rules as the work order page, so every screen stays consistent
   async function updateStatus(id, status, e) {
     if (e) e.stopPropagation()
-    const { error } = await supabase.from('work_orders').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+    const wo = wos.find(w => w.id === id)
+    if (!wo || wo.status === status) return
+    if (status === 'closed') {            // closing needs the store manager's signature
+      alert('To close a job, the store manager must sign. Opening the work order…')
+      return navigate(`/work-orders/${id}`)
+    }
+    if (wo.status === 'closed') {
+      if (!isAdmin) { alert('Only an admin can re-open a closed job.'); return fetchAll(true) }
+      if (!window.confirm('This job is closed and signed. Re-open it?')) return fetchAll(true)
+    }
+    let reason = null
+    if (status === 'on_hold') {
+      reason = window.prompt('Reason for putting this job on hold:')
+      if (!reason) return fetchAll(true)
+    }
+    const now = new Date().toISOString()
+    const patch = { status, updated_at: now }
+    if (status === 'travelling') patch.trip_started_at = now
+    if (status === 'arrived')    patch.arrived_at = now
+    if (status === 'in_progress' && !wo.work_started_at) patch.work_started_at = now
+    if (status === 'completed')  patch.completed_at = now
+    if (status === 'on_hold')    patch.hold_reason = reason
+    if (wo.status === 'closed')  { patch.closed_at = null; patch.signed_at = null; patch.signed_by = null; patch.signature_url = null }
+    const { error } = await supabase.from('work_orders').update(patch).eq('id', id)
     if (error && Object.keys(error).length) alert('Error: ' + error.message)
-    fetchAll()
+    else supabase.from('wo_updates').insert({ work_order_id: id, user_id: profile.id, type:'status_change',
+      content: `Status changed to ${status}${reason ? ' — ' + reason : ''} (from work order list)` }).then(() => {}, () => {})
+    fetchAll(true)
   }
 
   // ── Derived filter options ──────────────────────────────────────────────

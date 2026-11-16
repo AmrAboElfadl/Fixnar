@@ -223,7 +223,7 @@ export default function Stores() {
 
     const [assetRes, woRes, techRes] = await Promise.all([
       supabase.from('assets')
-        .select('id, name, category, subcategory, location, serial_number, status, brand, model, purchase_date, notes')
+        .select('id, asset_code, name, category, subcategory, location, serial_number, status, brand, model, purchase_date, notes')
         .eq('store_id', store.id)
         .order('name'),
       supabase.from('work_orders')

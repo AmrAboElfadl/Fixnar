@@ -15,7 +15,7 @@ export default function TopBar({ onMenuToggle, pinned, onPin }) {
   const current = LANGS.find(l => l.code === lang) || LANGS[0]
 
   return (
-    <div style={{
+    <div className="fx-topbar" style={{
       position:'fixed', top:0, right:0, left:0,
       height:52, zIndex:300,
       background:'var(--sidebar-bg)',
