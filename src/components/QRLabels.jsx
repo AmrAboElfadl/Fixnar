@@ -55,7 +55,7 @@ export default function QRLabels({ assets, storeName, onClose }) {
             <button onClick={onClose} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 14px', cursor:'pointer', color:'var(--text)' }}>Close</button>
           </div>
         </div>
-        <div className="qr-grid" style={{ overflowY:'auto', padding:16, display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(250px, 1fr))', gap:10 }}>
+        <div className="qr-grid" translate="no" dir="ltr" style={{ overflowY:'auto', padding:16, display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(250px, 1fr))', gap:10 }}>
           {assets.map(a => <Label key={a.id} asset={a} storeName={storeName}/>)}
         </div>
       </div>

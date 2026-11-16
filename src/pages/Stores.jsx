@@ -538,7 +538,7 @@ export default function Stores() {
           </div>
 
           <div style={{ fontSize:12, color:'var(--text3)', marginBottom:12 }}>
-            Showing {filteredAssets.length} of {detailAssets.length} assets
+            {`Showing ${filteredAssets.length} of ${detailAssets.length} assets`}
           </div>
 
           {filteredAssets.length === 0 ? (

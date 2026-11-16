@@ -43,7 +43,7 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
   const [pwOpen, setPwOpen] = useStateCP(false)
 
   const initials = (profile?.full_name || profile?.email || 'U')
-    .split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
+    .split(/[^\p{L}\p{N}]+/u).filter(Boolean).map(w => w[0]).join('').slice(0,2).toUpperCase()
 
   const rc = ROLE_COLORS[role] || '#9e9e9e'
 

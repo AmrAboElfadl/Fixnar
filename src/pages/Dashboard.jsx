@@ -125,7 +125,7 @@ function StatCard({ label, value, color, bg, border, onClick, icon, sub }) {
       </div>
       <div style={{fontSize:34,fontWeight:700,color:color||'var(--text)',marginBottom:4}}>{value}</div>
       {sub && <div style={{fontSize:12,color:'var(--text3)'}}>{sub}</div>}
-      <div style={{position:'absolute',bottom:10,right:14,fontSize:11,color:color||'var(--text3)',opacity:hovered?1:0.5,transition:'opacity 0.15s'}}>
+      <div style={{position:'absolute',bottom:10,insetInlineEnd:14,fontSize:11,color:color||'var(--text3)',opacity:hovered?1:0.5,transition:'opacity 0.15s'}}>
         View details →
       </div>
     </div>
