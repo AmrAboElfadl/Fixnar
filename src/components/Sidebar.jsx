@@ -2,6 +2,8 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import ThemePicker from './ThemePicker'
 import WorkspaceSwitcher from './WorkspaceSwitcher'
+import ChangePassword from './ChangePassword'
+import { useState as useStateCP } from 'react'
 import { hasModule, moduleOfPath, BRAND } from '../lib/brand'
 
 const DEV_EMAIL = import.meta.env.VITE_DEV_EMAIL || 'amrmorsy93@gmail.com'
@@ -38,6 +40,7 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
   const navigate = useNavigate()
   const role     = profile?.role || 'viewer'
   const isDev    = profile?.email === DEV_EMAIL && hasModule('dev')
+  const [pwOpen, setPwOpen] = useStateCP(false)
 
   const initials = (profile?.full_name || profile?.email || 'U')
     .split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
@@ -179,6 +182,8 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
         </div>
         <WorkspaceSwitcher/>
         <div style={{ marginBottom:8 }}><ThemePicker full/></div>
+        <button onClick={() => setPwOpen(true)} style={{ width:'100%', background:'transparent', border:'1px solid var(--border)', borderRadius:8, padding:'8px', color:'var(--text2)', fontSize:13, cursor:'pointer', marginBottom:8 }}>🔑 Change password</button>
+        {pwOpen && <ChangePassword onClose={() => setPwOpen(false)}/>}
         <button onClick={handleSignOut} style={{
           width:'100%', background:'transparent',
           border:'1px solid var(--border)',

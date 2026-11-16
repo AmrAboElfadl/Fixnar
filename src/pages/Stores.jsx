@@ -158,10 +158,16 @@ const CATEGORIES = {
       { name:'Replacement', priority:'P3' }, { name:'Other Issue', priority:'P3' } ] } } },
 }
 
+import StoreDocuments from '../components/StoreDocuments'
+import { AssetForm, EMPTY_ASSET } from './AssetRegister'
+
 export default function Stores() {
   const { profile } = useAuth()
   const navigate    = useNavigate()
   const isAdmin     = profile?.role === 'admin'
+  const isStaffUser = ['admin','operations'].includes(profile?.role)
+  const [docCount,  setDocCount]  = useState(0)
+  const [addAsset,  setAddAsset]  = useState(null)
 
   const [stores,   setStores]   = useState([])
   const [woCounts, setWoCounts] = useState({})
@@ -231,7 +237,8 @@ export default function Stores() {
         .eq('store_id', store.id)
         .order('created_at', { ascending:false }),
       supabase.from('profiles').select('id, full_name').eq('role','technician').order('full_name'),
-    ])
+      supabase.from('store_documents').select('id', { count:'exact', head:true }).eq('store_id', store.id),
+    ]).then(r => { setDocCount(r[3]?.count || 0); return r })
     if (assetRes.error && Object.keys(assetRes.error).length) console.error('Asset load error:', assetRes.error)
     if (woRes.error && Object.keys(woRes.error).length) console.error('WO load error:', woRes.error)
     setDetailAssets(assetRes.data || [])
@@ -499,9 +506,19 @@ export default function Stores() {
       return <div style={{ textAlign:'center', padding:40, color:'var(--text3)' }}>Loading…</div>
     }
 
+    if (detailTab === 'documents') {
+      return <StoreDocuments store={detailStore} canManage={isStaffUser} onCount={setDocCount}/>
+    }
+
     if (detailTab === 'assets') {
       return (
         <div>
+          {isStaffUser && (
+            <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:10 }}>
+              <button onClick={() => setAddAsset({ ...EMPTY_ASSET, store_id: detailStore.id })}
+                style={{ background:'var(--green)', color:'white', border:'none', borderRadius:8, padding:'8px 14px', fontSize:13, fontWeight:600, cursor:'pointer' }}>+ Add asset</button>
+            </div>
+          )}
           <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:16 }}>
             <input value={assetSearch} onChange={e => setAssetSearch(e.target.value)} placeholder="Search assets, brand, serial…"
               style={{ flex:1, minWidth:180, padding:'8px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--surface)', color:'var(--text)', fontSize:13, boxSizing:'border-box' }}/>
@@ -589,11 +606,18 @@ export default function Stores() {
     }
 
     // Work orders tab
+    const newWoBtn = (
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:10 }}>
+        <button onClick={() => { const id = detailStore.id; closeDetail(); navigate(`/work-orders?new=1&store_id=${id}`) }}
+          style={{ background:'var(--green)', color:'white', border:'none', borderRadius:8, padding:'8px 14px', fontSize:13, fontWeight:600, cursor:'pointer' }}>+ New work order</button>
+      </div>
+    )
     return (
       detailWOs.length === 0 ? (
-        <Empty>No work orders for this store yet.</Empty>
+        <>{newWoBtn}<Empty>No work orders for this store yet.</Empty></>
       ) : (
         <div style={{ display:'grid', gap:10 }}>
+          {newWoBtn}
           {detailWOs.map(wo => {
             const st = STATUS_COLOR[wo.status] || STATUS_COLOR.open
             const asset = detailAssets.find(a => a.id === wo.asset_id)
@@ -773,6 +797,7 @@ export default function Stores() {
                   {[
                     { key:'assets',     label:`Assets (${detailAssets.length})` },
                     { key:'workorders', label:`Work Orders (${detailWOs.length})` },
+                    { key:'documents',  label:`Documents (${docCount})` },
                   ].map(t => (
                     <button key={t.key} onClick={() => setDetailTab(t.key)} style={{
                       padding:'8px 16px', borderRadius:8, fontSize:13, fontWeight:600, cursor:'pointer',
@@ -806,7 +831,12 @@ export default function Stores() {
               </div>
             )}
 
-            {qrAssets && <QRLabels assets={qrAssets} storeName={detailStore.name} onClose={() => setQrAssets(null)}/>}
+            {addAsset && (
+        <AssetForm initial={addAsset} stores={stores} canPrice={isStaffUser}
+          onClose={() => setAddAsset(null)}
+          onSaved={() => { setAddAsset(null); if (detailStore) openDetail(detailStore) }}/>
+      )}
+      {qrAssets && <QRLabels assets={qrAssets} storeName={detailStore.name} onClose={() => setQrAssets(null)}/>}
 
             {/* ── INLINE TICKET FORM ── */}
             {ticketAsset && (
