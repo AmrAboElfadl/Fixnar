@@ -24,6 +24,8 @@ import Inventory from './pages/Inventory'
 import TechSchedule from './pages/TechSchedule'
 import Budgets from './pages/Budgets'
 import WorkOrderReport from './pages/WorkOrderReport'
+import Finance from './pages/finance/Finance'
+import DocPrint from './pages/finance/DocPrint'
 
 function ProtectedRoute({ children, roles }) {
   const { user, profile, profileError, loading, signOut } = useAuth()
@@ -140,6 +142,10 @@ function AppRoutes() {
       <Route path="/analytics"       element={page(<Analytics/>, ['admin'])}/>
       <Route path="/users"           element={page(<Users/>, ['admin'])}/>
       <Route path="/audit"           element={page(<AuditLog/>, ['admin'])}/>
+      <Route path="/finance"         element={page(<Finance/>, ['admin'])}/>
+      <Route path="/finance/:tab"    element={page(<Finance/>, ['admin'])}/>
+      <Route path="/finance/:tab/:id" element={page(<Finance/>, ['admin'])}/>
+      <Route path="/finance/print/:kind/:id" element={<ProtectedRoute roles={['admin']}><DocPrint/></ProtectedRoute>}/>
 
       {/* Developer Panel - admin only, plus dev email + PIN inside */}
       <Route path="/dev"             element={page(<DevPanel/>, ['admin'])}/>

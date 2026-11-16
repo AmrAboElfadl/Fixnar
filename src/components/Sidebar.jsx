@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { path:'/budgets',     label:'Budgets',        icon:'◐', roles:['admin','operations'] },
   { path:'/analytics',   label:'Analytics',      icon:'▤', roles:['admin'] },
   { path:'/users',       label:'Users & Access', icon:'◎', roles:['admin'] },
+  { path:'/finance',     label:'Finance',        icon:'💰', roles:['admin'] },
   { path:'/audit',       label:'Audit Trail',    icon:'☰', roles:['admin'] },
 ]
 
