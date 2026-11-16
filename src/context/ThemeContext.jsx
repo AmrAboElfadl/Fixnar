@@ -2,13 +2,21 @@ import { createContext, useContext, useState, useEffect } from 'react'
 
 const ThemeContext = createContext({})
 
+export const THEMES = [
+  { id:'light', icon:'☀️', label:'Light' },
+  { id:'dark',  icon:'🌙', label:'Dark' },
+  { id:'retro', icon:'🕹️', label:'Retro 80s/90s' },
+]
+
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem('fixnar_theme') || 'light')
+  const [theme, setTheme] = useState(() => { const t = localStorage.getItem('fixnar_theme'); return THEMES.some(x => x.id === t) ? t : 'light' })
   const [lang, setLang]   = useState(() => localStorage.getItem('fixnar_lang') || 'en')
 
   useEffect(() => {
     localStorage.setItem('fixnar_theme', theme)
     document.documentElement.setAttribute('data-theme', theme)
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0d1117' : theme === 'retro' ? '#000080' : '#1D9E75')
   }, [theme])
 
   useEffect(() => {
@@ -17,12 +25,13 @@ export function ThemeProvider({ children }) {
     document.documentElement.setAttribute('lang', lang)
   }, [lang])
 
+  // Cycles Light → Dark → Retro → Light
   function toggleTheme() {
-    setTheme(t => t === 'light' ? 'dark' : 'light')
+    setTheme(t => THEMES[(THEMES.findIndex(x => x.id === t) + 1) % THEMES.length].id)
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, lang, setLang }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, lang, setLang }}>
       {children}
     </ThemeContext.Provider>
   )

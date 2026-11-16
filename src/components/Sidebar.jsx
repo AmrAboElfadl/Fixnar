@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext'
+import ThemePicker from './ThemePicker'
 
 const DEV_EMAIL = import.meta.env.VITE_DEV_EMAIL || 'amrmorsy93@gmail.com'
 
@@ -32,7 +32,6 @@ const ROLE_COLORS = {
 
 export default function Sidebar({ open, onClose, pinned, onPin }) {
   const { profile, signOut } = useAuth()
-  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const role     = profile?.role || 'viewer'
   const isDev    = profile?.email === DEV_EMAIL
@@ -173,13 +172,7 @@ export default function Sidebar({ open, onClose, pinned, onPin }) {
             <div style={{ color:rc, fontSize:11, textTransform:'capitalize' }}>{role}</div>
           </div>
         </div>
-        <button onClick={toggleTheme} style={{
-          width:'100%', background:'transparent', border:'1px solid var(--border)',
-          borderRadius:8, padding:'8px', marginBottom:8,
-          color:'var(--text2)', fontSize:13, cursor:'pointer',
-        }}>
-          {theme === 'dark' ? '☀️ Light mode' : '🌙 Dark mode'}
-        </button>
+        <div style={{ marginBottom:8 }}><ThemePicker full/></div>
         <button onClick={handleSignOut} style={{
           width:'100%', background:'transparent',
           border:'1px solid var(--border)',

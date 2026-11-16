@@ -1,6 +1,7 @@
 import { useTheme } from '../context/ThemeContext'
 import { useState } from 'react'
 import NotificationBell from './NotificationBell'
+import ThemePicker from './ThemePicker'
 
 const LANGS = [
   { code:'en', label:'EN', name:'English', flag:'🇬🇧' },
@@ -9,9 +10,8 @@ const LANGS = [
 ]
 
 export default function TopBar({ onMenuToggle, pinned, onPin }) {
-  const { theme, toggleTheme, lang, setLang } = useTheme()
+  const { lang, setLang } = useTheme()
   const [langOpen, setLangOpen] = useState(false)
-  const isDark = theme === 'dark'
   const current = LANGS.find(l => l.code === lang) || LANGS[0]
 
   return (
@@ -47,7 +47,7 @@ export default function TopBar({ onMenuToggle, pinned, onPin }) {
               <circle cx="9" cy="9" r="2" fill="white"/>
             </svg>
           </div>
-          <span style={{ color:'var(--text)', fontSize:16, fontWeight:600, letterSpacing:'-0.3px' }}>Fixnar</span>
+          <span className="fx-brand" style={{ color:'var(--text)', fontSize:16, fontWeight:600, letterSpacing:'-0.3px' }}>Fixnar</span>
         </div>
 
         {/* Pin sidebar toggle */}
@@ -68,12 +68,8 @@ export default function TopBar({ onMenuToggle, pinned, onPin }) {
       {/* Right: Theme + Language */}
       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
         <NotificationBell/>
-        {/* Theme toggle */}
-        <button onClick={toggleTheme} className="fx-hide-mobile"
-          title={isDark ? 'Switch to Light' : 'Switch to Dark'}
-          style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:8, padding:'6px 12px', cursor:'pointer', color:'var(--text2)', fontSize:13, fontWeight:500 }}>
-          {isDark ? '☀️ Light' : '🌙 Dark'}
-        </button>
+        {/* Theme: Light / Dark / Retro */}
+        <div className="fx-hide-mobile"><ThemePicker/></div>
 
         {/* Language selector */}
         <div style={{ position:'relative' }}>
