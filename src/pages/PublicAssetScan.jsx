@@ -9,7 +9,7 @@ const SPEC_LABEL = { capacity:'Capacity', power_kw:'Power (kW)', current_a:'Curr
   frequency_hz:'Frequency (Hz)', refrigerant:'Refrigerant', fuel:'Fuel', dimensions_mm:'Dimensions (mm)', weight_kg:'Weight (kg)', other:'Other' }
 const SPEC_HIDE = new Set(['notes', 'spec_match'])
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—'
-const REFRESH_MS = 60000
+const REFRESH_MS = 30000
 
 // Page shown to anyone who scans an asset QR without being signed in (or without access to the asset register).
 // Data comes live from public_asset_scan() (fx17): a safe subset, no costs or contacts.
@@ -19,6 +19,8 @@ export default function PublicAssetScan({ id, signedIn }) {
   const [asset, setAsset] = useState(null)
   const [loading, setLoading] = useState(isUuid)
   const [error, setError] = useState(isUuid ? '' : 'Sign in to look up an asset by its code.')
+  const [photoUrl, setPhotoUrl] = useState(null)
+  const photoPath = asset?.photo_path || null
 
   useEffect(() => {
     if (!isUuid) return
@@ -38,6 +40,15 @@ export default function PublicAssetScan({ id, signedIn }) {
     document.addEventListener('visibilitychange', onShow)
     return () => { alive = false; clearInterval(t); document.removeEventListener('visibilitychange', onShow) }
   }, [id, isUuid])
+
+  // the photo lives in the private bucket: fx18 lets anyone read only an asset's current photo
+  useEffect(() => {
+    if (!photoPath) { setPhotoUrl(null); return }
+    let alive = true
+    supabase.storage.from('attachments').createSignedUrl(photoPath, 600)
+      .then(({ data }) => { if (alive) setPhotoUrl(data?.signedUrl || null) })
+    return () => { alive = false }
+  }, [photoPath])
 
   const signIn = () => navigate('/login', { state: { from: `/a/${id}` } })
   const card = { background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:16 }
@@ -64,6 +75,7 @@ export default function PublicAssetScan({ id, signedIn }) {
   return wrap(<>
     <div style={{ ...card, marginBottom:12 }}>
       <div style={{ fontSize:11, fontWeight:700, color:'var(--green)', letterSpacing:'.05em' }}>📱 SCANNED ASSET · {asset.asset_code}</div>
+      {photoUrl && <img src={photoUrl} alt={asset.name} style={{ width:'100%', maxHeight:280, objectFit:'cover', borderRadius:10, margin:'10px 0 6px', display:'block' }}/>}
       <h2 style={{ margin:'4px 0 2px', fontSize:20 }}>{asset.name}</h2>
       <div style={{ fontSize:13, color:'var(--text2)' }}>{asset.store_name}{asset.location ? ` · ${asset.location.trim()}` : ''}</div>
       <div style={{ display:'flex', gap:14, flexWrap:'wrap', marginTop:10, fontSize:12, color:'var(--text3)' }}>
