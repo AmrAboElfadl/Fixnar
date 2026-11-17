@@ -384,7 +384,7 @@ function DatabaseTab() {
       if (orderMatch) q = q.order(orderMatch[1], { ascending: orderMatch[2]?.toUpperCase() !== 'DESC' })
 
       const { data, error: e } = await q
-      if (e) setError(e.message)
+      if (e && Object.keys(e).length) setError(e.message || 'Query failed')
       else setResult(data || [])
     } catch(err) {
       setError(err.message)

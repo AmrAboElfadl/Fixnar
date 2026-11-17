@@ -4,7 +4,7 @@ import QRCode from 'qrcode'
 import JsBarcode from 'jsbarcode'
 
 // Printable asset labels: Code 128 barcode (asset code, works with any handheld scanner)
-// + QR code (phone camera opens the asset page in Fixnar).
+// + QR code (any phone camera opens the asset's live page — public view without sign-in, see fx17).
 export function assetUrl(id) {
   return `${window.location.origin}/a/${id}`
 }
@@ -48,7 +48,7 @@ export default function QRLabels({ assets, storeName, onClose }) {
         <div className="qr-noprint" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 18px', borderBottom:'1px solid var(--border)', color:'var(--text)', gap:10, flexWrap:'wrap' }}>
           <div>
             <div style={{ fontWeight:700 }}>Asset labels — {assets.length} asset{assets.length === 1 ? '' : 's'}</div>
-            <div style={{ fontSize:12, color:'var(--text3)' }}>Print on sticker paper (3 per row on A4) and stick on each machine. Barcode = handheld scanner, QR = phone camera.</div>
+            <div style={{ fontSize:12, color:'var(--text3)' }}>Print on sticker paper (3 per row on A4) and stick on each machine. Barcode = handheld scanner. QR = any phone camera: opens the asset's live details, no sign-in needed, and always shows the latest data (no reprint).</div>
           </div>
           <div style={{ display:'flex', gap:8 }}>
             <button onClick={() => window.print()} style={{ background:'var(--green)', color:'white', border:'none', borderRadius:8, padding:'8px 16px', fontWeight:600, cursor:'pointer' }}>🖨 Print</button>

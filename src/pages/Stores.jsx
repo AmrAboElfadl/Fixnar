@@ -375,7 +375,7 @@ export default function Stores() {
     const { error } = editing
       ? await supabase.from('stores').update(payload).eq('id', editing.id)
       : await supabase.from('stores').insert(payload)
-    if (error) flash('❌ ' + error.message, 'error')
+    if (error && Object.keys(error).length) flash('❌ ' + (error.message || 'Could not save'), 'error')
     else { flash(editing ? '✅ Store updated' : '✅ Store added'); setShowForm(false); loadAll() }
     setSaving(false)
   }
@@ -383,7 +383,7 @@ export default function Stores() {
   async function deleteStore(store) {
     setSaving(true)
     const { error } = await supabase.from('stores').delete().eq('id', store.id)
-    if (error) flash('❌ ' + error.message, 'error')
+    if (error && Object.keys(error).length) flash('❌ ' + (error.message || 'Could not save'), 'error')
     else flash(`✅ "${store.name}" deleted`)
     setConfirmDel(null); loadAll(); setSaving(false)
   }
