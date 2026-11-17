@@ -15,6 +15,7 @@ export default function AssetScan() {
   const [wos, setWos]       = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]   = useState('')
+  const [photoUrl, setPhotoUrl] = useState(null)
 
   useEffect(() => {
     let alive = true
@@ -34,6 +35,15 @@ export default function AssetScan() {
     return () => { alive = false }
   }, [id])
 
+  const photoPath = asset?.photo_path || null
+  useEffect(() => {
+    if (!photoPath) { setPhotoUrl(null); return }
+    let alive = true
+    supabase.storage.from('attachments').createSignedUrl(photoPath, 600)
+      .then(({ data }) => { if (alive) setPhotoUrl(data?.signedUrl || null) })
+    return () => { alive = false }
+  }, [photoPath])
+
   if (loading) return <div style={{ padding:40, textAlign:'center', color:'var(--text3)' }}>Loading asset…</div>
   if (error) return <div style={{ padding:40, textAlign:'center', color:'var(--red)' }}>{error}</div>
 
@@ -46,6 +56,7 @@ export default function AssetScan() {
     <div style={{ maxWidth:640, margin:'0 auto', color:'var(--text)' }}>
       <div style={{ ...card, marginBottom:12 }}>
         <div style={{ fontSize:11, fontWeight:700, color:'var(--green)', letterSpacing:'.05em' }}>📱 SCANNED ASSET</div>
+        {photoUrl && <img src={photoUrl} alt={asset.name} style={{ width:'100%', maxHeight:280, objectFit:'cover', borderRadius:10, margin:'10px 0 6px', display:'block' }}/>}
         <h2 style={{ margin:'4px 0 2px', fontSize:20 }}>{asset.name}</h2>
         <div style={{ fontSize:13, color:'var(--text2)' }}>{asset.stores?.name}{asset.location ? ` · ${asset.location}` : ''}</div>
         <div style={{ display:'flex', gap:14, flexWrap:'wrap', marginTop:10, fontSize:12, color:'var(--text3)' }}>
