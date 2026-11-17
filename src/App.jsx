@@ -17,6 +17,7 @@ import Stores from './pages/Stores'
 import DevPanel from './pages/DevPanel'
 import AuditLog from './pages/AuditLog'
 import AssetScan from './pages/AssetScan'
+import PublicAssetScan from './pages/PublicAssetScan'
 import AssetRegister from './pages/AssetRegister'
 import Vendors from './pages/Vendors'
 import UpdateBanner from './components/UpdateBanner'
@@ -121,6 +122,21 @@ function LoginRoute() {
   return <Navigate to={from && from !== '/login' ? from : '/'} replace/>
 }
 
+// /a/<id> from an asset label: staff get the full asset page, everyone else (signed out, vendors)
+// gets the public live view — no sign-in needed.
+function AssetScanRoute({ page }) {
+  const { user, profile, profileError, loading } = useAuth()
+  const { pathname } = useLocation()
+  const id = decodeURIComponent(pathname.split('/')[2] || '')
+  if (loading || (user && !profile && !profileError)) return (
+    <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ color:'var(--green)', fontSize:14, fontFamily:"'DM Sans', sans-serif" }}>Loading {BRAND.name}...</div>
+    </div>
+  )
+  if (user && profile && INTERNAL.includes(profile.role) && hasModule('assets')) return page(<AssetScan/>, INTERNAL)
+  return <PublicAssetScan id={id} signedIn={!!user}/>
+}
+
 function AppRoutes() {
   const page = (el, roles) => <ProtectedRoute roles={roles}><AppLayout>{el}</AppLayout></ProtectedRoute>
   return (
@@ -133,7 +149,7 @@ function AppRoutes() {
       <Route path="/work-orders"     element={page(<WorkOrders/>)}/>
       <Route path="/work-orders/:id" element={page(<WorkOrderDetail/>)}/>
       <Route path="/work-orders/:id/report" element={<ProtectedRoute><WorkOrderReport/></ProtectedRoute>}/>
-      <Route path="/a/:id"           element={page(<AssetScan/>, INTERNAL)}/>
+      <Route path="/a/:id"           element={<AssetScanRoute page={page}/>}/>
       <Route path="/assets"          element={page(<AssetRegister/>, INTERNAL)}/>
       <Route path="/ppm"             element={page(<PPM/>, INTERNAL)}/>
       <Route path="/schedule"        element={page(<Schedule/>, INTERNAL)}/>
