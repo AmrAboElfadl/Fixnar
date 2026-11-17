@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase, fetchAllRows } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { compressImage } from '../lib/files'
+import { compressImage, dataUrlToBlob } from '../lib/files'
 import { assetAi, SPEC_FIELDS, ASSET_CATEGORIES } from '../lib/assetAi'
 import QRLabels from '../components/QRLabels'
 
@@ -127,9 +127,10 @@ export function AssetForm({ initial, stores, canPrice, onClose, onSaved }) {
         const { data, error } = await supabase.from('assets').insert(row).select('id').single()
         if (hasErr(error)) throw new Error(error.message)
         id = data.id
+        setF(prev => ({ ...prev, id }))   // a retry after a later failure updates this asset, never creates a copy
       }
       if (photo) {
-        const blob = await (await fetch(photo)).blob()
+        const blob = dataUrlToBlob(photo)   // no fetch(): the site's security policy blocks fetch on data: URLs
         const path = `asset/${id}/${Date.now()}.jpg`
         const up = await supabase.storage.from('attachments').upload(path, blob, { contentType:'image/jpeg' })
         if (hasErr(up.error)) throw new Error('Saved, but the photo upload failed: ' + up.error.message)

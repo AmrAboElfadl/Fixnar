@@ -39,3 +39,13 @@ export async function openWoFile(path) {
   if (error && Object.keys(error).length) throw new Error(error.message || 'Could not open file')
   window.open(data.signedUrl, '_blank', 'noopener')
 }
+
+// data:image/...;base64,... → Blob, without fetch() (blocked by the Content-Security-Policy connect-src)
+export function dataUrlToBlob(dataUrl) {
+  const [head, b64] = String(dataUrl).split(',')
+  const mime = (head.match(/data:([^;]+)/) || [])[1] || 'application/octet-stream'
+  const bin = head.includes(';base64') ? atob(b64) : decodeURIComponent(b64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return new Blob([bytes], { type: mime })
+}
