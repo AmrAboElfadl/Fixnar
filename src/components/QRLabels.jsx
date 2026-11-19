@@ -28,7 +28,7 @@ function Label({ asset, storeName }) {
   return (
     <div className="qr-label" style={{ border:'1px dashed #bbb', borderRadius:8, padding:'8px 10px', background:'#fff', color:'#111', breakInside:'avoid', display:'flex', gap:8, alignItems:'center' }}>
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:9, fontWeight:700, color:'#1D9E75', letterSpacing:'.05em' }}>FIXNAR ASSET · SCAN TO REPORT A FAULT</div>
+        <div style={{ fontSize:9, fontWeight:700, color:'var(--green)', letterSpacing:'.05em' }}>FIXNAR ASSET · SCAN TO REPORT A FAULT</div>
         <div style={{ fontSize:12, fontWeight:700, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{asset.name}</div>
         <div style={{ fontSize:10, color:'#555', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
           {storeName || asset.stores?.name || ''}{asset.brand ? ` · ${asset.brand}` : ''}{asset.model ? ` ${asset.model}` : ''}

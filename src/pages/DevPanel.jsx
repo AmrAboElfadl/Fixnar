@@ -207,7 +207,7 @@ function UsersTab() {
               <div style={{display:'flex',gap:8,marginTop:8}}>
                 <Btn small onClick={()=>{navigator.clipboard.writeText(sqlBox);flash('✅ Copied!')}}>📋 Copy SQL</Btn>
                 <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer"
-                  style={{background:'#1D9E75',color:'white',borderRadius:7,padding:'5px 12px',fontSize:12,textDecoration:'none',fontWeight:600}}>
+                  style={{background:'var(--green)',color:'white',borderRadius:7,padding:'5px 12px',fontSize:12,textDecoration:'none',fontWeight:600}}>
                   Open Supabase ↗
                 </a>
               </div>
@@ -412,7 +412,7 @@ function DatabaseTab() {
         <Btn onClick={runQuery} disabled={running}>{running?'Running…':'▶ Run Query'}</Btn>
         <span style={{fontSize:11,color:'var(--text3)'}}>Simple SELECT queries via Supabase client · For complex SQL use the dashboard</span>
         <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer"
-          style={{marginLeft:'auto',background:'#1D9E75',color:'white',borderRadius:8,padding:'7px 14px',fontSize:12,textDecoration:'none',fontWeight:600}}>
+          style={{marginLeft:'auto',background:'var(--green)',color:'white',borderRadius:8,padding:'7px 14px',fontSize:12,textDecoration:'none',fontWeight:600}}>
           Full SQL Editor ↗
         </a>
       </div>
@@ -484,7 +484,7 @@ function SettingsTab() {
 
   return (
     <div>
-      {msg && <div style={{padding:'10px 14px',borderRadius:8,marginBottom:14,fontSize:13,background:'#E8F5E9',color:'#1B5E20',border:'1px solid #1D9E75'}}>{msg}</div>}
+      {msg && <div style={{padding:'10px 14px',borderRadius:8,marginBottom:14,fontSize:13,background:'#E8F5E9',color:'#1B5E20',border:'1px solid var(--green)'}}>{msg}</div>}
 
       <h3 style={{margin:'0 0 14px',fontSize:15}}>📊 Database Overview</h3>
       {loading ? <div style={{color:'var(--text3)'}}>Loading…</div> : (

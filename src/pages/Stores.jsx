@@ -487,7 +487,7 @@ export default function Stores() {
                     <div style={{ display:'flex', flexWrap:'wrap', gap:10, marginTop:8, fontSize:12, color:'var(--text3)' }}>
                       {wo.vendor_name && <span>🏢 {wo.vendor_name}</span>}
                       {wo.category && <span>🏷️ {wo.category}</span>}
-                      {Number(wo.cost) > 0 && <span style={{ color:'#1D9E75', fontWeight:700 }}>💰 {AED(wo.cost)}</span>}
+                      {Number(wo.cost) > 0 && <span style={{ color:'var(--green)', fontWeight:700 }}>💰 {AED(wo.cost)}</span>}
                       {wo.created_at && <span>📅 {new Date(wo.created_at).toLocaleDateString()}</span>}
                       {wo.completed_at && <span>✅ {new Date(wo.completed_at).toLocaleDateString()}</span>}
                       {wo.signature_url && <span>✍️ Signed</span>}

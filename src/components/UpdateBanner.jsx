@@ -31,9 +31,9 @@ export default function UpdateBanner() {
 
   if (!stale) return null
   return (
-    <div style={{ position:'fixed', bottom:16, left:'50%', transform:'translateX(-50%)', zIndex:5000, background:'#1D9E75', color:'white', borderRadius:12, padding:'10px 14px', display:'flex', gap:12, alignItems:'center', boxShadow:'0 6px 20px rgba(0,0,0,.25)', fontSize:14, maxWidth:'calc(100vw - 24px)' }}>
+    <div style={{ position:'fixed', bottom:16, left:'50%', transform:'translateX(-50%)', zIndex:5000, background:'var(--green)', color:'white', borderRadius:12, padding:'10px 14px', display:'flex', gap:12, alignItems:'center', boxShadow:'0 6px 20px rgba(0,0,0,.25)', fontSize:14, maxWidth:'calc(100vw - 24px)' }}>
       <span>✨ A new version of Fixnar is available.</span>
-      <button onClick={() => window.location.reload()} style={{ background:'white', color:'#1D9E75', border:'none', borderRadius:8, padding:'6px 14px', fontWeight:700, cursor:'pointer' }}>Reload</button>
+      <button onClick={() => window.location.reload()} style={{ background:'white', color:'var(--green)', border:'none', borderRadius:8, padding:'6px 14px', fontWeight:700, cursor:'pointer' }}>Reload</button>
     </div>
   )
 }

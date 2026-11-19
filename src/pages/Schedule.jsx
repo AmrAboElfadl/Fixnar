@@ -10,7 +10,7 @@ const STATUS_CFG = {
   open:        { bg:'#FFF3E0', text:'#E65100', border:'#EF9F27',  label:'Open' },
   travelling:  { bg:'#E3F2FD', text:'#1565C0', border:'#378ADD',  label:'On the Way' },
   arrived:     { bg:'#E8EAF6', text:'#283593', border:'#7F77DD',  label:'Arrived' },
-  in_progress: { bg:'#E8F5E9', text:'#1B5E20', border:'#1D9E75',  label:'In Progress' },
+  in_progress: { bg:'#E8F5E9', text:'#1B5E20', border:'var(--green)',  label:'In Progress' },
   on_hold:     { bg:'#FBE9E7', text:'#BF360C', border:'#E24B4A',  label:'On Hold' },
   completed:   { bg:'#F3E5F5', text:'#4A148C', border:'#9C27B0',  label:'Completed' },
   closed:      { bg:'#ECEFF1', text:'#455A64', border:'#90A4AE',  label:'Closed' },
@@ -82,15 +82,16 @@ const isSunday = s => parseYmd(s).getDay() === 0
 const shortTime = t => t ? t.slice(0,5) : ''
 const initials = name => (name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()
 
-function JobChip({ wo, techName, onOpen, compact }) {
+function JobChip({ wo, techName, onOpen, compact, helper }) {
   const cfg = STATUS_CFG[wo.status] || STATUS_CFG.open
   return (
-    <div draggable
-      onDragStart={e => { e.dataTransfer.setData('text/plain', wo.id); e.dataTransfer.effectAllowed = 'move' }}
+    <div draggable={!helper}
+      onDragStart={e => { if (helper) return; e.dataTransfer.setData('text/plain', wo.id); e.dataTransfer.effectAllowed = 'move' }}
       onClick={e => { e.stopPropagation(); onOpen(wo) }}
       title={`${wo.priority} · ${wo.title}\n${wo.stores?.name || ''}${techName ? ' · ' + techName : ''}${wo.scheduled_time ? ' · ' + shortTime(wo.scheduled_time) : ''}`}
       style={{display:'flex',alignItems:'center',gap:4,background:cfg.bg,border:`1px solid ${cfg.border}`,borderRadius:6,padding:compact?'1px 5px':'3px 6px',fontSize:compact?10:11,color:cfg.text,cursor:'grab',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',userSelect:'none'}}>
       <span style={{width:7,height:7,borderRadius:'50%',flexShrink:0,background:P_COLORS[wo.priority]||'#999'}}/>
+      {helper && <span title="Helping (second technician) — move it from the main technician's row">👥</span>}
       {wo.schedule_locked && <span>🔒</span>}
       {wo.scheduled_time && <b>{shortTime(wo.scheduled_time)}</b>}
       {techName && <span style={{fontWeight:700}}>{techName}</span>}
@@ -117,7 +118,7 @@ function WeekView({ wos, techs, anchor, onMove, onOpen, onPickDay }) {
   const days = Array.from({length:7}, (_,i) => { const d = new Date(start); d.setDate(start.getDate()+i); return ymd(d) })
   const today = ymd(new Date())
   const rows = [...techs, { id:'unassigned', full_name:'Unassigned' }]
-  const cellWOs = (techId, day) => wos.filter(w => w.scheduled_date === day && (w.assigned_to || 'unassigned') === techId)
+  const cellWOs = (techId, day) => wos.filter(w => w.scheduled_date === day && ((w.assigned_to || 'unassigned') === techId || (techId !== 'unassigned' && (w.helper_ids || []).includes(techId) && w.assigned_to !== techId)))
     .sort((a,b) => (a.scheduled_time||'99').localeCompare(b.scheduled_time||'99'))
   return (
     <div style={{overflowX:'auto'}}>
@@ -147,7 +148,7 @@ function WeekView({ wos, techs, anchor, onMove, onOpen, onPickDay }) {
                 <DropCell key={d} date={d} techId={t.id} onMove={onMove} dayOff={off}
                   style={{minHeight:64,background:'var(--surface)',border:`1px solid ${full ? 'var(--red)' : 'var(--border)'}`,borderRadius:8,padding:4,display:'flex',flexDirection:'column',gap:3}}>
                   {!off && t.id !== 'unassigned' && <div style={{fontSize:9,fontWeight:700,color: full ? 'var(--red)' : 'var(--text3)',textAlign:'right'}}>{list.length}/{MAX_PER_DAY}</div>}
-                  {list.map(w => <JobChip key={w.id} wo={w} onOpen={onOpen}/>)}
+                  {list.map(w => <JobChip key={w.id} wo={w} onOpen={onOpen} helper={w.assigned_to !== t.id && t.id !== 'unassigned'}/>)}
                 </DropCell>
               )
             })}
@@ -424,6 +425,8 @@ export default function Schedule() {
     const key = wo.assigned_to || 'unassigned'
     if (!woByTech[key]) woByTech[key] = []
     woByTech[key].push(wo)
+    // second technician: the same visit also shows in the helper's row (not draggable there)
+    ;(wo.helper_ids || []).forEach(h => { if (h && h !== wo.assigned_to) (woByTech[h] = woByTech[h] || []).push({ ...wo, _helper:true }) })
   })
   Object.keys(woByTech).forEach(k => { woByTech[k] = autoSchedule(woByTech[k]) })
 
@@ -555,7 +558,7 @@ export default function Schedule() {
                     {myWOs.map(wo=>{
                       const cfg=STATUS_CFG[wo.status]||STATUS_CFG.open
                       return (
-                        <div key={wo.id} draggable onDragStart={e=>{e.dataTransfer.setData('text/plain', wo.id); onDragStart(wo,tech.id)}} onClick={()=>setActiveWO(wo)}
+                        <div key={wo.id + (wo._helper ? '-h' : '')} draggable={!wo._helper} onDragStart={e=>{ if (wo._helper) return; e.dataTransfer.setData('text/plain', wo.id); onDragStart(wo,tech.id)}} onClick={()=>setActiveWO(wo)} title={wo._helper ? 'Helping (second technician)' : undefined}
                           style={{position:'absolute',top:4,height:'calc(100% - 8px)',left:`${(wo._startMin/DAY_MINS)*100}%`,width:`${Math.max(2,((wo._endMin-wo._startMin)/DAY_MINS)*100)}%`,minWidth:60,background:cfg.bg,border:`1.5px solid ${cfg.border}`,borderRadius:6,cursor:'pointer',overflow:'hidden',display:'flex',alignItems:'center',padding:'0 6px',boxSizing:'border-box',zIndex:2,boxShadow:'0 1px 4px rgba(0,0,0,.1)'}}
                           onMouseEnter={e=>e.currentTarget.style.transform='scale(1.02)'}
                           onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
@@ -563,6 +566,7 @@ export default function Schedule() {
                           <div style={{minWidth:0}}>
                             <div style={{fontSize:10,fontWeight:700,color:cfg.text,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                               <span style={{display:'inline-block',width:8,height:8,borderRadius:'50%',background:P_COLORS[wo.priority]||'#999',marginRight:4}}/>
+                              {wo._helper && <span title="Helping (second technician)">👥 </span>}
                               {wo.schedule_locked && <span title="Placed by hand — auto-plan won't move it">🔒 </span>}
                               {wo.stores?.name?.split('-').pop().trim()||'Store'}
                             </div>

@@ -284,7 +284,7 @@ export default function WorkOrders() {
     const techMap = {}
     ;(techRes.data||[]).forEach(t => { techMap[t.id] = t.full_name })
     const wosWithTech = wosData.map(wo => ({
-      ...wo, tech_name: wo.assigned_to ? (techMap[wo.assigned_to] || 'Unknown') : null
+      ...wo, tech_name: wo.assigned_to ? [techMap[wo.assigned_to] || 'Unknown', ...(wo.helper_ids || []).filter(h => h !== wo.assigned_to).map(h => techMap[h] || 'helper')].join(' + ') : null
     }))
     setWos(wosWithTech)
     setStores(storeRes.data || [])
@@ -376,7 +376,7 @@ export default function WorkOrders() {
     if (filterPriority !== 'all' && w.priority !== filterPriority) return false
     if (filterTech !== 'all') {
       if (filterTech === 'unassigned' && w.assigned_to) return false
-      if (filterTech !== 'unassigned' && w.assigned_to !== filterTech) return false
+      if (filterTech !== 'unassigned' && w.assigned_to !== filterTech && !(w.helper_ids || []).includes(filterTech)) return false
     }
     if (filterStore !== 'all' && w.store_id !== filterStore) return false
     if (filterVendor !== 'all' && w.vendor_name !== filterVendor) return false   // ← NEW
@@ -441,7 +441,7 @@ export default function WorkOrders() {
           </button>
           {!isVendor && (
           <button onClick={() => setShowForm(true)}
-            style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:500, cursor:'pointer' }}>
+            style={{ background:'var(--green)', color:'white', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:500, cursor:'pointer' }}>
             + New Work Order
           </button>
           )}
@@ -563,7 +563,7 @@ export default function WorkOrders() {
 
       {/* ── NEW WO FORM ── */}
       {showForm && (
-        <div style={{ background:'var(--card-bg)', border:'1px solid #1D9E75', borderRadius:12, padding:24, marginBottom:20, boxShadow:'0 2px 12px rgba(29,158,117,0.1)' }}>
+        <div style={{ background:'var(--card-bg)', border:'1px solid var(--green)', borderRadius:12, padding:24, marginBottom:20, boxShadow:'0 2px 12px rgba(29,158,117,0.1)' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
             <h3 style={{ color:'var(--text)', fontSize:15, fontWeight:600, margin:0 }}>Create New Work Order</h3>
             <button onClick={() => { setShowForm(false); setForm(EMPTY) }} style={{ background:'transparent', border:'none', color:'var(--text3)', cursor:'pointer', fontSize:20 }}>✕</button>

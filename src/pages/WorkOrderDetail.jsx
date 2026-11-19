@@ -192,6 +192,7 @@ export default function WorkOrderDetail() {
       assigned_to: wo.assigned_to || '', vendor_id: wo.vendor_id || '', priority: wo.priority || 'P3',
       scheduled_date: wo.scheduled_date || '', scheduled_time: (wo.scheduled_time || '').slice(0,5),
       duration_hours: Number(wo.duration_hours) || 1, cost: wo.cost ?? '',
+      helper: (wo.helper_ids || [])[0] || '',   // second technician (fx10)
     })
     setAction('assign')
   }
@@ -209,12 +210,18 @@ export default function WorkOrderDetail() {
       setSaving(false); return flash('Sunday is a day off — choose another day', 'error')
     }
     if (!assign.vendor_id && wo.vendor_id) patch.vendor_name = null
+    // Second technician (fx10): never the main technician; sent only when it changes
+    if (Array.isArray(wo.helper_ids)) {
+      const nextHelpers = assign.helper && assign.helper !== patch.assigned_to ? [assign.helper] : []
+      if (JSON.stringify(nextHelpers) !== JSON.stringify(wo.helper_ids || [])) patch.helper_ids = nextHelpers
+    }
     const { error } = await supabase.from('work_orders').update(patch).eq('id', id)
     if (hasErr(error)) { setSaving(false); return flash(error.message, 'error') }
     const changes = []
     if ((patch.assigned_to || null) !== (wo.assigned_to || null)) changes.push(`technician → ${techs.find(t => t.id === patch.assigned_to)?.full_name || 'none'}`)
     if ((patch.vendor_id || null) !== (wo.vendor_id || null)) changes.push(`vendor → ${vendors.find(v => v.id === patch.vendor_id)?.name || 'none'}`)
-    if (patch.priority !== wo.priority) changes.push(`priority → ${patch.priority}`)
+    if (patch.priority && patch.priority !== wo.priority) changes.push(`priority → ${patch.priority}`)
+    if (patch.helper_ids) changes.push(`second technician → ${techs.find(t => t.id === patch.helper_ids[0])?.full_name || 'none'}`)
     if (changes.length) await logUpdate('note', 'Updated: ' + changes.join(', '))
     setAction(null); await fetchWO(); setSaving(false); flash('✅ Saved')
   }
@@ -297,7 +304,8 @@ export default function WorkOrderDetail() {
   const visibleSteps = STATUS_STEPS.filter(s => s.key !== 'on_hold' || wo.status === 'on_hold')
   const stepIdx = Math.max(0, visibleSteps.findIndex(s => s.key === wo.status))
   const isClosed = wo.status === 'closed'
-  const canAct = isStaff || wo.assigned_to === profile?.id || (isVendor && wo.vendor_id && wo.vendor_id === profile?.vendor_id)
+  const isHelper = Array.isArray(wo.helper_ids) && wo.helper_ids.includes(profile?.id)   // second technician works the job too
+  const canAct = isStaff || wo.assigned_to === profile?.id || isHelper || (isVendor && wo.vendor_id && wo.vendor_id === profile?.vendor_id)
   const canEditChecklist = canAct
   const doneCount = checklist.filter(c => c.is_done).length
   const checklistIncomplete = checklist.length > 0 && doneCount < checklist.length
@@ -366,6 +374,7 @@ export default function WorkOrderDetail() {
             </div>
             <div style={{ display:'flex', gap:14, flexWrap:'wrap', fontSize:12, color:'var(--text3)', marginTop:8 }}>
               <span>👷 {wo.assigned_to === profile?.id ? 'You' : techs.find(t => t.id === wo.assigned_to)?.full_name || (wo.assigned_to ? 'Technician assigned' : 'No technician')}</span>
+              {(wo.helper_ids || []).length > 0 && <span title="Second technician">👥 + {(wo.helper_ids || []).map(h => h === profile?.id ? 'You' : (techs.find(t => t.id === h)?.full_name || 'second technician')).join(', ')}</span>}
               {wo.vendor_name && <span>🧰 {wo.vendor_name}</span>}
               {wo.scheduled_date && <span>📅 {new Date(wo.scheduled_date + 'T00:00:00').toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' })}{wo.scheduled_time ? ' · ' + wo.scheduled_time.slice(0,5) : ''}{wo.duration_hours ? ` (${Number(wo.duration_hours)}h)` : ''}{wo.schedule_locked ? ' 🔒' : ''}</span>}
               {wo.cost != null && !isVendor && <span>💰 {AED(wo.cost)}</span>}
@@ -385,9 +394,13 @@ export default function WorkOrderDetail() {
           <h3 style={{ fontSize:15, margin:'0 0 14px', color:'var(--blue)' }}>Assign & edit</h3>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:12 }}>
             <div><label style={lbl}>Technician</label>
-              <select value={assign.assigned_to} onChange={e => setAssign({ ...assign, assigned_to:e.target.value })} style={inp}>
+              <select value={assign.assigned_to} onChange={e => setAssign({ ...assign, assigned_to:e.target.value, helper: assign.helper === e.target.value ? '' : assign.helper })} style={inp}>
                 <option value="">— none —</option>{techs.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
               </select></div>
+            {Array.isArray(wo.helper_ids) && <div><label style={lbl}>Second technician</label>
+              <select value={assign.helper || ''} onChange={e => setAssign({ ...assign, helper:e.target.value })} style={inp} disabled={!assign.assigned_to} title={assign.assigned_to ? '' : 'Choose the main technician first'}>
+                <option value="">— none —</option>{techs.filter(t => t.id !== assign.assigned_to).map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+              </select></div>}
             <div><label style={lbl}>Vendor</label>
               <select value={assign.vendor_id} onChange={e => setAssign({ ...assign, vendor_id:e.target.value })} style={inp}>
                 <option value="">— in-house —</option>{vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}

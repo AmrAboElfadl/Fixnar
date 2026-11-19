@@ -7,6 +7,7 @@ export const THEMES = [
   { id:'light', icon:'☀️', label:'Light' },
   { id:'dark',  icon:'🌙', label:'Dark' },
   { id:'retro', icon:'🕹️', label:'Retro 80s/90s' },
+  { id:'pro',   icon:'💼', label:'Professional' },   // Salesforce Lightning-style
 ]
 
 export function ThemeProvider({ children }) {
@@ -17,7 +18,7 @@ export function ThemeProvider({ children }) {
     localStorage.setItem('fixnar_theme', theme)
     document.documentElement.setAttribute('data-theme', theme)
     const meta = document.querySelector('meta[name="theme-color"]')
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0d1117' : theme === 'retro' ? '#000080' : '#1D9E75')
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0d1117' : theme === 'retro' ? '#000080' : theme === 'pro' ? '#0176D3' : '#0E7C5A')
   }, [theme])
 
   const firstLang = useRef(lang)
@@ -30,7 +31,7 @@ export function ThemeProvider({ children }) {
     else if (firstLang.current === 'ar') window.location.reload()
   }, [lang])
 
-  // Cycles Light → Dark → Retro → Light
+  // Cycles Light → Dark → Retro → Professional → Light
   function toggleTheme() {
     setTheme(t => THEMES[(THEMES.findIndex(x => x.id === t) + 1) % THEMES.length].id)
   }

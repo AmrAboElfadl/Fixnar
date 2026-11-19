@@ -41,13 +41,20 @@ export default function TechSchedule() {
 
   async function load(silent = false) {
     if (!silent) setLoading(true)
-    const [w, p] = await Promise.all([
-      fetchAllRows(() => supabase.from('work_orders')
-        .select('id,title,description,priority,status,category,scheduled_date,scheduled_time,duration_hours,sla_due_at,schedule_locked,wo_type,stores(name,address,phone,manager_name,maps_url,latitude,longitude),assets(name)')
-        .eq('assigned_to', techId).not('status', 'in', '(closed)').order('scheduled_date').order('scheduled_time')),
+    const WO_COLS = 'id,title,description,priority,status,category,scheduled_date,scheduled_time,duration_hours,sla_due_at,schedule_locked,wo_type,stores(name,address,phone,manager_name,maps_url,latitude,longitude),assets(name)'
+    // Own jobs + jobs helping on (second technician, fx10). A workspace whose database does not have
+    // helper_ids yet answers with an error — then fall back to own jobs only, exactly as before.
+    const woQuery = (withHelpers) => fetchAllRows(() => {
+      const q = supabase.from('work_orders').select(WO_COLS)
+      return (withHelpers ? q.or(`assigned_to.eq.${techId},helper_ids.cs.{${techId}}`) : q.eq('assigned_to', techId))
+        .not('status', 'in', '(closed)').order('scheduled_date').order('scheduled_time')
+    })
+    const [w0, p] = await Promise.all([
+      woQuery(true),
       supabase.from('ppm_tasks').select('id,title,due_date,status,is_active,category,stores(name)')
         .eq('assigned_to', techId).gte('due_date', today).lte('due_date', end).order('due_date'),
     ])
+    const w = (w0.error && Object.keys(w0.error).length) ? await woQuery(false) : w0
     setWos(w.data || [])
     setPpm((p.data || []).filter(x => x.is_active !== false && x.status !== 'in_progress'))
     setLoading(false)
