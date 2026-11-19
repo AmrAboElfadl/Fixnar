@@ -24,7 +24,7 @@ Last updated: 2026-11-16 (cycle 1)
 | 2 | Pause the SLA while a work order is `on_hold` | FBOS | done (fx10 applied 11-16); next: show paused time on the job |
 | 3 | Priority set from the fault; only admin may override | FBOS | done: database guard (fx10) + all three screens (new job, Assign & edit, store page) |
 | 4 | Duplicate warning + draft autosave on a new work order | FBOS | in PR (cycle 1) |
-| 5 | Second technician on a work order: DB done (fx10); next the picker on Assign & edit, list/schedule display, `plan_dispatch` helper time | FBOS | todo (unblocked) |
+| 5 | Second technician screens: picker on Assign & edit, header, list "A + B", dispatch board helper chip (not draggable), My Schedule includes helping jobs (falls back on a workspace DB without helper_ids) | FBOS | in PR (#20) |
 | 6 | ~~Vendor scorecard~~: already existed (cycle 0 was wrong) | — | done |
 | 7 | Equipment quick-add catalogue / copy another store's assets | FBOS | todo |
 | 8 | Repo hygiene: stray duplicates removed, fx06 header fixed, `.gitignore` | audit | in PR (cycle 1) |
@@ -44,6 +44,8 @@ Last updated: 2026-11-16 (cycle 1)
 | 22 | Style (owner, 11-19): DM Sans actually loaded; light-theme colours pass WCAG AA; new **Professional (Salesforce-style)** theme; 30 hard-coded greens on buttons/text now follow the theme | market review | in PR |
 | 23 | Remaining hard-coded colours: priority chips (P2 amber 2.2:1), Analytics/LiveMap chart colours, logo gradients; dark theme white-on-green buttons 3.4:1 | market review | todo |
 | 24 | Market gaps (top-50 CMMS review 11-19): fridge/freezer temperature sensors + alerts; offline mobile work orders; report a fault by QR without signing in; meter-based PM; downtime / MTTR / MTBF | market review | todo |
+| 25 | Auto-plan (`plan_dispatch()`) should count the helper's time too, so a helper is never double-booked (needs a fxNN migration) | FBOS | todo |
+| 26 | Workspaces: apply the same migrations (fx10 …) to every workspace database (Wahat Al Hayat is paused as of 11-19; 'heja' project exists but is not in workspaces.js on main) | owner | todo |
 
 ## Log
 _(done items move here)_

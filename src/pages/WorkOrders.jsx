@@ -284,7 +284,7 @@ export default function WorkOrders() {
     const techMap = {}
     ;(techRes.data||[]).forEach(t => { techMap[t.id] = t.full_name })
     const wosWithTech = wosData.map(wo => ({
-      ...wo, tech_name: wo.assigned_to ? (techMap[wo.assigned_to] || 'Unknown') : null
+      ...wo, tech_name: wo.assigned_to ? [techMap[wo.assigned_to] || 'Unknown', ...(wo.helper_ids || []).filter(h => h !== wo.assigned_to).map(h => techMap[h] || 'helper')].join(' + ') : null
     }))
     setWos(wosWithTech)
     setStores(storeRes.data || [])
@@ -376,7 +376,7 @@ export default function WorkOrders() {
     if (filterPriority !== 'all' && w.priority !== filterPriority) return false
     if (filterTech !== 'all') {
       if (filterTech === 'unassigned' && w.assigned_to) return false
-      if (filterTech !== 'unassigned' && w.assigned_to !== filterTech) return false
+      if (filterTech !== 'unassigned' && w.assigned_to !== filterTech && !(w.helper_ids || []).includes(filterTech)) return false
     }
     if (filterStore !== 'all' && w.store_id !== filterStore) return false
     if (filterVendor !== 'all' && w.vendor_name !== filterVendor) return false   // ← NEW
