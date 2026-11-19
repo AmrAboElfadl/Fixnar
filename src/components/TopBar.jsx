@@ -44,7 +44,7 @@ export default function TopBar({ onMenuToggle, pinned, onPin }) {
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           {BRAND.logo
             ? <img src={BRAND.logo} alt="" style={{ width:28, height:28, borderRadius:8, objectFit:'contain', background:'#fff' }}/>
-            : (<div style={{ width:28, height:28, background:'#1D9E75', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            : (<div style={{ width:28, height:28, background:'var(--green)', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
               <path d="M2 9h5M11 9h5M9 2v5M9 11v5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
               <circle cx="9" cy="9" r="2" fill="white"/>

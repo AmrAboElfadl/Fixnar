@@ -10,7 +10,7 @@ const STATUS_CFG = {
   open:        { bg:'#FFF3E0', text:'#E65100', border:'#EF9F27',  label:'Open' },
   travelling:  { bg:'#E3F2FD', text:'#1565C0', border:'#378ADD',  label:'On the Way' },
   arrived:     { bg:'#E8EAF6', text:'#283593', border:'#7F77DD',  label:'Arrived' },
-  in_progress: { bg:'#E8F5E9', text:'#1B5E20', border:'#1D9E75',  label:'In Progress' },
+  in_progress: { bg:'#E8F5E9', text:'#1B5E20', border:'var(--green)',  label:'In Progress' },
   on_hold:     { bg:'#FBE9E7', text:'#BF360C', border:'#E24B4A',  label:'On Hold' },
   completed:   { bg:'#F3E5F5', text:'#4A148C', border:'#9C27B0',  label:'Completed' },
   closed:      { bg:'#ECEFF1', text:'#455A64', border:'#90A4AE',  label:'Closed' },

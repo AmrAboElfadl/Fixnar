@@ -441,7 +441,7 @@ export default function WorkOrders() {
           </button>
           {!isVendor && (
           <button onClick={() => setShowForm(true)}
-            style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:500, cursor:'pointer' }}>
+            style={{ background:'var(--green)', color:'white', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:500, cursor:'pointer' }}>
             + New Work Order
           </button>
           )}
@@ -563,7 +563,7 @@ export default function WorkOrders() {
 
       {/* ── NEW WO FORM ── */}
       {showForm && (
-        <div style={{ background:'var(--card-bg)', border:'1px solid #1D9E75', borderRadius:12, padding:24, marginBottom:20, boxShadow:'0 2px 12px rgba(29,158,117,0.1)' }}>
+        <div style={{ background:'var(--card-bg)', border:'1px solid var(--green)', borderRadius:12, padding:24, marginBottom:20, boxShadow:'0 2px 12px rgba(29,158,117,0.1)' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
             <h3 style={{ color:'var(--text)', fontSize:15, fontWeight:600, margin:0 }}>Create New Work Order</h3>
             <button onClick={() => { setShowForm(false); setForm(EMPTY) }} style={{ background:'transparent', border:'none', color:'var(--text3)', cursor:'pointer', fontSize:20 }}>✕</button>

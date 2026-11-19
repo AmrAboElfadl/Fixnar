@@ -142,12 +142,12 @@ export default function Login() {
     wrap:  { minHeight:'100vh', background:'#0d1117', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'DM Sans', sans-serif" },
     box:   { background:'#161b22', border:'1px solid #30363d', borderRadius:16, padding:32 },
     err:   { background:'#2d1b1b', border:'1px solid #f85149', borderRadius:8, padding:'10px 14px', marginBottom:16, color:'#f85149', fontSize:13, lineHeight:1.5 },
-    ok:    { background:'#1d2f26', border:'1px solid #1D9E75', borderRadius:8, padding:'14px 16px', marginBottom:16, color:'#1D9E75', fontSize:13, lineHeight:1.6 },
+    ok:    { background:'#1d2f26', border:'1px solid var(--green)', borderRadius:8, padding:'14px 16px', marginBottom:16, color:'var(--green)', fontSize:13, lineHeight:1.6 },
     warn:  { background:'#2d2208', border:'1px solid #EF9F27', borderRadius:8, padding:'10px 14px', marginBottom:16, color:'#EF9F27', fontSize:13 },
     label: { display:'block', color:'#8b949e', fontSize:13, marginBottom:6 },
     inp:   { width:'100%', background:'#0d1117', border:'1px solid #30363d', borderRadius:8, padding:'10px 14px', color:'#e6edf3', fontSize:14, outline:'none', boxSizing:'border-box' },
     btn:   { width:'100%', color:'white', border:'none', borderRadius:8, padding:'12px', fontSize:15, fontWeight:500, transition:'background 0.2s' },
-    link:  { background:'none', border:'none', color:'#1D9E75', fontSize:13, cursor:'pointer', padding:0, textDecoration:'underline' },
+    link:  { background:'none', border:'none', color:'var(--green)', fontSize:13, cursor:'pointer', padding:0, textDecoration:'underline' },
   }
 
   const EyeIcon = ({ show }) => (
@@ -178,7 +178,7 @@ export default function Login() {
             ? <img src={BRAND.banner} alt={BRAND.name} style={{ width:'100%', maxWidth:360, background:'#fff', borderRadius:12, padding:8, marginBottom:16 }}/>
             : BRAND.logo
             ? <img src={BRAND.logo} alt="" style={{ width:56, height:56, borderRadius:16, objectFit:'contain', background:'#fff' }}/>
-            : (<div style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:56, height:56, background:'#1D9E75', borderRadius:16, marginBottom:16 }}>
+            : (<div style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:56, height:56, background:'var(--green)', borderRadius:16, marginBottom:16 }}>
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
               <path d="M4 14h8M16 14h8M14 4v8M14 16v8" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
               <circle cx="14" cy="14" r="3" fill="white"/>
@@ -233,7 +233,7 @@ export default function Login() {
                     </div>
                   )}
                   <button onClick={() => { setMode('login'); setResetSent(false); setError('') }}
-                    style={{ ...s.btn, background:'#1D9E75', cursor:'pointer' }}>
+                    style={{ ...s.btn, background:'var(--green)', cursor:'pointer' }}>
                     Back to sign in
                   </button>
                 </>

@@ -9,19 +9,19 @@
   --border2:   #d0d0d0;
   --text:      #111111;
   --text2:     #444444;
-  --text3:     #777777;
+  --text3:     #6B6B6B;   /* was #777 (4.48:1) → 5.33:1 */
   --sidebar-bg:#ffffff;
   --card-bg:   #ffffff;
   --surface:   #ffffff;
   --input-bg:  #f8f8f8;
   --hover-bg:  #f0f0f0;
-  --green:     #1D9E75;
+  --green:     #0E7C5A;   /* was #1D9E75 (3.39:1, white-on-green buttons failed AA) → 5.19:1 */
   --green-bg:  #e8f7f2;
-  --blue:      #378ADD;
+  --blue:      #1F6AB8;   /* was #378ADD (3.59:1) → 5.51:1 */
   --blue-bg:   #e8f1fb;
-  --amber:     #EF9F27;
+  --amber:     #9A5B00;   /* was #EF9F27 (2.17:1) → 5.43:1 */
   --amber-bg:  #fdf3e3;
-  --red:       #E24B4A;
+  --red:       #C2302F;   /* was #E24B4A (3.93:1) → 5.59:1 */
   --red-bg:    #fdeaea;
   --purple:    #7F77DD;
   --shadow:    0 1px 3px rgba(0,0,0,0.08);
@@ -53,6 +53,47 @@
   --purple:    #7F77DD;
   --shadow:    none;
 }
+
+/* ── PROFESSIONAL (Salesforce Lightning-style) ──
+   Values from Salesforce's published design system (@salesforce-ux/design-system):
+   #F3F3F3 page, white cards, #E5E5E5 borders, #181818 text, brand blue #0176D3,
+   success #2E844A, warning #8C4B02 (text), error #BA0517, system font, 4px controls.
+   Every text colour passes WCAG AA (4.5:1) on white. Roles unchanged: green = done/primary,
+   blue = info/links, so no status changes meaning. */
+[data-theme="pro"] {
+  --bg:        #f3f3f3;
+  --bg2:       #ffffff;
+  --bg3:       #f3f3f3;
+  --border:    #e5e5e5;
+  --border2:   #c9c9c9;
+  --text:      #181818;
+  --text2:     #444444;
+  --text3:     #5c5c5c;
+  --sidebar-bg:#ffffff;
+  --card-bg:   #ffffff;
+  --surface:   #ffffff;
+  --input-bg:  #ffffff;
+  --hover-bg:  #eef4ff;
+  --green:     #2E844A;
+  --green-bg:  #ebf7e6;
+  --blue:      #0176D3;
+  --blue-bg:   #eef4ff;
+  --amber:     #8C4B02;
+  --amber-bg:  #fef1ee;
+  --red:       #BA0517;
+  --red-bg:    #feded8;
+  --purple:    #5A1BA9;
+  --shadow:    0 2px 2px 0 rgba(0,0,0,0.10);
+}
+[data-theme="pro"] body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: #f3f3f3;
+}
+[data-theme="pro"] button, [data-theme="pro"] input, [data-theme="pro"] select, [data-theme="pro"] textarea { border-radius: 4px !important; }
+[data-theme="pro"] input:focus, [data-theme="pro"] select:focus, [data-theme="pro"] textarea:focus, [data-theme="pro"] button:focus-visible {
+  outline: none; box-shadow: 0 0 3px #0176D3 !important; border-color: #0176D3 !important;
+}
+[data-theme="pro"] a { color: #0B5CAB; }
 
 /* ── RETRO 80s/90s MODE ──
    90s: Windows 95 silver panels, bevelled buttons, navy title bar, chunky scrollbars.

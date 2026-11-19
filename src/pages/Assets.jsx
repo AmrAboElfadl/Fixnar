@@ -116,9 +116,9 @@ export default function Assets() {
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
                   <div>
                     <div style={{ color:'#e6edf3', fontSize:14, fontWeight:600 }}>{s.name}</div>
-                    {s.manager_name && <div style={{ color:'#1D9E75', fontSize:12, marginTop:3 }}>👤 {s.manager_name}</div>}
+                    {s.manager_name && <div style={{ color:'var(--green)', fontSize:12, marginTop:3 }}>👤 {s.manager_name}</div>}
                   </div>
-                  <span style={{ background:'#1d2f26', color:'#1D9E75', fontSize:11, padding:'3px 8px', borderRadius:6, fontWeight:500, whiteSpace:'nowrap' }}>
+                  <span style={{ background:'#1d2f26', color:'var(--green)', fontSize:11, padding:'3px 8px', borderRadius:6, fontWeight:500, whiteSpace:'nowrap' }}>
                     {storeAssetCount} assets
                   </span>
                 </div>
@@ -173,7 +173,7 @@ export default function Assets() {
               ))}
               <div style={{ display:'flex', gap:8, marginTop:4 }}>
                 <button onClick={handleSaveStore} disabled={savingStore}
-                  style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:7, padding:'8px 16px', fontSize:12, cursor:'pointer' }}>
+                  style={{ background:'var(--green)', color:'white', border:'none', borderRadius:7, padding:'8px 16px', fontSize:12, cursor:'pointer' }}>
                   {savingStore ? 'Saving...' : 'Save Changes'}
                 </button>
                 <button onClick={() => setEditingStore(null)}
@@ -187,7 +187,7 @@ export default function Assets() {
               {selectedStore.manager_name && (
                 <div style={{ display:'flex', gap:10, alignItems:'center' }}>
                   <span style={{ color:'#6b7280', fontSize:12, width:80 }}>Manager</span>
-                  <span style={{ color:'#1D9E75', fontSize:13, fontWeight:500 }}>👤 {selectedStore.manager_name}</span>
+                  <span style={{ color:'var(--green)', fontSize:13, fontWeight:500 }}>👤 {selectedStore.manager_name}</span>
                 </div>
               )}
               {selectedStore.phone && (
@@ -224,7 +224,7 @@ export default function Assets() {
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
             {[
               { label:'Total Assets',    value: storeAssets.length,                                    color:'#e6edf3' },
-              { label:'Operational',     value: storeAssets.filter(a=>a.status==='operational').length, color:'#1D9E75' },
+              { label:'Operational',     value: storeAssets.filter(a=>a.status==='operational').length, color:'var(--green)' },
               { label:'Maintenance',     value: storeAssets.filter(a=>a.status==='maintenance').length, color:'#EF9F27' },
               { label:'Inactive',        value: storeAssets.filter(a=>a.status==='inactive').length,    color:'#f85149' },
             ].map(k => (
@@ -239,7 +239,7 @@ export default function Assets() {
 
       {/* View Assets Button */}
       <button onClick={() => setView('store-assets')}
-        style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:8, padding:'12px 24px', fontSize:14, fontWeight:500, cursor:'pointer', marginBottom:20, display:'flex', alignItems:'center', gap:8 }}>
+        style={{ background:'var(--green)', color:'white', border:'none', borderRadius:8, padding:'12px 24px', fontSize:14, fontWeight:500, cursor:'pointer', marginBottom:20, display:'flex', alignItems:'center', gap:8 }}>
         ◈ View All {storeAssets.length} Assets →
       </button>
     </div>
@@ -268,7 +268,7 @@ export default function Assets() {
         </div>
         {isAdmin && (
           <button onClick={() => setShowAssetForm(!showAssetForm)}
-            style={{ background:'#1D9E75', color:'white', border:'none', borderRadius:8, padding:'10px 18px', fontSize:13, fontWeight:500, cursor:'pointer' }}>
+            style={{ background:'var(--green)', color:'white', border:'none', borderRadius:8, padding:'10px 18px', fontSize:13, fontWeight:500, cursor:'pointer' }}>
             + Add Asset
           </button>
         )}
@@ -278,7 +278,7 @@ export default function Assets() {
         style={{ ...inp, width:260, marginBottom:16 }}/>
 
       {showAssetForm && (
-        <div style={{ background:'#161b22', border:'1px solid #1D9E75', borderRadius:12, padding:20, marginBottom:16 }}>
+        <div style={{ background:'#161b22', border:'1px solid var(--green)', borderRadius:12, padding:20, marginBottom:16 }}>
           <h3 style={{ color:'#e6edf3', fontSize:14, fontWeight:500, margin:'0 0 14px' }}>Add Asset to {selectedStore.name}</h3>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
             {[['name','Name *'],['category','Category'],['location','Location'],['serial_number','Serial #']].map(([key,label]) => (

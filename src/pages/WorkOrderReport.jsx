@@ -49,7 +49,7 @@ export default function WorkOrderReport() {
   const showMoney = profile?.role !== 'technician'
 
   const box = { border:'1px solid #e3e3e3', borderRadius:8, padding:'10px 12px', breakInside:'avoid' }
-  const h = { fontSize:11, fontWeight:700, color:'#1D9E75', letterSpacing:'.06em', margin:'0 0 6px' }
+  const h = { fontSize:11, fontWeight:700, color:'var(--green)', letterSpacing:'.06em', margin:'0 0 6px' }
   const row = { display:'flex', justifyContent:'space-between', gap:10, fontSize:12, padding:'3px 0' }
 
   return (
@@ -57,14 +57,14 @@ export default function WorkOrderReport() {
       <style>{`@media print { .no-print { display:none !important } body { background:#fff } .sheet { box-shadow:none !important; margin:0 !important; width:auto !important } @page { size:A4; margin:12mm } }`}</style>
       <div className="no-print" style={{ maxWidth:794, margin:'0 auto 12px', display:'flex', gap:8, padding:'0 12px' }}>
         <button onClick={() => navigate(-1)} style={{ padding:'8px 14px', borderRadius:8, border:'1px solid #ccc', background:'#fff', cursor:'pointer' }}>← Back</button>
-        <button onClick={() => window.print()} style={{ padding:'8px 16px', borderRadius:8, border:'none', background:'#1D9E75', color:'#fff', fontWeight:600, cursor:'pointer' }}>🖨 Print / Save as PDF</button>
+        <button onClick={() => window.print()} style={{ padding:'8px 16px', borderRadius:8, border:'none', background:'var(--green)', color:'#fff', fontWeight:600, cursor:'pointer' }}>🖨 Print / Save as PDF</button>
         <span style={{ fontSize:12, color:'#666', alignSelf:'center' }}>In the print window choose “Save as PDF”.</span>
       </div>
 
       <div className="sheet" translate="no" dir="ltr" style={{ width:794, maxWidth:'100%', margin:'0 auto', background:'#fff', color:'#111', padding:28, boxShadow:'0 2px 12px rgba(0,0,0,.12)', fontFamily:"'DM Sans', Arial, sans-serif" }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', borderBottom:'2px solid #1D9E75', paddingBottom:12, marginBottom:14 }}>
           <div>
-            <div style={{ fontSize:20, fontWeight:800, color:'#1D9E75' }}>Fixnar</div>
+            <div style={{ fontSize:20, fontWeight:800, color:'var(--green)' }}>Fixnar</div>
             <div style={{ fontSize:11, color:'#666' }}>Maintenance job report</div>
           </div>
           <div style={{ textAlign:'right', fontSize:12 }}>

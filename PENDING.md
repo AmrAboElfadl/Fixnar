@@ -41,6 +41,9 @@ Last updated: 2026-11-16 (cycle 1)
 | 19 | AI: draft a work order from a photo; Ask AI about maintenance ("what is overdue at Mirdif?") | FBOS | todo |
 | 20 | Inspections module: checklist visits, failed equipment items → work orders, repeat failures per store (large) | FBOS | todo |
 | 21 | Dashboard: Today summary; Daily ops / PPM switch; PPM counted only when due | FBOS | todo |
+| 22 | Style (owner, 11-19): DM Sans actually loaded; light-theme colours pass WCAG AA; new **Professional (Salesforce-style)** theme; 30 hard-coded greens on buttons/text now follow the theme | market review | in PR |
+| 23 | Remaining hard-coded colours: priority chips (P2 amber 2.2:1), Analytics/LiveMap chart colours, logo gradients; dark theme white-on-green buttons 3.4:1 | market review | todo |
+| 24 | Market gaps (top-50 CMMS review 11-19): fridge/freezer temperature sensors + alerts; offline mobile work orders; report a fault by QR without signing in; meter-based PM; downtime / MTTR / MTBF | market review | todo |
 
 ## Log
 _(done items move here)_
