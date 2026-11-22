@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import SLABadge from '../components/SLABadge'
+import ReadingForm from '../components/ReadingForm'
+import { hasModule } from '../lib/brand'
 import { compressImage, uploadWoFile, openWoFile } from '../lib/files'
 import { CHECKLIST_TEMPLATES } from '../lib/checklists'
 import { useLive } from '../lib/useLive'
@@ -387,6 +389,14 @@ export default function WorkOrderDetail() {
         </div>
         {wo.description && <div style={{ color:'var(--text2)', fontSize:13, marginTop:12, padding:'10px 12px', background:'var(--bg)', borderRadius:8 }}>{wo.description}</div>}
       </div>
+
+      {/* Predictive maintenance (fx19): readings taken on this job */}
+      {wo.asset_id && canAct && !isVendor && !isClosed && hasModule('predictive') && (
+        <div style={card} data-readings>
+          <h3 style={{ fontSize:14, margin:'0 0 8px' }}>📈 Machine readings <span style={{ color:'var(--text3)', fontWeight:400, fontSize:12 }}>— help predict the next breakdown</span></h3>
+          <ReadingForm assetId={wo.asset_id} workOrderId={wo.id}/>
+        </div>
+      )}
 
       {/* Assign panel */}
       {action === 'assign' && (

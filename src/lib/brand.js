@@ -1,7 +1,7 @@
 // Name, logo, colour and allowed modules of the workspace this tab is using (see workspaces.js).
 import { CURRENT } from './workspaces'
 
-const ALL = ['dashboard', 'stores', 'assets', 'work-orders', 'ppm', 'schedule', 'vendors', 'inventory', 'budgets', 'analytics', 'users', 'finance', 'audit', 'dev']
+const ALL = ['dashboard', 'stores', 'assets', 'work-orders', 'ppm', 'schedule', 'predictive', 'vendors', 'inventory', 'budgets', 'analytics', 'users', 'finance', 'audit', 'dev']
 const modules = new Set(CURRENT.modules ? ['dashboard', ...CURRENT.modules] : ALL)
 
 export const BRAND = {
