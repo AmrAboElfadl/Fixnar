@@ -36,7 +36,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { console.log((c ? 'PASS' : 'FAIL')
   const sel = page.locator('label:has-text("Priority") + select, label:has-text("Priority") ~ select').first();
   ok(await sel.isDisabled(), 'operations: priority dropdown is locked');
   ok(await page.locator('text=only an admin can change it').count() >= 1, 'operations: told only an admin can change it');
-  await page.click('button:has-text("Save")'); await page.waitForTimeout(600);
+  await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(600);
   ok(PATCHES.length === 1 && (PATCHES[0].priority === undefined || PATCHES[0].priority === 'P2'), 'operations: save keeps the priority (' + JSON.stringify(PATCHES[0] && PATCHES[0].priority) + ')');
   ok(errs.length === 0, 'operations: no page errors' + (errs.length ? ' — ' + errs.join(' | ') : ''));
   await ctx.close();
@@ -45,7 +45,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { console.log((c ? 'PASS' : 'FAIL')
   await page.click('button:has-text("Assign")'); await page.waitForTimeout(300);
   const sel2 = page.locator('label:has-text("Priority") + select, label:has-text("Priority") ~ select').first();
   ok(!(await sel2.isDisabled()), 'admin: priority dropdown is open');
-  await sel2.selectOption('P1'); await page.click('button:has-text("Save")'); await page.waitForTimeout(600);
+  await sel2.selectOption('P1'); await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(600);
   ok(PATCHES.length === 1 && PATCHES[0].priority === 'P1', 'admin: change to P1 is sent');
   ok(errs.length === 0, 'admin: no page errors' + (errs.length ? ' — ' + errs.join(' | ') : ''));
   await browser.close(); srv.close(); console.log('\n' + pass + ' passed, ' + fail + ' failed'); process.exit(fail ? 1 : 0);

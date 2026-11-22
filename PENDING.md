@@ -46,6 +46,11 @@ Last updated: 2026-11-16 (cycle 1)
 | 24 | Market gaps (top-50 CMMS review 11-19): fridge/freezer temperature sensors + alerts; offline mobile work orders; report a fault by QR without signing in; meter-based PM; downtime / MTTR / MTBF | market review | todo |
 | 25 | Auto-plan (`plan_dispatch()`) should count the helper's time too, so a helper is never double-booked (needs a fxNN migration) | FBOS | todo |
 | 26 | Workspaces: apply the same migrations (fx10 …) to every workspace database (Wahat Al Hayat is paused as of 11-19; 'heja' project exists but is not in workspaces.js on main) | owner | todo |
+| 27 | **AI predictive maintenance** (owner, 11-22): fx19 applied (ships OFF); /predictive screen, readings on work orders, AI advice | owner request | in PR |
+| 28 | Deploy the asset-ai function update (new 'advise' action) after the predictive PR merges | owner | todo |
+| 29 | Sensors: pick wireless temperature (walk-ins / freezers) and current / vibration sensors; then a sensor intake endpoint (readings source 'sensor') | owner + agent | todo |
+| 30 | **AI energy management** (owner, 11-22) | owner request | todo (next PR) |
+| 31 | **AI inspections** (owner, 11-22) | owner request | todo |
 
 ## Log
 _(done items move here)_

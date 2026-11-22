@@ -4,7 +4,8 @@
 const { chromium } = require('playwright'); const http = require('http'), fs = require('fs'), path = require('path');
 const BUILD = path.resolve(process.argv[2] || 'build'); const REF = 'haielakcqbsvtpkcszud';
 const ADMIN = '00000000-0000-0000-0000-0000000000aa', T1 = '11111111-1111-1111-1111-111111111111', T2 = '22222222-2222-2222-2222-222222222222';
-const today = new Date(); const ymd = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+const today = new Date(); if (today.getDay() === 0) today.setDate(today.getDate() - 1);   // Sunday is Fixnar's day off: use Saturday (same Mon–Sun week)
+const ymd = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 const WO = { id:'w1', title:'Refrigeration — Chiller — Temperature High', status:'open', priority:'P2', store_id:'s1', assigned_to:T1, helper_ids:[T2],
   created_at:new Date(Date.now()-3600e3).toISOString(), sla_due_at:new Date(Date.now()+3600e3).toISOString(), scheduled_date: ymd(today), scheduled_time:'10:00:00', duration_hours:2,
   stores:{ name:'Mirdif City Centre' }, assets:null };
@@ -50,11 +51,11 @@ let pass = 0, fail = 0; const ok = (c, m) => { console.log((c ? 'PASS' : 'FAIL')
   ok(await helperSel.count() === 1, 'Assign & edit has a Second technician picker');
   const opts = await helperSel.locator('option').allInnerTexts();
   ok(!opts.includes('Nazir Anwar') && opts.includes('Shadab Khan'), 'picker never offers the main technician (' + opts.join(' / ') + ')');
-  await page.click('button:has-text("Save")'); await page.waitForTimeout(500);
+  await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(500);
   ok(PATCHES.length === 1 && !('helper_ids' in PATCHES[0]), 'saving without a change does not send helper_ids');
   await page.click('button:has-text("Assign")'); await page.waitForTimeout(300);
   await page.locator('label:has-text("Second technician") ~ select').first().selectOption('');
-  await page.click('button:has-text("Save")'); await page.waitForTimeout(500);
+  await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(500);
   ok(PATCHES.length === 2 && JSON.stringify(PATCHES[1].helper_ids) === '[]', 'removing the second technician sends helper_ids []');
   ok(errs.length === 0, 'work order: no page errors' + (errs.length ? ' — ' + errs.join(' | ') : ''));
   await ctx.close();
@@ -63,7 +64,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { console.log((c ? 'PASS' : 'FAIL')
   ({ page, ctx, errs } = await open('/work-orders/w1', admin, { noColumn:true }));
   await page.click('button:has-text("Assign")'); await page.waitForTimeout(300);
   ok(await page.locator('label:has-text("Second technician")').count() === 0, 'database without helper_ids: picker hidden');
-  await page.click('button:has-text("Save")'); await page.waitForTimeout(500);
+  await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(500);
   ok(PATCHES.length === 1 && !('helper_ids' in PATCHES[0]), 'database without helper_ids: save never sends helper_ids');
   await ctx.close();
 

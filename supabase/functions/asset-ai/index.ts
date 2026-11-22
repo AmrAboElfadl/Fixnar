@@ -191,6 +191,25 @@ Return JSON:
       });
     }
 
+    // Predictive maintenance (fx19): what to check on a machine that raised an alert
+    if (action === "advise") {
+      const asset = body.asset ?? {}, alert = body.alert ?? {}, readings = Array.isArray(body.readings) ? body.readings.slice(-20) : [];
+      if (!alert.title) return json({ error: "Missing alert." }, 400);
+      const { result } = await askClaude([{ type: "text", text:
+`A restaurant machine raised a predictive-maintenance alert. Advise the maintenance team what to check BEFORE it breaks down.
+Machine: ${asset.name ?? ""}; brand: ${asset.brand ?? ""}; model: ${asset.model ?? ""}; category: ${asset.category ?? ""}; specs: ${JSON.stringify(asset.specs ?? {}).slice(0, 1500)}
+Alert: ${alert.severity ?? ""} · ${alert.kind ?? ""} · ${alert.title}; details: ${JSON.stringify(alert.details ?? {}).slice(0, 800)}
+Recent readings (oldest first): ${JSON.stringify(readings)}
+UAE climate (hot, humid kitchens). Be specific to this kind of machine. No brand marketing.
+Return JSON:
+{"summary": one plain sentence on what is probably happening,
+ "likely_causes": [up to 4 short causes, most likely first],
+ "checks": [3 to 6 short steps the technician should do, in order],
+ "parts": [parts that may be needed],
+ "urgency": "today" | "this_week" | "next_visit"}` }], false);
+      return json({ ok: true, data: result });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (e) {
     return json({ error: (e as Error).message ?? "Unexpected error" }, 500);

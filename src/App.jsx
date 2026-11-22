@@ -24,6 +24,7 @@ import UpdateBanner from './components/UpdateBanner'
 import Inventory from './pages/Inventory'
 import TechSchedule from './pages/TechSchedule'
 import Budgets from './pages/Budgets'
+import Predictive from './pages/Predictive'
 import WorkOrderReport from './pages/WorkOrderReport'
 import Finance from './pages/finance/Finance'
 import { BRAND, hasModule, moduleOfPath } from './lib/brand'
@@ -157,6 +158,7 @@ function AppRoutes() {
       <Route path="/vendors"         element={page(<Vendors/>, STAFF)}/>
       <Route path="/inventory"       element={page(<Inventory/>, INTERNAL)}/>
       <Route path="/budgets"         element={page(<Budgets/>, STAFF)}/>
+      <Route path="/predictive"      element={page(<Predictive/>, INTERNAL)}/>
       <Route path="/analytics"       element={page(<Analytics/>, ['admin'])}/>
       <Route path="/users"           element={page(<Users/>, ['admin'])}/>
       <Route path="/audit"           element={page(<AuditLog/>, ['admin'])}/>

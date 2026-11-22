@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { path:'/schedule',    label:'Dispatch Board', icon:'◉', roles:['admin','operations'] },
   { path:'/my-schedule', label:'My Schedule',    icon:'▤', roles:['technician'] },
   { path:'/my-schedule', label:'30-Day Schedule', icon:'▤', roles:['admin','operations'] },
+  { path:'/predictive',  label:'Predictive',     icon:'⚠', roles:['admin','operations','technician'] },
   { path:'/vendors',     label:'Vendors',        icon:'⚒', roles:['admin','operations'] },
   { path:'/inventory',   label:'Spare Parts',    icon:'▣', roles:['admin','operations','technician'] },
   { path:'/budgets',     label:'Budgets',        icon:'◐', roles:['admin','operations'] },
